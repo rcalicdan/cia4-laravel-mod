@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Reymart221111\\Cia4LaravelMod\\cia4-laravel-mod\\": "src/"
+            "Reymart221111\\Cia4LaravelMod\\": "src/"
         },
         "exclude-from-classmap": [
             "**/Database/Laravel-Migrations/**"
