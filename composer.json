@@ -40,5 +40,7 @@
     },
     "require-dev": {
         "codeigniter4/framework": "^4.0"
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
