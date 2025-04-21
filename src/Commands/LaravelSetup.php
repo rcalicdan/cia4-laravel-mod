@@ -5,6 +5,7 @@ namespace Reymart221111\Cia4LaravelMod\Commands;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use Config\Autoload as AutoloadConfig;
+use Reymart221111\Cia4LaravelMod\Commands\Utils\ContentReplacer;
 
 class LaravelSetup extends BaseCommand
 {
@@ -77,8 +78,7 @@ class LaravelSetup extends BaseCommand
 
         $this->publishConfig();
         $this->setupHelpers();
-        $this->setupRoutes();
-        $this->setupEloquent();
+        $this->copyMigrationFiles();
     }
 
     /**
@@ -130,7 +130,7 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
     {
         // First check if App/Config/Services.php exists
         $appServicesPath = $this->distPath . 'Config/Services.php';
-        
+
         if (file_exists($appServicesPath)) {
             // Add methods to existing Services class
             $this->addServiceMethods($appServicesPath);
@@ -151,7 +151,7 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
     private function addServiceMethods(string $servicesPath): void
     {
         $content = file_get_contents($servicesPath);
-        
+
         // Check if class already has our methods
         if (strpos($content, 'eloquent(') !== false) {
             $this->write(CLI::color('  Skipped: ', 'yellow') . 'Services class already has eloquent() method.');
@@ -206,7 +206,7 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
 }
 EOD;
             $newContent = preg_replace($pattern, $eloquentMethod, $content);
-            
+
             if ($newContent !== $content && write_file($servicesPath, $newContent)) {
                 $this->write(CLI::color('  Updated: ', 'green') . clean_path($servicesPath));
             } else {
@@ -239,7 +239,7 @@ EOD;
 
         if (write_file($path, $output)) {
             $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
-            
+
             // Copy all helper files to App/Helpers
             $this->copyHelperFiles();
         } else {
@@ -266,91 +266,42 @@ EOD;
     }
 
     /**
-     * Setup routes for Laravel integration
+     * Copy Laravel migration files to App/Database/Laravel-Migrations
      */
-    private function setupRoutes(): void
+    private function copyMigrationFiles(): void
     {
-        $file = 'Config/Routes.php';
-        $path = $this->distPath . $file;
-        
-        if (!file_exists($path)) {
-            $this->error("  Routes file not found. Make sure you have a Config/Routes.php file.");
-            return;
+        // Create the Database/Laravel-Migrations directory if it doesn't exist
+        $migrationsDir = $this->distPath . 'Database/Laravel-Migrations';
+        if (!is_dir($migrationsDir)) {
+            mkdir($migrationsDir, 0777, true);
+            $this->write(CLI::color('  Created: ', 'green') . clean_path($migrationsDir));
         }
 
-        $content = file_get_contents($path);
-        $setupCode = 'service(\'eloquent\'); // Initialize Laravel Eloquent';
-        
-        // Check if the code is already there
-        if (strpos($content, $setupCode) !== false) {
-            $this->write(CLI::color('  Routes Setup: ', 'green') . 'Eloquent already initialized in routes.');
-            return;
-        }
-
-        // Find a good place to add our code - right after the routes initialization
-        $pattern = '/(.*\$routes\s*=\s*Services::routes\(\);.*\n)/';
-        $replace = '$1' . "\n" . $setupCode . "\n";
-        
-        $newContent = preg_replace($pattern, $replace, $content);
-        
-        if ($newContent !== $content && write_file($path, $newContent)) {
-            $this->write(CLI::color('  Updated: ', 'green') . clean_path($path));
-        } else {
-            $this->error("  Error updating Routes file.");
-        }
-    }
-
-    /**
-     * Setup Eloquent and run migrations if requested
-     */
-    private function setupEloquent(): void
-    {
-        // Create a models directory if it doesn't exist
-        $modelsDir = $this->distPath . 'Models';
-        if (!is_dir($modelsDir)) {
-            mkdir($modelsDir, 0777, true);
-            $this->write(CLI::color('  Created: ', 'green') . clean_path($modelsDir));
-        }
-        
-        // Copy the User model as an example
-        $this->copyFile('Models/User.php');
-        
-        // Ask if we should run migrations
-        if ($this->prompt('  Run Laravel migrations now?', ['y', 'n']) === 'y') {
-            $this->runMigrations();
-        }
-    }
-
-    /**
-     * Run Laravel migrations
-     */
-    private function runMigrations(): void
-    {
-        $this->write(CLI::color('  Running migrations...', 'green'));
-        
-        // Initialize Eloquent first
-        service('eloquent');
-        
         // Find migration files
-        $migrationDir = $this->sourcePath . 'Database/Laravel-Migrations';
-        if (!is_dir($migrationDir)) {
-            $this->error("  Migration directory not found.");
+        $sourceMigrationDir = $this->sourcePath . 'Database/Laravel-Migrations';
+        if (!is_dir($sourceMigrationDir)) {
+            $this->error("  Source migration directory not found.");
             return;
         }
-        
-        // Process each migration file
-        $files = scandir($migrationDir);
+
+        // Copy each migration file
+        $files = scandir($sourceMigrationDir);
         foreach ($files as $file) {
             if ($file === '.' || $file === '..') {
                 continue;
             }
-            
-            $this->write("  Migrating: " . $file);
-            $migration = require $migrationDir . '/' . $file;
-            $migration->up();
+
+            $sourceFile = $sourceMigrationDir . '/' . $file;
+            $destFile = $migrationsDir . '/' . $file;
+
+            if (copy($sourceFile, $destFile)) {
+                $this->write(CLI::color('  Copied: ', 'green') . clean_path($destFile));
+            } else {
+                $this->error("  Error copying migration file: " . $file);
+            }
         }
-        
-        $this->write(CLI::color('  Migrations completed!', 'green'));
+
+        $this->write(CLI::color('  Migration files copied successfully!', 'green'));
     }
 
     /**
@@ -374,14 +325,14 @@ EOD;
     protected function copyAndReplace(string $file, array $replaces = []): void
     {
         $path = "{$this->sourcePath}/{$file}";
-        
+
         if (!file_exists($path)) {
             $this->error("  Source file not found: " . clean_path($path));
             return;
         }
 
         $content = file_get_contents($path);
-        
+
         if (!empty($replaces)) {
             $content = $this->replacer->replace($content, $replaces);
         }
@@ -466,46 +417,5 @@ EOD;
     protected function prompt(string $message, ?array $options = null, ?string $validation = null): string
     {
         return CLI::prompt($message, $options, $validation);
-    }
-}
-
-/**
- * Content replacer utility class for file modifications
- */
-class ContentReplacer
-{
-    /**
-     * Replace content using search and replace arrays
-     * 
-     * @param string $content Original content
-     * @param array $replaces [search => replace] pairs
-     * @return string Modified content
-     */
-    public function replace(string $content, array $replaces): string
-    {
-        return strtr($content, $replaces);
-    }
-
-    /**
-     * Add content if it doesn't already exist
-     * 
-     * @param string $content Original content
-     * @param string $text Text to add
-     * @param string $pattern Regexp search pattern
-     * @param string $replace Regexp replacement including text to add
-     * @return bool|string true: already updated, false: regexp error, string: modified content
-     */
-    public function add(string $content, string $text, string $pattern, string $replace)
-    {
-        $return = preg_match('/' . preg_quote($text, '/') . '/u', $content);
-        if ($return === 1) {
-            // It has already been updated.
-            return true;
-        }
-        if ($return === false) {
-            // Regexp error.
-            return false;
-        }
-        return preg_replace($pattern, $replace, $content);
     }
 }
