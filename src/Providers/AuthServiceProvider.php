@@ -19,12 +19,12 @@ class AuthServiceProvider
      * The policy mappings for the application
      * 
      * This array maps model classes to their corresponding policy classes.
-     * Example: 'Reymart221111\Cia4LaravelMod\Models\User::class => Reymart221111\Cia4LaravelMod\Policies\UserPolicy::class'
+     * Example: 'App\Models\User::class => App\Policies\UserPolicy::class'
      * 
      * @var array
      */
     protected $policies = [
-        User::class => UserPolicy::class,
+        //
     ];
 
     /**

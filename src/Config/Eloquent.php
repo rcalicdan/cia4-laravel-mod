@@ -8,8 +8,9 @@ use Illuminate\Config\Repository;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Hashing\HashManager;
 use Illuminate\Pagination\Paginator;
+use CodeIgniter\Config\BaseConfig;
 
-class Eloquent
+class Eloquent extends BaseConfig
 {
     /**
      * @var Container

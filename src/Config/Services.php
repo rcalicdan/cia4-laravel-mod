@@ -1,6 +1,6 @@
 <?php
 
-namespace Config;
+namespace Reymart221111\Cia4LaravelMod\Config;
 
 use Reymart221111\Cia4LaravelMod\Config\Eloquent;
 use Reymart221111Authentication\Gate;
