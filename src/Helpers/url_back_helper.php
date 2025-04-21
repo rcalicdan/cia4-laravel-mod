@@ -13,30 +13,32 @@
  * @param  string|null  $default  Fallback URL
  * @return string
  */
-function back_url(?string $default = null): string
-{
-    $request = service('request');
+if (!function_exists('back_url')) {
+    function back_url(?string $default = null): string
+    {
+        $request = service('request');
 
-    // 1) Always prefer the hidden form field, no matter if PUT/POST/etc
-    if ($post = $request->getPost('back')) {
-        return $post;
+        // 1) Always prefer the hidden form field, no matter if PUT/POST/etc
+        if ($post = $request->getPost('back')) {
+            return $post;
+        }
+
+        // 2) If we’ve been redirected back after validation
+        if ($old = old('back')) {
+            return $old;
+        }
+
+        // 3) If a 'back' GET param is present
+        if ($get = $request->getGet('back')) {
+            return $get;
+        }
+
+        // 4) Otherwise, use the HTTP Referer
+        if (! empty($_SERVER['HTTP_REFERER'])) {
+            return $_SERVER['HTTP_REFERER'];
+        }
+
+        // 5) Finally, fallback
+        return route_to($default) ?? current_url();
     }
-
-    // 2) If we’ve been redirected back after validation
-    if ($old = old('back')) {
-        return $old;
-    }
-
-    // 3) If a 'back' GET param is present
-    if ($get = $request->getGet('back')) {
-        return $get;
-    }
-
-    // 4) Otherwise, use the HTTP Referer
-    if (! empty($_SERVER['HTTP_REFERER'])) {
-        return $_SERVER['HTTP_REFERER'];
-    }
-
-    // 5) Finally, fallback
-    return route_to($default) ?? current_url();
 }

@@ -16,13 +16,15 @@ use Config\Services;
  * @return mixed         Rendered HTML string or void
  * @throws \Throwable    Re-throws rendering exceptions in non-production environments
  */
-function blade_view(string $view, array $data = [], bool $render = false)
-{
-    $output = service('blade')->render($view, $data);
-    
-    if ($render) {
-        return $output;
+if (!function_exists('blade_view')) {
+    function blade_view(string $view, array $data = [], bool $render = false)
+    {
+        $output = service('blade')->render($view, $data);
+
+        if ($render) {
+            return $output;
+        }
+
+        echo $output;
     }
-    
-    echo $output;
 }
