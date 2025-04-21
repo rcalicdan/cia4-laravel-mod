@@ -8,6 +8,7 @@ use Config\Autoload as AutoloadConfig;
 
 class LaravelSetup extends BaseCommand
 {
+    protected $group = 'Laravel Setup';
     /**
      * The Command's name
      *
