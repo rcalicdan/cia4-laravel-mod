@@ -1,8 +1,8 @@
 <?php
 
-namespace Reymart221111\Libraries\Authentication;
+namespace Reymart221111Authentication;
 
-use Reymart221111\Models\User;
+use Reymart221111\Cia4LaravelMod\Models\User;
 
 /**
  * Authentication management class

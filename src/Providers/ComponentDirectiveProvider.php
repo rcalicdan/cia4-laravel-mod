@@ -1,6 +1,6 @@
 <?php 
 
-namespace Reymart221111\Libraries\Providers; 
+namespace Reymart221111Providers; 
 
 use Jenssegers\Blade\Blade;
 

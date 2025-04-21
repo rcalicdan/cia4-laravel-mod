@@ -1,15 +1,15 @@
 <?php
 
-namespace Reymart221111\Traits;
+namespace Reymart221111\Cia4LaravelMod\Traits;
 
-use Reymart221111\Libraries\Authentication\Gate;
+use Reymart221111Authentication\Gate;
 
 trait AuthorizationTrait
 {
     /**
      * Get the Gate instance.
      *
-     * @return \Reymart221111\Libraries\Authentication\Gate
+     * @return \Reymart221111Authentication\Gate
      */
     protected function gate()
     {

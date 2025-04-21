@@ -1,8 +1,8 @@
 <?php
 
-namespace Reymart221111\Libraries\Validation;
+namespace Reymart221111Validation;
 
-use Reymart221111\Exceptions\ValidationException;
+use Reymart221111\Cia4LaravelMod\Exceptions\ValidationException;
 
 /**
  * Abstract FormRequest class for handling form validation
@@ -22,7 +22,7 @@ abstract class FormRequest
     /**
      * The validator instance
      * 
-     * @var \Reymart221111\Libraries\Validation\LaravelValidator
+     * @var \Reymart221111Validation\LaravelValidator
      */
     protected $validator;
 

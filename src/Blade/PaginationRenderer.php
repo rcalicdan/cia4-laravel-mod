@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Libraries\Blade;
+namespace Reymart221111Blade;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 

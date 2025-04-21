@@ -1,10 +1,10 @@
 <?php
 
-namespace Reymart221111\Libraries\Providers;
+namespace Reymart221111Providers;
 
-use Reymart221111\Libraries\Gate;
-use Reymart221111\Models\User;
-use Reymart221111\Policies\UserPolicy;
+use Reymart221111Gate;
+use Reymart221111\Cia4LaravelMod\Models\User;
+use Reymart221111\Cia4LaravelMod\Policies\UserPolicy;
 
 /**
  * AuthServiceProvider
@@ -19,7 +19,7 @@ class AuthServiceProvider
      * The policy mappings for the application
      * 
      * This array maps model classes to their corresponding policy classes.
-     * Example: 'Reymart221111\Models\User::class => Reymart221111\Policies\UserPolicy::class'
+     * Example: 'Reymart221111\Cia4LaravelMod\Models\User::class => Reymart221111\Cia4LaravelMod\Policies\UserPolicy::class'
      * 
      * @var array
      */

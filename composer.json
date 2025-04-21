@@ -1,23 +1,44 @@
 {
-    "name": "your-vendor/your-package",
-    "description": "Your package description",
+    "name": "reymart221111/cia4-laravel-mod",
+    "description": "A CodeIgniter 4 template with Laravel package integrations",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Reymart221111\\cia4-laravel-mod\\": "src/"
-        }
+            "Reymart221111\\Cia4LaravelMod\\cia4-laravel-mod\\": "src/"
+        },
+        "exclude-from-classmap": [
+            "**/Database/Laravel-Migrations/**"
+        ]
     },
     "authors": [
         {
-            "name": "Your Name",
-            "email": "yourname@example.com"
+            "name": "Reymart Calicdan",
+            "email": "reymart.calicdan06@gmail.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/reymart221111/blade"
         }
     ],
     "require": {
-        
+        "php": "^8.1",
+        "guzzlehttp/guzzle": "^7.9",
+        "illuminate/collections": "^11.0",
+        "illuminate/container": "^11.0",
+        "illuminate/contracts": "^11.0",
+        "illuminate/database": "^11.0",
+        "illuminate/events": "^11.0",
+        "illuminate/hashing": "^11.0",
+        "illuminate/http": "^11.0",
+        "illuminate/pagination": "^11.0",
+        "illuminate/validation": "^11.0",
+        "illuminate/view": "^11.0",
+        "jenssegers/blade": "dev-master"
     },
     "require-dev": {
-        
+        "codeigniter4/framework": "^4.0"
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Libraries\Authentication;
+namespace Reymart221111Authentication;
 
 /**
  * Gate

@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Libraries\Validation;
+namespace Reymart221111Validation;
 
 class ValidatedData
 {

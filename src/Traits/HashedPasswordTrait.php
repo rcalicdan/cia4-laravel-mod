@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Traits;
+namespace Reymart221111\Cia4LaravelMod\Traits;
 
 trait HashedPasswordTrait
 {

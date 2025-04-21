@@ -1,8 +1,8 @@
 <?php
 
-namespace Reymart221111\Facades;
+namespace Reymart221111\Cia4LaravelMod\Facades;
 
-use Reymart221111\Libraries\Authentication\Authentication;
+use Reymart221111Authentication\Authentication;
 
 /**
  * Facade for the Authentication library.
@@ -15,14 +15,14 @@ class Auth
     /**
      * The singleton instance of the Authentication library.
      *
-     * @var \Reymart221111\Libraries\Authentication\Authentication|null
+     * @var \Reymart221111Authentication\Authentication|null
      */
     protected static $instance;
 
     /**
      * Retrieves the singleton instance of the Authentication library.
      *
-     * @return \Reymart221111\Libraries\Authentication\Authentication The Authentication instance.
+     * @return \Reymart221111Authentication\Authentication The Authentication instance.
      */
     public static function getInstance()
     {
@@ -47,7 +47,7 @@ class Auth
     /**
      * Retrieves the currently authenticated user.
      *
-     * @return \Reymart221111\Models\User|null The authenticated user, or null if no user is authenticated.
+     * @return \Reymart221111\Cia4LaravelMod\Models\User|null The authenticated user, or null if no user is authenticated.
      */
     public static function user()
     {
@@ -78,7 +78,7 @@ class Auth
     /**
      * Logs in a user.
      *
-     * @param \Reymart221111\Models\User $user The user to log in.
+     * @param \Reymart221111\Cia4LaravelMod\Models\User $user The user to log in.
      * @return bool True if the login is successful, false otherwise.
      */
     public static function login($user)

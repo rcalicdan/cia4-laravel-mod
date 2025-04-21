@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Exceptions;
+namespace Reymart221111\Cia4LaravelMod\Exceptions;
 
 use CodeIgniter\HTTP\RedirectResponse;
 use Exception;

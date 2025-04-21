@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Commands;
+namespace Reymart221111\Cia4LaravelMod\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
@@ -57,7 +57,7 @@ class MakeLaravelRequest extends BaseCommand
         }
 
         // Set the namespace
-        $namespace = 'Reymart221111\Requests';
+        $namespace = 'Reymart221111\Cia4LaravelMod\Requests';
         if (!empty($segments)) {
             $namespace .= '\\' . implode('\\', $segments);
         }
@@ -100,7 +100,7 @@ class MakeLaravelRequest extends BaseCommand
 
 namespace {$namespace};
 
-use Reymart221111\Libraries\Validation\FormRequest;
+use Reymart221111Validation\FormRequest;
 
 class {$className} extends FormRequest
 {
