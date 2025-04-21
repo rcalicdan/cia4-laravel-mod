@@ -6,14 +6,14 @@ use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use Config\Autoload as AutoloadConfig;
 
-class Setup extends BaseCommand
+class LaravelSetup extends BaseCommand
 {
     /**
      * The Command's name
      *
      * @var string
      */
-    protected $name = 'laravel:setup';
+    protected $name = 'laravel-setup';
 
     /**
      * The Command's short description
@@ -27,7 +27,7 @@ class Setup extends BaseCommand
      *
      * @var string
      */
-    protected $usage = 'laravel:setup';
+    protected $usage = 'laravel-setup';
 
     /**
      * The Command's Arguments
