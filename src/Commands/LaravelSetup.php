@@ -79,6 +79,7 @@ class LaravelSetup extends BaseCommand
         $this->publishConfig();
         $this->setupHelpers();
         $this->copyMigrationFiles();
+        $this->setupEvents();
     }
 
     /**
@@ -302,6 +303,50 @@ EOD;
         }
 
         $this->write(CLI::color('  Migration files copied successfully!', 'green'));
+    }
+
+    /**
+     * Update Events.php to add Eloquent and authorization services initialization
+     */
+    private function setupEvents(): void
+    {
+        $file = 'Config/Events.php';
+        $path = $this->distPath . $file;
+        $cleanPath = clean_path($path);
+
+        if (!file_exists($path)) {
+            $this->error("  Events file not found. Make sure you have a Config/Events.php file.");
+            return;
+        }
+
+        $content = file_get_contents($path);
+
+        // Check if the code is already there
+        if (strpos($content, "service('eloquent')") !== false) {
+            $this->write(CLI::color('  Events Setup: ', 'green') . 'Eloquent already initialized in events.');
+            return;
+        }
+
+        // Find the position to add the new event (before the existing Events::on)
+        $pattern = '/(Events::on\(\'pre_system\',)/';
+        $eloquentCode = <<<'EOD'
+Events::on('pre_system', static function (): void {
+    // Load the Eloquent configuration
+    service('eloquent');
+    // Load the authentication configuration
+    service('authorization');
+});
+
+$1
+EOD;
+
+        $newContent = preg_replace($pattern, $eloquentCode, $content);
+
+        if ($newContent !== $content && write_file($path, $newContent)) {
+            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
+        } else {
+            $this->error("  Error updating Events file.");
+        }
     }
 
     /**
