@@ -185,9 +185,9 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Returns an instance of the Gate class.
      * 
      * @param bool $getShared Whether to return a shared instance.
-     * @return \Reymart221111\Cia4LaravelMod\Gate
+     * @return \Reymart221111\Cia4LaravelMod\Authentication\Gate
      */
-    public static function authorization($getShared = true): \Reymart221111\Cia4LaravelMod\Gate
+    public static function authorization($getShared = true): \Reymart221111\Cia4LaravelMod\Authentication\Gate
     {
         if ($getShared) {
             return static::getSharedInstance('authorization');
