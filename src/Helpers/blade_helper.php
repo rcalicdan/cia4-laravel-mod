@@ -1,8 +1,5 @@
 <?php
 
-use Reymart221111\Cia4LaravelMod\Blade\BladeService;
-use Config\Services;
-
 /**
  * Renders a view file using the Blade templating engine
  *

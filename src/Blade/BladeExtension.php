@@ -171,6 +171,14 @@ class BladeExtension
         $blade->directive('endcannot', fn() => "<?php endif; ?>");
     }
 
+    private function _registerAuthDirectives(Blade $blade): void
+    {
+        $blade->directive('auth', fn() => "<?php if(auth()->check()):?>");
+        $blade->directive('endauth', fn() => "<?php endif;?>");
+        $blade->directive('guest', fn() => "<?php if(auth()->guest()):?>");
+        $blade->directive('endguest', fn() => "<?php endif;?>");
+    }
+
     /**
      * Registers directives for displaying validation errors.
      * Provides @error('field_name') ... @enderror. Relies on the `$errors`

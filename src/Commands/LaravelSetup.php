@@ -80,6 +80,7 @@ class LaravelSetup extends BaseCommand
         $this->setupHelpers();
         $this->copyMigrationFiles();
         $this->setupEvents();
+        $this->setupFilters();
     }
 
     /**
@@ -349,6 +350,45 @@ EOD;
         }
     }
 
+    /**
+     * Update Filters.php to add auth and guest filter aliases
+     */
+    private function setupFilters(): void
+    {
+        $file = 'Config/Filters.php';
+        $path = $this->distPath . $file;
+        $cleanPath = clean_path($path);
+
+        if (!file_exists($path)) {
+            $this->error("  Filters file not found. Make sure you have a Config/Filters.php file.");
+            return;
+        }
+
+        $content = file_get_contents($path);
+
+        // Check if the code is already there
+        if (strpos($content, "\\Reymart221111\\Cia4LaravelMod\\Filter\\AuthFilter::class") !== false) {
+            $this->write(CLI::color('  Filters Setup: ', 'green') . 'Auth filters already added.');
+            return;
+        }
+
+        // Find the aliases array
+        $pattern = '/(public\s+array\s+\$aliases\s*=\s*\[)([^\]]*?)(\];)/s';
+        $filterAliases = <<<'EOD'
+$1$2
+        'auth'     => \Reymart221111\Cia4LaravelMod\Filter\AuthFilter::class,
+        'guest'    => \Reymart221111\Cia4LaravelMod\Filter\GuestFilter::class,
+$3
+EOD;
+
+        $newContent = preg_replace($pattern, $filterAliases, $content);
+
+        if ($newContent !== $content && write_file($path, $newContent)) {
+            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
+        } else {
+            $this->error("  Error updating Filters file.");
+        }
+    }
     /**
      * @param string $content    The content of Config\Autoload.
      * @param array  $newHelpers The list of helpers.

@@ -65,6 +65,16 @@ class Auth
     }
 
     /**
+     * Checks if a user is not currently authenticated.
+     *
+     * @return bool True if no user is authenticated, false otherwise.
+     */
+    public static function guest()
+    {
+        return self::getInstance()->guest();
+    }
+
+    /**
      * Attempts to authenticate a user with the given credentials.
      *
      * @param array $credentials The user credentials to authenticate.

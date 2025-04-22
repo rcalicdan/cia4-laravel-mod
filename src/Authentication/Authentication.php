@@ -68,6 +68,16 @@ class Authentication
     }
 
     /**
+     * Check if a user is a guest (not authenticated)
+     *
+     * @return bool True if guest, false otherwise
+     */
+    public function guest(): bool
+    {
+        return !$this->check();
+    }
+
+    /**
      * Attempt to authenticate a user with the provided credentials
      * 
      * @param array $credentials Credentials containing 'email' and 'password'
