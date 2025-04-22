@@ -205,7 +205,7 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * @param bool $getShared
      * @return \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
      */
-    public static function laravelValidator($getShared = true): \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
+    public static function laravelValidator($getShared = true): \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator
     {
         if ($getShared) {
             return static::getSharedInstance('laravelValidator');
@@ -218,15 +218,15 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Return the Blade service instance
      *
      * @param bool $getShared
-     * @return \Reymart22111\Cia4LaravelMod\Blade\BladeService
+     * @return \Reymart221111\Cia4LaravelMod\Blade\BladeService
      */
-    public static function blade(bool $getShared = true): \Reymart22111\Cia4LaravelMod\Blade\BladeService
+    public static function blade(bool $getShared = true): \Reymart221111\Cia4LaravelMod\Blade\BladeService
     {
         if ($getShared) {
             return static::getSharedInstance('blade');
         }
 
-        return new \Reymart22111\Cia4LaravelMod\Blade\BladeService();
+        return new \Reymart221111\Cia4LaravelMod\Blade\BladeService();
     }
 }
 EOD;
