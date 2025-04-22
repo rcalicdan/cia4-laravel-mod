@@ -389,6 +389,58 @@ EOD;
             $this->error("  Error updating Filters file.");
         }
     }
+
+    /**
+     * Copy User model to App/Models directory
+     */
+    private function copyUserModel(): void
+    {
+        // Create models directory if it doesn't exist
+        $modelsDir = $this->distPath . 'Models';
+        if (!is_dir($modelsDir)) {
+            mkdir($modelsDir, 0777, true);
+            $this->write(CLI::color('  Created: ', 'green') . clean_path($modelsDir));
+        }
+
+        $sourcePath = $this->sourcePath . 'Models/User.php';
+        $destPath = $this->distPath . 'Models/User.php';
+        $cleanDestPath = clean_path($destPath);
+
+        // Check if source file exists
+        if (!file_exists($sourcePath)) {
+            $this->error("  Source User model not found: " . clean_path($sourcePath));
+            return;
+        }
+
+        // Read content and update namespace
+        $content = file_get_contents($sourcePath);
+        $content = str_replace(
+            'namespace Reymart221111\Cia4LaravelMod\Models',
+            'namespace App\Models',
+            $content
+        );
+
+        // Check if destination file already exists
+        if (file_exists($destPath)) {
+            $overwrite = (bool) CLI::getOption('f');
+
+            if (
+                !$overwrite
+                && $this->prompt("  File '{$cleanDestPath}' already exists. Overwrite?", ['n', 'y']) === 'n'
+            ) {
+                $this->error("  Skipped {$cleanDestPath}. If you wish to overwrite, please use the '-f' option or reply 'y' to the prompt.");
+                return;
+            }
+        }
+
+        // Write the file
+        if (write_file($destPath, $content)) {
+            $this->write(CLI::color('  Created: ', 'green') . $cleanDestPath);
+        } else {
+            $this->error("  Error creating User model at {$cleanDestPath}.");
+        }
+    }
+
     /**
      * @param string $content    The content of Config\Autoload.
      * @param array  $newHelpers The list of helpers.
