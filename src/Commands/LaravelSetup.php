@@ -81,6 +81,8 @@ class LaravelSetup extends BaseCommand
         $this->copyMigrationFiles();
         $this->setupEvents();
         $this->setupFilters();
+        $this->copyUserModel();
+        $this->copyAuthServiceProvider();
     }
 
     /**
@@ -150,6 +152,9 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
     /**
      * Add service methods to existing Services class
      */
+    /**
+     * Add service methods to existing Services class
+     */
     private function addServiceMethods(string $servicesPath): void
     {
         $content = file_get_contents($servicesPath);
@@ -160,20 +165,38 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
         } else {
             // Add eloquent method
             $pattern = '/}(\s*)$/'; // Find the closing brace of the class
-            $eloquentMethod = <<<'EOD'
+            $serviceMethods = <<<'EOD'
 
     /**
      * Return the Eloquent service instance
      *
      * @param bool $getShared
-     * @return \Reymart221111\Cia4LaravelMod\Config\Eloquent
+     * @return \App\Config\Eloquent
      */
-    public static function eloquent($getShared = true): \Reymart221111\Cia4LaravelMod\Config\Eloquent
+    public static function eloquent($getShared = true): \App\Config\Eloquent
     {
         if ($getShared) {
             return static::getSharedInstance('eloquent');
         }
-        return new \Reymart221111\Cia4LaravelMod\Config\Eloquent();
+        return new \App\Config\Eloquent();
+    }
+
+    /**
+     * Returns an instance of the Gate class.
+     * 
+     * @param bool $getShared Whether to return a shared instance.
+     * @return \Reymart221111\Cia4LaravelMod\Gate
+     */
+    public static function authorization($getShared = true): \Reymart221111\Cia4LaravelMod\Gate
+    {
+        if ($getShared) {
+            return static::getSharedInstance('authorization');
+        }
+
+        $provider = new \App\Libraries\Authentication\AuthServiceProvider;
+        $provider->register();
+
+        return gate();
     }
 
     /**
@@ -195,25 +218,129 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Return the Blade service instance
      *
      * @param bool $getShared
-     * @return \Reymart221111\Cia4LaravelMod\Blade\BladeService
+     * @return \Reymart221111Blade\BladeService
      */
-    public static function blade(bool $getShared = true): \Reymart221111\Cia4LaravelMod\Blade\BladeService
+    public static function blade(bool $getShared = true): \Reymart221111Blade\BladeService
     {
         if ($getShared) {
             return static::getSharedInstance('blade');
         }
 
-        return new \Reymart221111\Cia4LaravelMod\Blade\BladeService();
+        return new \Reymart221111Blade\BladeService();
     }
 }
 EOD;
-            $newContent = preg_replace($pattern, $eloquentMethod, $content);
+            $newContent = preg_replace($pattern, $serviceMethods, $content);
 
             if ($newContent !== $content && write_file($servicesPath, $newContent)) {
                 $this->write(CLI::color('  Updated: ', 'green') . clean_path($servicesPath));
             } else {
                 $this->error("  Error updating Services class.");
             }
+        }
+    }
+
+    /**
+     * Copy AuthServiceProvider to App/Libraries/Authentication directory
+     */
+    private function copyAuthServiceProvider(): void
+    {
+        // Create directory if it doesn't exist
+        $authDir = $this->distPath . 'Libraries/Authentication';
+        if (!is_dir($authDir)) {
+            mkdir($authDir, 0777, true);
+            $this->write(CLI::color('  Created: ', 'green') . clean_path($authDir));
+        }
+
+        $destPath = $authDir . '/AuthServiceProvider.php';
+        $cleanDestPath = clean_path($destPath);
+
+        // Prepare content with updated namespace
+        $content = <<<'EOD'
+<?php
+
+namespace App\Libraries\Authentication;
+
+use Reymart221111\Cia4LaravelMod\Gate;
+use App\Models\User;
+
+
+/**
+ * AuthServiceProvider
+ * 
+ * This class is responsible for registering authorization policies
+ * throughout the application. It maps model classes to their respective
+ * policy classes and registers them with the Gate.
+ */
+class AuthServiceProvider
+{
+    /**
+     * The policy mappings for the application
+     * 
+     * This array maps model classes to their corresponding policy classes.
+     * Example: 'App\Models\User::class => App\Policies\UserPolicy::class'
+     * 
+     * @var array
+     */
+    protected $policies = [
+        // Register your policies here
+    ];
+
+    /**
+     * Register all authentication and authorization services
+     * 
+     * This method initializes all authorization-related services,
+     * including registering policies with the Gate.
+     * 
+     * Example usage of defining a gate:
+     * ```php
+     * gate()->define('view-dashboard', function($user) {
+     *     return $user->isAdmin() || $user->hasRole('editor');
+     * });
+     * ```
+     * @return void
+     */
+    public function register(): void
+    {
+        // Define your gate here
+        $this->registerPolicies(); //Do not delete this line, this is required for policies to work
+    }
+
+    /**
+     * Register defined policies with the Gate
+     * 
+     * This method reads the policy mappings from the $policies property
+     * and registers each model-policy pair with the Gate instance.
+     * 
+     * @return void
+     */
+    public function registerPolicies(): void
+    {
+        foreach ($this->policies as $model => $policy) {
+            gate()->policy($model, $policy);
+        }
+    }
+}
+EOD;
+
+        // Check if destination file already exists
+        if (file_exists($destPath)) {
+            $overwrite = (bool) CLI::getOption('f');
+
+            if (
+                !$overwrite
+                && $this->prompt("  File '{$cleanDestPath}' already exists. Overwrite?", ['n', 'y']) === 'n'
+            ) {
+                $this->error("  Skipped {$cleanDestPath}. If you wish to overwrite, please use the '-f' option or reply 'y' to the prompt.");
+                return;
+            }
+        }
+
+        // Write the file
+        if (write_file($destPath, $content)) {
+            $this->write(CLI::color('  Created: ', 'green') . $cleanDestPath);
+        } else {
+            $this->error("  Error creating AuthServiceProvider at {$cleanDestPath}.");
         }
     }
 

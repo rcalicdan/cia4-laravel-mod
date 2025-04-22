@@ -24,6 +24,12 @@ use Reymart221111\Cia4LaravelMod\Blade\BladeService;
  */
 class Services extends BaseService
 {
+    /**
+     * Returns an instance of the Eloquent class.
+     * 
+     * @param bool $getShared Whether to return a shared instance.
+     * @return Eloquent
+     */
     public static function eloquent($getShared = true): Eloquent
     {
         if ($getShared) {
@@ -32,6 +38,12 @@ class Services extends BaseService
         return new Eloquent();
     }
 
+    /**
+     * Returns an instance of the LaravelValidator class.
+     * 
+     * @param bool $getShared Whether to return a shared instance.
+     * @return LaravelValidator
+     */
     public static function laravelValidator($getShared = true): LaravelValidator
     {
         if ($getShared) {
@@ -41,6 +53,12 @@ class Services extends BaseService
         return new LaravelValidator();
     }
 
+    /**
+     * Returns an instance of the Gate class.
+     * 
+     * @param bool $getShared Whether to return a shared instance.
+     * @return Gate
+     */
     public static function authorization($getShared = true): Gate
     {
         if ($getShared) {

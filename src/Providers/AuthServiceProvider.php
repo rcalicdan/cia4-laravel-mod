@@ -24,7 +24,7 @@ class AuthServiceProvider
      * @var array
      */
     protected $policies = [
-        //
+        // Register your policies here
     ];
 
     /**
@@ -43,7 +43,8 @@ class AuthServiceProvider
      */
     public function register(): void
     {
-        $this->registerPolicies();
+        // Define your gate here
+        $this->registerPolicies(); //Do not delete this line, this is required for policies to work
     }
 
     /**
