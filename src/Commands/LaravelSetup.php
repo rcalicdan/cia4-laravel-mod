@@ -171,14 +171,14 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Return the Eloquent service instance
      *
      * @param bool $getShared
-     * @return \App\Config\Eloquent
+     * @return Eloquent
      */
-    public static function eloquent($getShared = true): \App\Config\Eloquent
+    public static function eloquent($getShared = true): Eloquent
     {
         if ($getShared) {
             return static::getSharedInstance('eloquent');
         }
-        return new \App\Config\Eloquent();
+        return new Eloquent();
     }
 
     /**
@@ -203,30 +203,30 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Return the Laravel Validator service instance
      *
      * @param bool $getShared
-     * @return \Reymart221111Validation\LaravelValidator
+     * @return \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
      */
-    public static function laravelValidator($getShared = true): \Reymart221111Validation\LaravelValidator
+    public static function laravelValidator($getShared = true): \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
     {
         if ($getShared) {
             return static::getSharedInstance('laravelValidator');
         }
 
-        return new \Reymart221111Validation\LaravelValidator();
+        return new \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator();
     }
 
     /**
      * Return the Blade service instance
      *
      * @param bool $getShared
-     * @return \Reymart221111Blade\BladeService
+     * @return \Reymart22111\Cia4LaravelMod\Blade\BladeService
      */
-    public static function blade(bool $getShared = true): \Reymart221111Blade\BladeService
+    public static function blade(bool $getShared = true): \Reymart22111\Cia4LaravelMod\Blade\BladeService
     {
         if ($getShared) {
             return static::getSharedInstance('blade');
         }
 
-        return new \Reymart221111Blade\BladeService();
+        return new \Reymart22111\Cia4LaravelMod\Blade\BladeService();
     }
 }
 EOD;
