@@ -3,9 +3,9 @@
 namespace Reymart221111\Cia4LaravelMod\Config;
 
 use Reymart221111\Cia4LaravelMod\Config\Eloquent;
-use Reymart221111Authentication\Gate;
-use Reymart221111Providers\AuthServiceProvider;
-use Reymart221111Validation\LaravelValidator;
+use Reymart221111\Authentication\Gate;
+use Reymart221111\Providers\AuthServiceProvider;
+use Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
 use CodeIgniter\Config\BaseService;
 use Reymart221111Blade\BladeService;
 

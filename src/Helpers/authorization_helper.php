@@ -1,11 +1,11 @@
 <?php
 
-use Reymart221111Authentication\Gate;
+use Reymart221111\Authentication\Gate;
 
 /**
  * Retrieves an instance of the Gate class.
  *
- * @return \Reymart221111Authentication\Gate The Gate instance.
+ * @return \Reymart221111\Authentication\Gate The Gate instance.
  */
 if (!function_exists('gate')) {
     function gate() {

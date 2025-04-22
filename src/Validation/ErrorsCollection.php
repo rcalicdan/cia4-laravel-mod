@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111Validation;
+namespace Reymart221111\Cia4LaravelMod\Validation;
 
 /**
  * Class for managing validation error messages with chainable methods

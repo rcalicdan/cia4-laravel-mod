@@ -1,10 +1,10 @@
 <?php
 
-namespace Reymart221111Providers;
+namespace Reymart221111\Providers;
 
-use Reymart221111Gate;
-use Reymart221111\Cia4LaravelMod\Models\User;
-use Reymart221111\Cia4LaravelMod\Policies\UserPolicy;
+use Reymart221111\Gate;
+use Reymart221111\Models\User;
+
 
 /**
  * AuthServiceProvider

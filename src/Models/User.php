@@ -2,7 +2,6 @@
 
 namespace Reymart221111\Cia4LaravelMod\Models;
 
-use Reymart221111Eloquent\BaseModel;
 use Reymart221111\Cia4LaravelMod\Traits\HashedPasswordTrait;
 use Illuminate\Database\Eloquent\Model;
 

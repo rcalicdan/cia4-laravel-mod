@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111Validation;
+namespace Reymart221111\Cia4LaravelMod\Validation;
 
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
