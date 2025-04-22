@@ -117,7 +117,18 @@ class BladeExtension
                 {
                     return $this->errors[$key] ?? null;
                 }
-                // Add getBag(), any(), all() here if needed for closer compatibility
+                public function getBag(string $key = 'default'): array
+                {
+                    return $this->errors;
+                }
+                public function any(): bool
+                {
+                    return !empty($this->errors);
+                }
+                public function all(): array
+                {
+                    return $this->errors;
+                }
             };
         }
         return $data;
