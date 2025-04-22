@@ -1,9 +1,9 @@
 <?php
 
-namespace Reymart221111Blade;
+namespace Reymart221111\Cia4LaravelMod\Blade;
 
 use Jenssegers\Blade\Blade;
-use Reymart221111Blade\BladeExtension;
+use Reymart221111\Cia4LaravelMod\Blade\BladeExtension;
 use Illuminate\Pagination\Paginator;
 use Jenssegers\Blade\Container as BladeContainer;
 

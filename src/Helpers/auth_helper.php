@@ -3,7 +3,7 @@
 /**
  * Get the authentication instance
  *
- * @return \Reymart221111\Authentication\Authentication
+ * @return \Reymart221111\Cia4LaravelMod\Authentication\Authentication
  */
 if (!function_exists('auth')) {
     function auth()

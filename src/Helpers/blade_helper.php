@@ -1,6 +1,6 @@
 <?php
 
-use Reymart221111Blade\BladeService;
+use Reymart221111\Cia4LaravelMod\Blade\BladeService;
 use Config\Services;
 
 /**

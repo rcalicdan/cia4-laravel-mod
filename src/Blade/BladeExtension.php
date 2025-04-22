@@ -1,10 +1,10 @@
 <?php
 
-namespace Reymart221111Blade;
+namespace Reymart221111\Cia4LaravelMod\Blade;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 use Jenssegers\Blade\Blade;
-use Reymart221111Providers\ComponentDirectiveProvider;
+use Reymart221111\Cia4LaravelMod\Providers\ComponentDirectiveProvider;
 
 /**
  * Provides CodeIgniter-specific integrations for the Blade templating engine.

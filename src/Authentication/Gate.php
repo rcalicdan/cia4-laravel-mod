@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Authentication;
+namespace Reymart221111\Cia4LaravelMod\Authentication;
 
 /**
  * Gate

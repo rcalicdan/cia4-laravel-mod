@@ -2,7 +2,7 @@
 
 namespace Reymart221111\Cia4LaravelMod\Facades;
 
-use Reymart221111\Authentication\Authentication;
+use Reymart221111\Cia4LaravelMod\Authentication\Authentication;
 
 /**
  * Facade for the Authentication library.
@@ -15,14 +15,14 @@ class Auth
     /**
      * The singleton instance of the Authentication library.
      *
-     * @var \Reymart221111\Authentication\Authentication|null
+     * @var \Reymart221111\Cia4LaravelMod\Authentication\Authentication|null
      */
     protected static $instance;
 
     /**
      * Retrieves the singleton instance of the Authentication library.
      *
-     * @return \Reymart221111\Authentication\Authentication The Authentication instance.
+     * @return \Reymart221111\Cia4LaravelMod\Authentication\Authentication The Authentication instance.
      */
     public static function getInstance()
     {

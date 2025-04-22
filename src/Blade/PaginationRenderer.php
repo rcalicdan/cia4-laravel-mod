@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111Blade;
+namespace Reymart221111\Cia4LaravelMod\Blade;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 

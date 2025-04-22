@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Providers;
+namespace Reymart221111\Cia4LaravelMod\Providers;
 
 use Reymart221111\Gate;
 use Reymart221111\Models\User;
