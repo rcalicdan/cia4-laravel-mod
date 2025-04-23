@@ -1,11 +1,11 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Filters;
+namespace Rcalicdan\Ci4Larabridge\Filters;
 
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use Reymart221111\Cia4LaravelMod\Facades\Auth;
+use Rcalicdan\Ci4Larabridge\Facades\Auth;
 
 class AuthFilter implements FilterInterface
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
@@ -95,8 +95,8 @@ class MakeLaravelModel extends BaseCommand
         // Extract the subdirectory part (before the last slash)
         $subNamespacePart = trim(dirname($normalizedName), './ ');
 
-        // Build the full namespace: Reymart221111\Cia4LaravelMod\Models + subdirectory namespaces
-        $fullNamespace = 'Reymart221111\Cia4LaravelMod\\Models';
+        // Build the full namespace: Rcalicdan\Ci4Larabridge\Models + subdirectory namespaces
+        $fullNamespace = 'Rcalicdan\Ci4Larabridge\\Models';
         if ($subNamespacePart !== '.' && $subNamespacePart !== '') {
             $fullNamespace .= '\\' . str_replace('/', '\\', $subNamespacePart);
         }

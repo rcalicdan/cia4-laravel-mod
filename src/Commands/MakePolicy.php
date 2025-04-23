@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
@@ -141,7 +141,7 @@ class MakePolicy extends BaseCommand
         }
 
         // Build the appropriate namespace with subdirectories
-        $namespaceSegments = ['Reymart221111\Cia4LaravelMod\\Policies'];
+        $namespaceSegments = ['Rcalicdan\Ci4Larabridge\\Policies'];
         $subdirs = explode('/', dirname($relativePath));
 
         if ($subdirs[0] !== '.') {
@@ -181,7 +181,7 @@ class MakePolicy extends BaseCommand
         $modelName = str_replace('Model', '', $model);
 
         if (!str_contains($modelName, '\\')) {
-            $modelName = 'Reymart221111\Cia4LaravelMod\\Models\\' . $modelName;
+            $modelName = 'Rcalicdan\Ci4Larabridge\\Models\\' . $modelName;
         }
 
         $modelClass = $this->getModelClass($modelName);
@@ -189,7 +189,7 @@ class MakePolicy extends BaseCommand
 
         $imports = $isUserModel
             ? "use {$modelName};"
-            : "use Reymart221111\Cia4LaravelMod\\Models\\User;\nuse {$modelName};";
+            : "use Rcalicdan\Ci4Larabridge\\Models\\User;\nuse {$modelName};";
 
         return <<<EOD
 <?php
@@ -273,7 +273,7 @@ EOD;
 
 namespace {$namespace};
 
-use Reymart221111\Cia4LaravelMod\\Models\\User;
+use Rcalicdan\Ci4Larabridge\\Models\\User;
 
 class {$policyName}
 {

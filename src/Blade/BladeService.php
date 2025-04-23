@@ -1,9 +1,9 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Blade;
+namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Jenssegers\Blade\Blade;
-use Reymart221111\Cia4LaravelMod\Blade\BladeExtension;
+use Rcalicdan\Ci4Larabridge\Blade\BladeExtension;
 use Illuminate\Pagination\Paginator;
 use Jenssegers\Blade\Container as BladeContainer;
 

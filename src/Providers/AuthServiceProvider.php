@@ -1,9 +1,9 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Providers;
+namespace Rcalicdan\Ci4Larabridge\Providers;
 
-use Reymart221111\Gate;
-use Reymart221111\Models\User;
+use Rcalicdan\Gate;
+use Rcalicdan\Models\User;
 
 
 /**

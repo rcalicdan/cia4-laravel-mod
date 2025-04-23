@@ -1,11 +1,11 @@
 {
-    "name": "reymart221111/cia4-laravel-mod",
+    "name": "rcalicdan/ci4-larabridge",
     "description": "A CodeIgniter 4 library package with Laravel package integrations and Automatic Setup and more",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Reymart221111\\Cia4LaravelMod\\": "src/"
+            "Rcalicdan\\Ci4Larabridge\\": "src/"
         },
         "exclude-from-classmap": [
             "**/Database/Laravel-Migrations/**"
@@ -14,13 +14,14 @@
     "authors": [
         {
             "name": "Reymart Calicdan",
-            "email": "reymart.calicdan06@gmail.com"
+            "email": "reymart.calicdan06@gmail.com",
+            "role": "Developer"
         }
     ],
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/reymart221111/blade"
+            "url": "https://github.com/rcalicdan/blade"
         }
     ],
     "require": {

@@ -1,8 +1,8 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Authentication;
+namespace Rcalicdan\Ci4Larabridge\Authentication;
 
-use Reymart221111\Cia4LaravelMod\Models\User;
+use Rcalicdan\Ci4Larabridge\Models\User;
 
 /**
  * Authentication management class

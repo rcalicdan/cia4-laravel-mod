@@ -1,5 +1,5 @@
 <?php
-namespace Reymart221111\Cia4LaravelMod\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;

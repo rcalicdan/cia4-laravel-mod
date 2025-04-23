@@ -1,9 +1,9 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Validation;
+namespace Rcalicdan\Ci4Larabridge\Validation;
 
-use Reymart221111\Cia4LaravelMod\Exceptions\ValidationException;
-use Reymart221111\Cia4LaravelMod\Validation\ErrorsCollection;
+use Rcalicdan\Ci4Larabridge\Exceptions\ValidationException;
+use Rcalicdan\Ci4Larabridge\Validation\ErrorsCollection;
 
 /**
  * Abstract FormRequest class for handling form validation
@@ -23,7 +23,7 @@ abstract class FormRequest
     /**
      * The validator instance
      * 
-     * @var \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator
+     * @var \Rcalicdan\Ci4Larabridge\Validation\LaravelValidator
      */
     protected $validator;
 

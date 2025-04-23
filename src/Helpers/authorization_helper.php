@@ -1,11 +1,11 @@
 <?php
 
-use Reymart221111\Cia4LaravelMod\Authentication\Gate;
+use Rcalicdan\Ci4Larabridge\Authentication\Gate;
 
 /**
  * Retrieves an instance of the Gate class.
  *
- * @return \Reymart221111\Cia4LaravelMod\Authentication\Gate The Gate instance.
+ * @return \Rcalicdan\Ci4Larabridge\Authentication\Gate The Gate instance.
  */
 if (!function_exists('gate')) {
     function gate() {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Models;
+namespace Rcalicdan\Ci4Larabridge\Models;
 
 use Illuminate\Database\Eloquent\Model;
 

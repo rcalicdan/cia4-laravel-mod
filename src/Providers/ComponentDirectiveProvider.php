@@ -1,6 +1,6 @@
 <?php 
 
-namespace Reymart221111\Cia4LaravelMod\Providers; 
+namespace Rcalicdan\Ci4Larabridge\Providers; 
 
 use Jenssegers\Blade\Blade;
 

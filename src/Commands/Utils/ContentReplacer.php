@@ -1,6 +1,6 @@
 <?php 
 
-namespace Reymart221111\Cia4LaravelMod\Commands\Utils;
+namespace Rcalicdan\Ci4Larabridge\Commands\Utils;
 
 /**
  * Content replacer utility class for file modifications

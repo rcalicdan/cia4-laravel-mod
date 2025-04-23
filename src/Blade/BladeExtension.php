@@ -1,10 +1,10 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Blade;
+namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Illuminate\Pagination\LengthAwarePaginator;
 use Jenssegers\Blade\Blade;
-use Reymart221111\Cia4LaravelMod\Providers\ComponentDirectiveProvider;
+use Rcalicdan\Ci4Larabridge\Providers\ComponentDirectiveProvider;
 
 /**
  * Provides CodeIgniter-specific integrations for the Blade templating engine.
@@ -64,7 +64,7 @@ class BladeExtension
      * using a specified renderer class.
      *
      * Note: This method's logic is preserved exactly as provided previously.
-     * Ensure `Reymart221111PaginationRenderer` exists and functions as expected.
+     * Ensure `RcalicdanPaginationRenderer` exists and functions as expected.
      *
      * @param array &$data The view data array (passed by reference).
      * @return void

@@ -1,11 +1,11 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use Config\Autoload as AutoloadConfig;
-use Reymart221111\Cia4LaravelMod\Commands\Utils\ContentReplacer;
+use Rcalicdan\Ci4Larabridge\Commands\Utils\ContentReplacer;
 
 class LaravelSetup extends BaseCommand
 {
@@ -48,7 +48,7 @@ class LaravelSetup extends BaseCommand
     ];
 
     /**
-     * The path to `Reymart221111\Cia4LaravelMod\` src directory.
+     * The path to `Rcalicdan\Ci4Larabridge\` src directory.
      *
      * @var string
      */
@@ -102,9 +102,9 @@ class LaravelSetup extends BaseCommand
     {
         $file     = 'Config/Eloquent.php';
         $replaces = [
-            'namespace Reymart221111\Cia4LaravelMod\Config' => 'namespace Config',
+            'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
-use Reymart221111\Cia4LaravelMod\Config\Eloquent as BaseEloquent;',
+use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
             'class Eloquent extends BaseConfig' => 'class Eloquent extends BaseEloquent',
         ];
 
@@ -118,9 +118,9 @@ use Reymart221111\Cia4LaravelMod\Config\Eloquent as BaseEloquent;',
     {
         $file     = 'Config/Pagination.php';
         $replaces = [
-            'namespace Reymart221111\Cia4LaravelMod\Config' => 'namespace Config',
+            'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
-use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
+use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
             'class Pagination extends BaseConfig' => 'class Pagination extends BasePagination',
         ];
 
@@ -142,7 +142,7 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
             // Copy the entire Services class
             $file     = 'Config/Services.php';
             $replaces = [
-                'namespace Reymart221111\Cia4LaravelMod\Config' => 'namespace Config',
+                'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             ];
 
             $this->copyAndReplace($file, $replaces);
@@ -185,9 +185,9 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Returns an instance of the Gate class.
      * 
      * @param bool $getShared Whether to return a shared instance.
-     * @return \Reymart221111\Cia4LaravelMod\Authentication\Gate
+     * @return \Rcalicdan\Ci4Larabridge\Authentication\Gate
      */
-    public static function authorization($getShared = true): \Reymart221111\Cia4LaravelMod\Authentication\Gate
+    public static function authorization($getShared = true): \Rcalicdan\Ci4Larabridge\Authentication\Gate
     {
         if ($getShared) {
             return static::getSharedInstance('authorization');
@@ -203,30 +203,30 @@ use Reymart221111\Cia4LaravelMod\Config\Pagination as BasePagination;',
      * Return the Laravel Validator service instance
      *
      * @param bool $getShared
-     * @return \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
+     * @return \Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
      */
-    public static function laravelValidator($getShared = true): \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator
+    public static function laravelValidator($getShared = true): \Rcalicdan\Ci4Larabridge\Validation\LaravelValidator
     {
         if ($getShared) {
             return static::getSharedInstance('laravelValidator');
         }
 
-        return new \Reymart221111\Cia4LaravelMod\Validation\LaravelValidator();
+        return new \Rcalicdan\Ci4Larabridge\Validation\LaravelValidator();
     }
 
     /**
      * Return the Blade service instance
      *
      * @param bool $getShared
-     * @return \Reymart221111\Cia4LaravelMod\Blade\BladeService
+     * @return \Rcalicdan\Ci4Larabridge\Blade\BladeService
      */
-    public static function blade(bool $getShared = true): \Reymart221111\Cia4LaravelMod\Blade\BladeService
+    public static function blade(bool $getShared = true): \Rcalicdan\Ci4Larabridge\Blade\BladeService
     {
         if ($getShared) {
             return static::getSharedInstance('blade');
         }
 
-        return new \Reymart221111\Cia4LaravelMod\Blade\BladeService();
+        return new \Rcalicdan\Ci4Larabridge\Blade\BladeService();
     }
 }
 EOD;
@@ -261,7 +261,7 @@ EOD;
 
 namespace App\Libraries\Authentication;
 
-use Reymart221111\Cia4LaravelMod\Gate;
+use Rcalicdan\Ci4Larabridge\Gate;
 use App\Models\User;
 
 
@@ -494,7 +494,7 @@ EOD;
         $content = file_get_contents($path);
 
         // Check if the code is already there
-        if (strpos($content, "\\Reymart221111\\Cia4LaravelMod\\Filter\\AuthFilter::class") !== false) {
+        if (strpos($content, "\\Rcalicdan\\Ci4Larabridge\\Filter\\AuthFilter::class") !== false) {
             $this->write(CLI::color('  Filters Setup: ', 'green') . 'Auth filters already added.');
             return;
         }
@@ -503,8 +503,8 @@ EOD;
         $pattern = '/(public\s+array\s+\$aliases\s*=\s*\[)([^\]]*?)(\];)/s';
         $filterAliases = <<<'EOD'
 $1$2
-        'auth'     => \Reymart221111\Cia4LaravelMod\Filter\AuthFilter::class,
-        'guest'    => \Reymart221111\Cia4LaravelMod\Filter\GuestFilter::class,
+        'auth'     => \Rcalicdan\Ci4Larabridge\Filter\AuthFilter::class,
+        'guest'    => \Rcalicdan\Ci4Larabridge\Filter\GuestFilter::class,
 $3
 EOD;
 
@@ -542,7 +542,7 @@ EOD;
         // Read content and update namespace
         $content = file_get_contents($sourcePath);
         $content = str_replace(
-            'namespace Reymart221111\Cia4LaravelMod\Models',
+            'namespace Rcalicdan\Ci4Larabridge\Models',
             'namespace App\Models',
             $content
         );

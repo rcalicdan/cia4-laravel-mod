@@ -1,8 +1,8 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Validation;
+namespace Rcalicdan\Ci4Larabridge\Validation;
 
-use Reymart221111\Cia4LaravelMod\Exceptions\ValidationException;
+use Rcalicdan\Ci4Larabridge\Exceptions\ValidationException;
 use CodeIgniter\HTTP\IncomingRequest;
 
 class RequestValidator
@@ -13,7 +13,7 @@ class RequestValidator
      * @param array $rules Validation rules
      * @param array $messages Custom error messages (optional)
      * @param array $attributes Custom attribute names (optional)
-     * @return \Reymart221111\Cia4LaravelMod\Validation\ValidatedData Object containing validated data and helper methods
+     * @return \Rcalicdan\Ci4Larabridge\Validation\ValidatedData Object containing validated data and helper methods
      * @throws ValidationException When validation fails
      */
     public static function validate(array $rules, array $messages = [], array $attributes = []): ValidatedData

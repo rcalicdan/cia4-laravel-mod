@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Config;
+namespace Rcalicdan\Ci4Larabridge\Config;
 
 use CodeIgniter\Config\BaseConfig;
 

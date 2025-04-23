@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Traits;
+namespace Rcalicdan\Ci4Larabridge\Traits;
 
 use CodeIgniter\Exceptions\PageNotFoundException;
 use Illuminate\Database\Eloquent\Collection;

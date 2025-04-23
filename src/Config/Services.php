@@ -1,13 +1,13 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Config;
+namespace Rcalicdan\Ci4Larabridge\Config;
 
-use Reymart221111\Cia4LaravelMod\Config\Eloquent;
-use Reymart221111\Cia4LaravelMod\Authentication\Gate;
-use Reymart221111\Cia4LaravelMod\Providers\AuthServiceProvider;
-use Reymart221111\Cia4LaravelMod\Validation\LaravelValidator;
+use Rcalicdan\Ci4Larabridge\Config\Eloquent;
+use Rcalicdan\Ci4Larabridge\Authentication\Gate;
+use Rcalicdan\Ci4Larabridge\Providers\AuthServiceProvider;
+use Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
 use CodeIgniter\Config\BaseService;
-use Reymart221111\Cia4LaravelMod\Blade\BladeService;
+use Rcalicdan\Ci4Larabridge\Blade\BladeService;
 
 /**
  * Services Configuration file.

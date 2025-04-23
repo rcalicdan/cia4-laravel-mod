@@ -1,6 +1,6 @@
 <?php
 
-namespace Reymart221111\Cia4LaravelMod\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
@@ -151,7 +151,7 @@ class MakeLaravelRule extends BaseCommand
         $subNamespacePart = trim(dirname($normalizedName), './ ');
 
         // Build the full namespace
-        $fullNamespace = 'Reymart221111\Cia4LaravelMod\\Rules';
+        $fullNamespace = 'Rcalicdan\Ci4Larabridge\\Rules';
         if ($subNamespacePart !== '.' && $subNamespacePart !== '') {
             $fullNamespace .= '\\' . str_replace('/', '\\', $subNamespacePart);
         }
