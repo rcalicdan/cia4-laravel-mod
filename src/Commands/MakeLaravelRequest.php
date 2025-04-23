@@ -57,7 +57,7 @@ class MakeLaravelRequest extends BaseCommand
         }
 
         // Set the namespace
-        $namespace = 'Rcalicdan\Ci4Larabridge\Requests';
+        $namespace = 'App\Requests';
         if (!empty($segments)) {
             $namespace .= '\\' . implode('\\', $segments);
         }
@@ -100,7 +100,7 @@ class MakeLaravelRequest extends BaseCommand
 
 namespace {$namespace};
 
-use RcalicdanValidation\FormRequest;
+use Rcalicdan\Validation\FormRequest;
 
 class {$className} extends FormRequest
 {

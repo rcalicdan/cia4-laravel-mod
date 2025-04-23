@@ -151,7 +151,7 @@ class MakeLaravelRule extends BaseCommand
         $subNamespacePart = trim(dirname($normalizedName), './ ');
 
         // Build the full namespace
-        $fullNamespace = 'Rcalicdan\Ci4Larabridge\\Rules';
+        $fullNamespace = 'App\\Rules';
         if ($subNamespacePart !== '.' && $subNamespacePart !== '') {
             $fullNamespace .= '\\' . str_replace('/', '\\', $subNamespacePart);
         }
