@@ -246,7 +246,7 @@ EOD;
     private function copyAuthServiceProvider(): void
     {
         // Create directory if it doesn't exist
-        $authDir = $this->distPath . 'Libraries/Authentication';
+        $authDir = $this->distPath . 'Libraries/Authorization';
         if (!is_dir($authDir)) {
             mkdir($authDir, 0777, true);
             $this->write(CLI::color('  Created: ', 'green') . clean_path($authDir));
