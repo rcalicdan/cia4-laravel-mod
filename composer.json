@@ -18,6 +18,9 @@
             "role": "Developer"
         }
     ],
+    "support": {
+        "source": "https://github.com/rcalicdan/ci4-larabridge"
+    },
     "repositories": [
         {
             "type": "vcs",
