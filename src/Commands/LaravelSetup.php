@@ -105,7 +105,7 @@ class LaravelSetup extends BaseCommand
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
 use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
-            'class Eloquent extends BaseConfig' => 'class Eloquent extends BaseEloquent',
+            'class Eloquent extends BaseConfig' => 'class Eloquent extends BaseConfig',
         ];
 
         $this->copyAndReplace($file, $replaces);
