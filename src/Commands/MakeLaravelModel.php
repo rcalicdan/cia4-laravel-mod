@@ -96,7 +96,7 @@ class MakeLaravelModel extends BaseCommand
         $subNamespacePart = trim(dirname($normalizedName), './ ');
 
         // Build the full namespace: Rcalicdan\Ci4Larabridge\Models + subdirectory namespaces
-        $fullNamespace = 'Rcalicdan\Ci4Larabridge\\Models';
+        $fullNamespace = 'App\\Models';
         if ($subNamespacePart !== '.' && $subNamespacePart !== '') {
             $fullNamespace .= '\\' . str_replace('/', '\\', $subNamespacePart);
         }

@@ -141,7 +141,7 @@ class MakePolicy extends BaseCommand
         }
 
         // Build the appropriate namespace with subdirectories
-        $namespaceSegments = ['Rcalicdan\Ci4Larabridge\\Policies'];
+        $namespaceSegments = ['App\\Policies'];
         $subdirs = explode('/', dirname($relativePath));
 
         if ($subdirs[0] !== '.') {
@@ -181,7 +181,7 @@ class MakePolicy extends BaseCommand
         $modelName = str_replace('Model', '', $model);
 
         if (!str_contains($modelName, '\\')) {
-            $modelName = 'Rcalicdan\Ci4Larabridge\\Models\\' . $modelName;
+            $modelName = 'App\\Models\\' . $modelName;
         }
 
         $modelClass = $this->getModelClass($modelName);
@@ -189,7 +189,7 @@ class MakePolicy extends BaseCommand
 
         $imports = $isUserModel
             ? "use {$modelName};"
-            : "use Rcalicdan\Ci4Larabridge\\Models\\User;\nuse {$modelName};";
+            : "use App\\Models\\User;\nuse {$modelName};";
 
         return <<<EOD
 <?php
@@ -273,7 +273,7 @@ EOD;
 
 namespace {$namespace};
 
-use Rcalicdan\Ci4Larabridge\\Models\\User;
+use App\\Models\\User;
 
 class {$policyName}
 {
