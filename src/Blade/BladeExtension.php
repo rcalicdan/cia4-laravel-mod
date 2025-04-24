@@ -48,6 +48,7 @@ class BladeExtension
         $this->_registerPermissionDirectives($blade);
         $this->_registerErrorDirectives($blade);
         $this->_registerBackDirectives($blade);
+        $this->_registerAuthDirectives($blade);
 
         // Delegate component directive registration to the dedicated provider
         $componentProvider = new ComponentDirectiveProvider();
