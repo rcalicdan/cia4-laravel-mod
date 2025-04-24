@@ -1,247 +1,147 @@
-# CI4 Larabridge Command Line Tools Documentation
+# CI4-LaraBridge Documentation
 
-This documentation provides a comprehensive guide to using the command line tools available in the CI4 Larabridge package. These tools help integrate Laravel components with your CodeIgniter 4 application.
+## Introduction
 
-## Table of Contents
+CI4-LaraBridge is a bridge package that brings Laravel-like functionality to CodeIgniter 4 applications. This package aims to provide a familiar Laravel development experience while maintaining the speed and simplicity of the CodeIgniter 4 framework.
 
-1. [Setup Commands](#setup-commands)
-   - [Laravel Setup](#laravel-setup)
-2. [Database Commands](#database-commands)
-   - [Laravel Migrations](#laravel-migrations)
-   - [Make Laravel Migration](#make-laravel-migration)
-3. [Model Generation](#model-generation)
-   - [Make Laravel Model](#make-laravel-model)
-4. [Blade Template Commands](#blade-template-commands)
-   - [Compile Blade Views](#compile-blade-views)
-5. [Validation Commands](#validation-commands)
-   - [Make Laravel Request](#make-laravel-request)
-   - [Make Laravel Rule](#make-laravel-rule)
-6. [Authorization Commands](#authorization-commands)
-   - [Make Policy](#make-policy)
+## Installation
 
-## Setup Commands
+To install the package, run the following command in your CodeIgniter 4 project:
 
-### Laravel Setup
-
-Initializes your CodeIgniter 4 application with Laravel components.
-
-**Usage:**
 ```bash
-php spark laravel:setup
+composer require rcalicdan/ci4-larabridge
 ```
 
-**Options:**
-- `-f`: Force overwrite ALL existing files in destination.
+After installation, you need to run the setup command to initialize the package:
 
-**Example:**
 ```bash
 php spark laravel:setup
 ```
 
 This command will:
-- Publish Laravel configuration files to your app
-- Set up Laravel helpers
-- Copy migration files
-- Configure system events and filters
-- Set up authentication-related models and services
+- Set up and publish configuration files
+- Configure package events
+- Set up autodiscovery features
 
-## Database Commands
+Always run this setup command before using any CI4-LaraBridge features in your application.
 
-### Laravel Migrations
+## Why CI4-LaraBridge?
 
-Manages Laravel-style migrations in your CodeIgniter 4 application.
+This package was created to address the needs of developers who:
 
-**Usage:**
-```bash
-php spark eloquent:migrate [action]
+1. Are familiar with Laravel but work in a CodeIgniter 4 environment
+2. Want to leverage some of Laravel's elegant syntax and powerful features without switching frameworks
+3. Need to maintain existing CodeIgniter projects but prefer Laravel's development approach
+
+## Who Should Use It?
+
+CI4-LaraBridge is ideal for:
+
+- Laravel developers transitioning to CodeIgniter 4 projects
+- CodeIgniter 4 developers looking to adopt Laravel-style syntax and patterns
+- Teams working with mixed Laravel/CodeIgniter codebases
+- Developers who appreciate Laravel's expressiveness but prefer CodeIgniter's performance
+
+## Features
+
+CI4-LaraBridge brings several key Laravel features to CodeIgniter 4:
+
+- **Eloquent ORM**: Use Laravel's powerful ORM for database operations
+- **Blade Templating**: Implement Blade templates for clean, reusable views
+- **Laravel Validation**: Leverage Laravel's robust validation system
+- **Laravel Style Form Requests**: Encapsulate validation logic in dedicated request classes
+- **Gates and Policies**: Implement Laravel-style authorization
+- **Simple Authentication**: Easily implement user authentication
+- **Auto Redirect Error Validation**: Automatic redirection with validation errors
+- **Clean Syntax**: Write more expressive, readable code
+- **Eloquent Migration and Models**: Define and manage database schema with Eloquent
+- **Pagination Support**: Easily paginate results with Laravel-style methods
+
+## Benefits
+
+- **Familiar Syntax**: Use Laravel-style facades, helpers, and patterns in CodeIgniter 4
+- **Gradual Adoption**: Implement Laravel features incrementally without overhauling your entire application
+- **Performance**: Maintain CodeIgniter's speed while enhancing developer experience
+- **Best of Both Worlds**: Leverage specific Laravel strengths without abandoning CodeIgniter benefits
+- **Smoother Learning Curve**: Reduce the learning curve for Laravel developers working on CI4 projects
+
+## Syntax Comparison
+
+### Creating a New User
+
+#### With CI4-LaraBridge:
+
+```php
+public function store()
+{
+    User::create(StoreUserRequest::validateRequest());
+    return redirect()->route('users.index')->with('success', 'User created successfully');
+}
 ```
 
-**Actions:**
-- `up` (default): Run pending migrations
-- `down`: Rollback the last batch of migrations
-- `refresh`: Rollback all migrations and run them again
-- `status`: Show migration status
-- `fresh`: Drop all tables and re-run all migrations
+#### Native CodeIgniter 4:
 
-**Examples:**
-```bash
-# Run pending migrations
-php spark eloquent:migrate
-
-# Rollback the last batch of migrations
-php spark eloquent:migrate down
-
-# Show migration status
-php spark eloquent:migrate status
+```php
+public function store()
+{
+    $validation = \Config\Services::validation();
+    $validation->setRules([
+        'name' => 'required|min_length[3]',
+        'email' => 'required|valid_email|is_unique[users.email]',
+        'password' => 'required|min_length[8]'
+    ]);
+    
+    if (!$validation->withRequest($this->request)->run()) {
+        return redirect()->back()->withInput()->with('errors', $validation->getErrors());
+    }
+    
+    $userModel = new \App\Models\UserModel();
+    $userModel->insert([
+        'name' => $this->request->getPost('name'),
+        'email' => $this->request->getPost('email'),
+        'password' => password_hash($this->request->getPost('password'), PASSWORD_BCRYPT)
+    ]);
+    
+    return redirect()->to('/users')->with('message', 'User created successfully');
+}
 ```
 
-### Make Laravel Migration
+### Retrieving Users with Pagination
 
-Creates a new Laravel-style migration file.
+#### With CI4-LaraBridge:
 
-**Usage:**
-```bash
-php spark make:eloquent-migration [name] [--table=<table>] [--force]
+```php
+public function index()
+{
+    $users = User::paginate(15);
+    return view('users.index', compact('users'));
+}
 ```
 
-**Arguments:**
-- `name`: The migration name (e.g., CreateUsersTable, AddEmailToPostsTable)
+#### Native CodeIgniter 4:
 
-**Options:**
-- `--table=<table>`: Generate a migration for modifying an existing table
-- `--force`: Force overwrite if a file with the same name exists
-
-**Examples:**
-```bash
-# Create a migration to create a new table
-php spark make:eloquent-migration CreateUsersTable
-
-# Create a migration to modify an existing table
-php spark make:eloquent-migration AddEmailToUsersTable --table=users
+```php
+public function index()
+{
+    $userModel = new \App\Models\UserModel();
+    $data['users'] = $userModel->paginate(15);
+    $data['pager'] = $userModel->pager;
+    
+    return view('users/index', $data);
+}
 ```
 
-## Model Generation
+## Limitations
 
-### Make Laravel Model
+It's important to note that CI4-LaraBridge does not implement all advanced Laravel features. The package focuses on the most commonly used Laravel functionality while maintaining compatibility with CodeIgniter 4's architecture. Some advanced Laravel features like:
 
-Creates a new Laravel-style Eloquent model.
+- Complex queue systems
+- Laravel's event broadcasting
+- Some aspects of the advanced authorization system
+- Certain middleware implementations
 
-**Usage:**
-```bash
-php spark make:eloquent-model [name] [options]
-```
+are not fully implemented or may work differently than in Laravel.
 
-**Arguments:**
-- `name`: The model class name (e.g., User or Common/User)
+## Getting Started
 
-**Options:**
-- `-m`: Create a migration file for this model
-- `--force`: Force overwrite existing model file
-
-**Examples:**
-```bash
-# Create a basic model
-php spark make:eloquent-model User
-
-# Create a model with a migration
-php spark make:eloquent-model Product -m
-
-# Create a model in a subdirectory
-php spark make:eloquent-model Admin/User
-```
-
-## Blade Template Commands
-
-### Compile Blade Views
-
-Pre-compiles all Blade templates for improved performance.
-
-**Usage:**
-```bash
-php spark blade:compile
-```
-
-**Example:**
-```bash
-php spark blade:compile
-```
-
-This command will:
-- Find all Blade templates in your app's Views directory
-- Compile them to PHP for faster rendering
-- Report compilation status
-
-## Validation Commands
-
-### Make Laravel Request
-
-Creates a new Laravel-style Form Request class for form validation.
-
-**Usage:**
-```bash
-php spark make:request [class_name]
-```
-
-**Arguments:**
-- `class_name`: The name of the request class to create (automatically appends "Request" if not present)
-
-**Examples:**
-```bash
-# Create a basic request class
-php spark make:request User
-
-# Create a request class in a subdirectory
-php spark make:request Admin/User
-```
-
-### Make Laravel Rule
-
-Creates a new Laravel validation rule class.
-
-**Usage:**
-```bash
-php spark make:laravel-rule [name] [options]
-```
-
-**Arguments:**
-- `name`: The name of the rule class (e.g., NoObsceneWord or Common/NoObsceneWord)
-
-**Options:**
-- `--force`: Force overwrite existing file
-
-**Examples:**
-```bash
-# Create a basic validation rule
-php spark make:laravel-rule NoObsceneWord
-
-# Create a rule in a subdirectory
-php spark make:laravel-rule Common/NoObsceneWord
-```
-
-## Authorization Commands
-
-### Make Policy
-
-Creates a new policy class for authorization rules.
-
-**Usage:**
-```bash
-php spark make:policy [PolicyName] [options]
-```
-
-**Arguments:**
-- `PolicyName`: The name of the policy class (use slashes for subdirectories)
-
-**Options:**
-- `--model=<model>`: Generate a policy for the specified model
-
-**Examples:**
-```bash
-# Create a basic policy
-php spark make:policy UserPolicy
-
-# Create a model-specific policy
-php spark make:policy Post --model=Post
-
-# Create a policy in a subdirectory
-php spark make:policy Admin/UserPolicy
-```
-
-## Best Practices
-
-1. **Use Namespaces**: When creating models, requests, rules, or policies in subdirectories, use slashes in the name (e.g., `Admin/User`).
-
-2. **Naming Conventions**:
-   - Models: Singular and PascalCase (e.g., `User`, `Product`)
-   - Migrations: Descriptive and start with create/add/update (e.g., `CreateUsersTable`)
-   - Requests: Append "Request" to the name (e.g., `UserRequest`)
-   - Rules: Descriptive of the validation (e.g., `NoObsceneWord`)
-   - Policies: Append "Policy" to the name (e.g., `UserPolicy`)
-
-3. **Generate Related Files Together**: When creating models, consider using the `-m` flag to create a corresponding migration file.
-
-4. **Compile Blade Views**: For production environments, run `blade:compile` to pre-compile your views for better performance.
-
-5. **Use Migration Actions**: Leverage `eloquent:migrate status` to check migration status before running or rolling back migrations.
-
-By following this guide, you can effectively use CI4 Larabridge's command line tools to integrate Laravel components with your CodeIgniter 4 application.
+After installation and setup, you can begin using Laravel-style syntax in your CodeIgniter 4 application. Check the GitHub repository at https://github.com/rcalicdan/ci4-larabridge for detailed usage examples, available features, and configuration options.
