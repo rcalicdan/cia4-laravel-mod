@@ -65,6 +65,9 @@ CI4-LaraBridge brings several key Laravel features to CodeIgniter 4:
 - **Best of Both Worlds**: Leverage specific Laravel strengths without abandoning CodeIgniter benefits
 - **Smoother Learning Curve**: Reduce the learning curve for Laravel developers working on CI4 projects
 
+## Custom Commands
+CI4-LaraBridge provides several custom commands to enhance your development experience: [Check Here](docs/commands/index.md)
+
 ## Syntax Comparison
 
 ### Creating a New User
@@ -130,6 +133,10 @@ public function index()
     return view('users/index', $data);
 }
 ```
+
+## Plan Features
+1. Eloqeunt Seeder
+2. Eloqeunt Factory
 
 ## Limitations
 
