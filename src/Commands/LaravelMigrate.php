@@ -17,7 +17,7 @@ class LaravelMigrate extends BaseCommand
     protected $group       = 'Database';
     protected $name        = 'eloquent-migrate';
     protected $description = 'Runs Laravel migrations in CodeIgniter 4';
-    protected $usage       = 'eloquent-migrate:[up|down|refresh|status|fresh]';
+    protected $usage       = 'eloquent:migrate [up|down|refresh|status|fresh]';
     protected $arguments   = [
         'action' => 'The action to perform: up, down, refresh, status, or fresh (default: up)',
     ];
@@ -484,7 +484,7 @@ class LaravelMigrate extends BaseCommand
      */
     private function showUsage(): void
     {
-        CLI::write('Usage: php spark eloquent-migrate:[up|down|refresh|status|fresh]', 'yellow');
+        CLI::write('Usage: php spark eloquent:migrate [up|down|refresh|status|fresh]', 'yellow');
         CLI::write('  up     : Run all pending Laravel migrations');
         CLI::write('  down   : Roll back the last batch of Laravel migrations');
         CLI::write('  refresh: Roll back and re-run all Laravel migrations');

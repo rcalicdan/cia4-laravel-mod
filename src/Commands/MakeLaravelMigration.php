@@ -22,7 +22,7 @@ class MakeLaravelMigration extends BaseCommand
      *
      * @var string
      */
-    protected $group = 'Generators'; 
+    protected $group = 'Generators';
 
     /**
      * The command's name.
@@ -275,6 +275,7 @@ return new class extends Migration
     {
         Schema::create('{$tableName}', function (Blueprint \$table) {
             \$table->id(); 
+            \$table->timestamps(); 
         });
     }
 
