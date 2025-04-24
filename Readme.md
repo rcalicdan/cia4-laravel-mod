@@ -56,6 +56,7 @@ CI4-LaraBridge brings several key Laravel features to CodeIgniter 4:
 - **Clean Syntax**: Write more expressive, readable code
 - **Eloquent Migration and Models**: Define and manage database schema with Eloquent
 - **Pagination Support**: Easily paginate results with Laravel-style methods
+- **Laravel HTTP**: Easily calls api with it's expressive and elegant systax
 
 ## Benefits
 
@@ -135,8 +136,8 @@ public function index()
 ```
 
 ## Plan Features
-1. Eloqeunt Seeder
-2. Eloqeunt Factory
+1. Eloquent Seeder
+2. Eloquent Factory
 
 ## Limitations
 
@@ -152,3 +153,5 @@ are not fully implemented or may work differently than in Laravel.
 ## Getting Started
 
 After installation and setup, you can begin using Laravel-style syntax in your CodeIgniter 4 application. Check the GitHub repository at https://github.com/rcalicdan/ci4-larabridge for detailed usage examples, available features, and configuration options.
+
+>This package is in experimental stage and many more features may change or added
