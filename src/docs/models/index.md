@@ -6,6 +6,48 @@ The `make:eloquent-model` command allows you to create Laravel-style Eloquent mo
 
 > **Important Note**: It is not recommended to use Eloquent and CodeIgniter's native ORM/models simultaneously within the same application as this can create conflicts, particularly in migrations and database schema management. Choose one approach for your project to maintain consistency and prevent unexpected behavior.
 
+# Table of Contents
+
+1. [Overview](#overview)
+   - [Installation](#installation)
+
+2. [Command Usage](#command-usage)
+   - [Basic Syntax](#basic-syntax)
+   - [Arguments](#arguments)
+   - [Options](#options)
+
+3. [Examples](#examples)
+   - [Basic Usage](#basic-usage)
+   - [With Subdirectories](#with-subdirectories)
+   - [With Migration](#with-migration)
+
+4. [Generated Files](#generated-files)
+   - [Model Structure](#model-structure)
+   - [Migration Structure](#migration-structure)
+
+5. [Best Practices](#best-practices)
+   - [Consistent ORM Usage](#consistent-orm-usage)
+   - [Migration Management](#migration-management)
+   - [Naming Conventions](#naming-conventions)
+   - [Model Customization](#model-customization)
+
+6. [Advanced Model Features](#advanced-model-features)
+   - [Enhanced Model Example](#enhanced-model-example)
+   - [Creating Related Models](#creating-related-models)
+   - [Modifying Migrations](#modifying-migrations)
+
+7. [Using Eloquent Models](#using-eloquent-models)
+   - [In Blade Templates](#in-blade-templates)
+   - [Controller Implementation](#controller-implementation)
+
+8. [Query Examples](#query-examples)
+   - [Basic Queries](#basic-queries)
+   - [Advanced Queries](#advanced-queries)
+
+9. [Troubleshooting](#troubleshooting)
+
+10. [Learn More about Eloquent](#learn-more-about-eloquent)
+
 ## Installation
 
 Ensure the CI4Larabridge package is properly installed in your CodeIgniter 4 project before using this command.
