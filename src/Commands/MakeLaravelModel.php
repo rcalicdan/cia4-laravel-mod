@@ -10,13 +10,13 @@ use Illuminate\Support\Str; // REQUIRED: For Str::plural() and Str::snake()
 class MakeLaravelModel extends BaseCommand
 {
     /** @var string */
-    protected $group = 'Database'; // Or 'Generators'
+    protected $group = 'Generators'; // Or 'Generators'
     /** @var string */
-    protected $name = 'make:laravel-model';
+    protected $name = 'make:eloquent-model';
     /** @var string */
     protected $description = 'Create a new Laravel-style Eloquent model with optional migration.';
     /** @var string */
-    protected $usage = 'make:laravel-model [<name>] [options]'; // Name is now optional in usage
+    protected $usage = 'make:eloquent-model [<name>] [options]'; // Name is now optional in usage
     /** @var array */
     protected $arguments = [
         'name' => 'The model class name (e.g., User or Common/User).',
@@ -163,7 +163,7 @@ class MakeLaravelModel extends BaseCommand
     private function createMigrationFile(string $baseModelName): int
     {
         // Configuration: Define where Laravel-style migrations are stored
-        $migrationBasePath = APPPATH . 'Database/Laravel-Migrations';
+        $migrationBasePath = APPPATH . 'Database/Eloquent-Migrations';
 
         // Generate table name from base model name
         $tableName = $this->getTableName($baseModelName);
@@ -241,35 +241,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class {$baseClassName} extends Model
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected \$table = '{$tableName}';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * Add column names here to allow mass assignment (e.g., using create() or update()).
-     *
-     * @var array<int, string>
-     */
     {$fillableProperty}
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
-    protected \$hidden = [];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected \$casts = [];
 }
 PHP;
     }

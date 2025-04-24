@@ -22,14 +22,14 @@ class MakeLaravelMigration extends BaseCommand
      *
      * @var string
      */
-    protected $group = 'Database'; // Or 'Generators'
+    protected $group = 'Generators'; 
 
     /**
      * The command's name.
      *
      * @var string
      */
-    protected $name = 'make:laravel-migration';
+    protected $name = 'make:eloquent-migration';
 
     /**
      * The command's short description.
@@ -43,7 +43,7 @@ class MakeLaravelMigration extends BaseCommand
      *
      * @var string
      */
-    protected $usage = 'make:laravel-migration [<name>] [--table=<table>] [--force]';
+    protected $usage = 'make:eloquent-migration [<name>] [--table=<table>] [--force]';
 
     /**
      * The command's defined arguments.
@@ -70,7 +70,7 @@ class MakeLaravelMigration extends BaseCommand
      *
      * @var string
      */
-    protected string $migrationPath = APPPATH . 'Database/Laravel-Migrations/';
+    protected string $migrationPath = APPPATH . 'Database/Eloquent-Migrations/';
 
     /**
      * Standard Command Exit Codes.
