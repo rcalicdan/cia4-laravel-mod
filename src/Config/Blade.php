@@ -1,6 +1,6 @@
 <?php
 
-namespace Config;
+namespace Rcalicdan\Ci4Larabridge\Config;
 
 use CodeIgniter\Config\BaseConfig;
 
@@ -41,20 +41,6 @@ class Blade extends BaseConfig
      * @var bool
      */
     public $disableCompilationChecksInProduction = true;
-
-    /**
-     * Content tags used in Blade templates
-     * 
-     * @var array
-     */
-    public $contentTags = ['{{', '}}'];
-
-    /**
-     * Escaped content tags used in Blade templates
-     * 
-     * @var array
-     */
-    public $escapedContentTags = ['{{{', '}}}'];
 
     /**
      * Additional view paths that should be registered with Blade

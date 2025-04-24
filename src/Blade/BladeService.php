@@ -6,6 +6,7 @@ use Jenssegers\Blade\Blade;
 use Rcalicdan\Ci4Larabridge\Blade\BladeExtension;
 use Illuminate\Pagination\Paginator;
 use Jenssegers\Blade\Container as BladeContainer;
+use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
 
 class BladeService
 {
@@ -14,12 +15,20 @@ class BladeService
      */
     protected Blade $blade;
 
-    /**n
+    /**
      * @var array Configuration for Blade
      */
     protected array $config;
 
+    /**
+     * @var ConfigBlade Configuration values for Blade 
+     */
     protected $bladeConfigValues;
+
+    /**
+     * @var BladeExtension Instance of BladeExtension
+     */
+    protected $bladeExtension;
 
     /**
      * Initialize the BladeService with configuration
@@ -27,6 +36,7 @@ class BladeService
     public function __construct()
     {
         $this->bladeConfigValues = config('Blade');
+        $this->bladeExtension = new BladeExtension();
         $this->config = [
             'viewsPath' => $this->bladeConfigValues->viewsPath,
             'cachePath' => $this->bladeConfigValues->cachePath,
@@ -56,9 +66,6 @@ class BladeService
             $this->blade->getCompiler()->setIsExpired(function () {
                 return false;
             });
-
-            $this->blade->getCompiler()->setContentTags('{{', '}}');
-            $this->blade->getCompiler()->setEscapedContentTags('{{{', '}}}');
         }
 
         $this->blade->addNamespace(
@@ -96,10 +103,8 @@ class BladeService
             return;
         }
 
-        $bladeExtension = new BladeExtension();
-
-        if (method_exists($bladeExtension, 'registerDirectives')) {
-            $bladeExtension->registerDirectives($this->blade);
+        if (method_exists($this->bladeExtension, 'registerDirectives')) {
+            $this->bladeExtension->registerDirectives($this->blade);
         }
     }
 
@@ -115,10 +120,8 @@ class BladeService
             return $data;
         }
 
-        $bladeExtension = new BladeExtension();
-
-        if (method_exists($bladeExtension, 'processData')) {
-            return $bladeExtension->processData($data);
+        if (method_exists($this->bladeExtension, 'processData')) {
+            return $this->bladeExtension->processData($data);
         }
 
         return $data;
