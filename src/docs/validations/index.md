@@ -317,12 +317,11 @@ if ($validatedData->hasFile('document')) {
 ## Displaying Errors in Blade Views
 
 You can display validation errors in your Blade templates:
-
 ```blade
-@if(session()->has('errors'))
+@if ($errors->any())
     <div class="alert alert-danger">
         <ul>
-            @foreach(session('errors') as $field => $error)
+            @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
@@ -335,13 +334,13 @@ Checking for specific field errors:
 ```blade
 <div class="form-group">
     <label for="email">Email Address</label>
-    <input type="email" name="email" id="email" class="form-control @if(isset(session('errors')['email'])) is-invalid @endif" value="{{ old('email') }}">
+    <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}">
 
-    @if(isset(session('errors')['email']))
+    @error('email')
         <div class="invalid-feedback">
-            {{ session('errors')['email'] }}
+            {{ $message }}
         </div>
-    @endif
+    @enderror
 </div>
 ```
 
