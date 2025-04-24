@@ -277,10 +277,12 @@ class LaravelValidator
             'uploaded' => 'The :attribute failed to upload.',
             'url' => 'The :attribute must be a valid URL.',
             'uuid' => 'The :attribute must be a valid UUID.',
+            'ci_file'=> 'The :attribute must be a valid file',
             'ci_image' => 'The :attribute must be a valid image.',
             'ci_mimes' => 'The :attribute must be a file of type: :values.',
             'ci_file_size' => 'The :attribute must be less than :value kilobytes.',
             'ci_video' => 'The :attribute must be a valid video file.',
+
 
             // Custom validation attributes
             'attributes' => [],
