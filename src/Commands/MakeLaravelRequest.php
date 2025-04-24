@@ -38,8 +38,12 @@ class MakeLaravelRequest extends BaseCommand
         $className = array_shift($params);
 
         if (empty($className)) {
-            CLI::error('You must provide a class name.');
-            return '';
+            $className = CLI::prompt('Enter the request class name');
+            
+            if (empty($className)) {
+                CLI::error('Request class name cannot be empty.');
+                return '';
+            }
         }
 
         return $className;

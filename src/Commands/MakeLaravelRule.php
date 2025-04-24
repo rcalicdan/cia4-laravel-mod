@@ -34,7 +34,7 @@ class MakeLaravelRule extends BaseCommand
      *
      * @var string
      */
-    protected $description = 'Generates a new Laravel-style validation rule class.';
+    protected $description = 'Generates a new Laravel validation rule class.';
 
     /**
      * The command's usage.
@@ -262,7 +262,6 @@ class {className} implements ValidationRule
      */
     public function validate(string \$attribute, mixed \$value, Closure \$fail): void
     {
-        // TODO: Implement validation logic
         // Example:
         // if (!preg_match('/^[a-zA-Z0-9]+$/', \$value)) {
         //     \$fail('The :attribute must be alphanumeric.');

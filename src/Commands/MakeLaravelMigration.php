@@ -4,9 +4,10 @@ namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
-use Config\Services;
 use Illuminate\Support\Str;
-use Exception;
+use Rcalicdan\Ci4Larabridge\Commands\Handlers\MakeLaravelMigration\MigrationCodeGenerator;
+use Rcalicdan\Ci4Larabridge\Commands\Handlers\MakeLaravelMigration\MigrationFileHandler;
+use Rcalicdan\Ci4Larabridge\Commands\Handlers\MakeLaravelMigration\MigrationInputHandler;
 
 /**
  * Laravel Migration Generator Command
@@ -78,50 +79,62 @@ class MakeLaravelMigration extends BaseCommand
     private const EXIT_SUCCESS = 0;
     private const EXIT_ERROR   = 1;
 
-    //--------------------------------------------------------------------------
-    // Command Execution
-    //--------------------------------------------------------------------------
+    /**
+     * Handler instances
+     */
+    private MigrationInputHandler $inputHandler;
+    private MigrationFileHandler $fileHandler;
+    private MigrationCodeGenerator $codeGenerator;
 
     /**
      * Executes the command logic.
+     * 
+     * Initializes handlers, checks dependencies, processes input parameters,
+     * and creates the migration file through a series of steps:
+     * 1. Determines the migration name from input parameters
+     * 2. Gets explicit table name from --table option if provided
+     * 3. Creates the migration file with appropriate template
      *
      * @param array $params Command parameters passed by Spark.
      * @return int Exit code (EXIT_SUCCESS or EXIT_ERROR).
      */
     public function run(array $params): int
     {
-        // Ensure CodeIgniter's filesystem helper is available for write_file()
+        $this->inputHandler = new MigrationInputHandler();
+        $this->fileHandler = new MigrationFileHandler($this->migrationPath);
+        $this->codeGenerator = new MigrationCodeGenerator();
+
         helper('filesystem');
-        // Ensure Laravel's support package is installed for Str::snake()
+
         if (!class_exists(Str::class)) {
             CLI::error('Missing dependency: illuminate/support. Please run: composer require illuminate/support');
             return self::EXIT_ERROR;
         }
 
-        // 1. Determine Migration Name
-        $migrationName = $this->getMigrationName($params);
+        $migrationName = $this->inputHandler->getMigrationName($params);
         if ($migrationName === null) {
-            return self::EXIT_ERROR; // Error message shown in getMigrationName
-        }
-
-        // 2. Determine Explicit Table Name (from --table option via argv)
-        $explicitTableName = $this->getTableOptionFromArgv();
-
-        // 3. Create the Migration File
-        if ($this->createMigrationFile($migrationName, $explicitTableName)) {
-            return self::EXIT_SUCCESS;
-        } else {
-            // Specific error messages should have been shown by createMigrationFile or its helpers
             return self::EXIT_ERROR;
         }
-    }
 
-    //--------------------------------------------------------------------------
-    // Core Logic
-    //--------------------------------------------------------------------------
+        $explicitTableName = $this->inputHandler->getTableOptionFromArgv();
+
+        if ($this->createMigrationFile($migrationName, $explicitTableName)) {
+            return self::EXIT_SUCCESS;
+        }
+        
+        return self::EXIT_ERROR;
+    }
 
     /**
      * Orchestrates the creation of the migration file.
+     * 
+     * Handles the complete migration file creation process including:
+     * - Converting migration name to snake_case format
+     * - Generating the complete file path
+     * - Validating if file exists (unless --force is used)
+     * - Ensuring target directory exists
+     * - Determining migration type and generating appropriate code
+     * - Writing the final migration file
      *
      * @param string $migrationName The descriptive name of the migration (e.g., CreateUsersTable).
      * @param string|null $explicitTableName Table name provided via --table option, if any.
@@ -129,42 +142,41 @@ class MakeLaravelMigration extends BaseCommand
      */
     protected function createMigrationFile(string $migrationName, ?string $explicitTableName): bool
     {
-        // Use Laravel Str helper for reliable snake_case conversion
         $snakeCaseName = Str::snake($migrationName);
-        $fileName = $this->generateFileName($snakeCaseName);
-        $targetFile = rtrim($this->migrationPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $fileName;
-        $relativeTargetFile = str_replace(APPPATH, 'app/', $targetFile); // For user-friendly output
+        $fileName = $this->fileHandler->generateFileName($snakeCaseName);
+        $targetFile = $this->fileHandler->getFullPath($fileName);
+        $relativeTargetFile = $this->fileHandler->getRelativePath($targetFile);
 
-        // Validate file doesn't already exist (unless --force is used)
-        if (!$this->validateMigrationDoesNotExist($targetFile, $relativeTargetFile)) {
-            $force = CLI::getOption('force') ?? false; // Use CLI::getOption for simple boolean flags
+        if (!$this->fileHandler->validateMigrationDoesNotExist($targetFile, $relativeTargetFile)) {
+            $force = $this->inputHandler->isForceEnabled();
             if (!$force) {
                 CLI::write('Use the --force option to overwrite if necessary (use with caution!).', 'yellow');
                 return false;
-            } else {
-                CLI::write("Overwriting existing file due to --force option: {$relativeTargetFile}", 'light_red');
             }
+            CLI::write("Overwriting existing file due to --force option: {$relativeTargetFile}", 'light_red');
         }
 
-        // Ensure the target directory exists
-        if (!$this->ensureMigrationDirectoryExists()) {
+        if (!$this->fileHandler->ensureMigrationDirectoryExists()) {
             return false;
         }
 
-        // Determine migration type and generate code
         $code = $this->generateMigrationCode($migrationName, $explicitTableName);
 
-        // Write the generated code to the file
-        if ($this->writeMigrationFileContent($targetFile, $relativeTargetFile, $code)) {
+        if ($this->fileHandler->writeMigrationFileContent($targetFile, $relativeTargetFile, $code)) {
             CLI::write("Migration created successfully: " . CLI::color($relativeTargetFile, 'green'));
             return true;
         }
 
-        return false; // Error message shown by writeMigrationFileContent
+        return false;
     }
 
     /**
      * Determines the migration type and generates the corresponding code.
+     * 
+     * Generates appropriate migration code based on:
+     * - Explicit table name (forces "modify" template)
+     * - Inferred table name from migration name (creates "create" template)
+     * - Falls back to generic template if table cannot be inferred
      *
      * @param string $migrationName Original migration name provided by user.
      * @param string|null $explicitTableName Table name from --table option.
@@ -173,308 +185,17 @@ class MakeLaravelMigration extends BaseCommand
     private function generateMigrationCode(string $migrationName, ?string $explicitTableName): string
     {
         if (!empty($explicitTableName)) {
-            // --table option forces a "modify" template
             CLI::write("Generating MODIFY migration for table: " . CLI::color($explicitTableName, 'cyan'));
-            return $this->generateModifyMigrationCode($explicitTableName);
+            return $this->codeGenerator->generateModifyMigrationCode($explicitTableName);
         }
 
-        // No --table option, try to infer table name for a "create" migration
-        $inferredTableName = $this->inferTableNameForCreate($migrationName);
+        $inferredTableName = $this->codeGenerator->inferTableNameForCreate($migrationName);
         if ($inferredTableName) {
             CLI::write("Generating CREATE migration for table: " . CLI::color($inferredTableName, 'cyan'));
-            return $this->generateCreateMigrationCode($inferredTableName);
+            return $this->codeGenerator->generateCreateMigrationCode($inferredTableName);
         }
 
-        // Cannot infer, generate a generic template
         CLI::write("Generating GENERIC migration (could not infer table from name, use --table=<table> for specific table modifications)", 'cyan');
-        return $this->generateGenericMigrationCode();
-    }
-
-    //--------------------------------------------------------------------------
-    // Input / Parameter Handling
-    //--------------------------------------------------------------------------
-
-    /**
-     * Gets the migration name from parameters or prompts the user.
-     *
-     * @param array $params Command parameters.
-     * @return string|null The migration name, or null if empty after prompt.
-     */
-    private function getMigrationName(array $params): ?string
-    {
-        $migrationName = $params[0] ?? null;
-        if (empty($migrationName)) {
-            $migrationName = CLI::prompt('Migration name (e.g., CreateUsersTable)');
-        }
-
-        if (empty($migrationName)) {
-            CLI::error('Migration name cannot be empty.');
-            return null;
-        }
-        return $migrationName;
-    }
-
-    /**
-     * Extracts the value of the --table option directly from command line arguments ($argv).
-     * Required workaround if CLI::getOption('--table') isn't reliably parsing '--table=value'.
-     *
-     * @return string|null The table name if found, null otherwise.
-     */
-    private function getTableOptionFromArgv(): ?string
-    {
-        global $argv; // Access raw command line arguments
-        $tableName = null;
-
-        if (!isset($argv) || !is_array($argv)) {
-            CLI::write('Warning: Could not access global $argv.', 'yellow');
-            return null; // Safety check
-        }
-
-        foreach ($argv as $arg) {
-            // Look for '--table=some_value'
-            if (str_starts_with($arg, '--table=')) { // PHP 8+ str_starts_with
-                // if (strpos($arg, '--table=') === 0) { // PHP < 8 equivalent
-                $tableName = substr($arg, 8); // Length of '--table='
-                break; // Found it
-            }
-        }
-
-        // Ensure empty string isn't returned if '--table=' was passed with no value
-        return ($tableName === null || $tableName === '') ? null : $tableName;
-    }
-
-    //--------------------------------------------------------------------------
-    // Code Generation Templates
-    //--------------------------------------------------------------------------
-
-    /**
-     * Generates migration code for creating a new table.
-     *
-     * @param string $tableName The table name.
-     * @return string The migration code.
-     */
-    private function generateCreateMigrationCode(string $tableName): string
-    {
-        return <<<PHP
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-/**
- * Migration for creating the '{$tableName}' table.
- */
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     * Creates the {$tableName} table.
-     */
-    public function up(): void
-    {
-        Schema::create('{$tableName}', function (Blueprint \$table) {
-            \$table->id(); 
-            \$table->timestamps(); 
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     * Drops the {$tableName} table.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('{$tableName}');
-    }
-};
-
-PHP;
-    }
-
-    /**
-     * Generates migration code for modifying an existing table.
-     *
-     * @param string $tableName The table name.
-     * @return string The migration code.
-     */
-    private function generateModifyMigrationCode(string $tableName): string
-    {
-        return <<<PHP
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-/**
- * Migration for modifying the '{$tableName}' table.
- */
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     * Apply changes to the {$tableName} table.
-     */
-    public function up(): void
-    {
-        Schema::table('{$tableName}', function (Blueprint \$table) {
-            //Add or modify columns here;
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     * Revert changes applied to the {$tableName} table in the up() method.
-     */
-    public function down(): void
-    {
-        Schema::table('{$tableName}', function (Blueprint \$table) {
-            //Revert changes here;
-        });
-    }
-};
-
-PHP;
-    }
-
-    /**
-     * Generates generic migration code when table cannot be inferred.
-     *
-     * @return string The migration code.
-     */
-    private function generateGenericMigrationCode(): string
-    {
-        return <<<PHP
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB; 
-
-/**
- * Generic migration for schema or data changes.
- */
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     * Apply necessary changes.
-     */
-    public function up(): void
-    {
-        // Implement migration logic here.
-        // This could involve Schema::table(), Schema::create(),
-    }
-
-    /**
-     * Reverse the migrations.
-     * Revert the changes made in the up() method.
-     */
-    public function down(): void
-    {
-        // TODO: Reverse the logic implemented in the up() method.
-    }
-};
-PHP;
-    }
-
-    //--------------------------------------------------------------------------
-    // File System and Naming Helpers
-    //--------------------------------------------------------------------------
-
-    /**
-     * Infers the table name for a "create" migration using naming conventions.
-     *
-     * @param string $migrationName PascalCase or snake_case migration name.
-     * @return string|null The inferred table name (e.g., 'users', 'product_categories') or null.
-     */
-    protected function inferTableNameForCreate(string $migrationName): ?string
-    {
-        // Convert to snake_case for consistent parsing
-        $snakeCase = Str::snake($migrationName);
-
-        // Match 'create_TABLE_NAME_table' pattern
-        if (preg_match('/^create_([a-z0-9_]+?)_table$/', $snakeCase, $matches)) {
-            return $matches[1]; // Return the captured table name part
-        }
-
-        return null; // Pattern not matched
-    }
-
-    /**
-     * Generates a timestamped filename for the migration.
-     * Example: 2023_10_27_123456_create_users_table.php
-     *
-     * @param string $snakeCaseName The snake_case name of the migration.
-     * @return string The generated filename.
-     */
-    private function generateFileName(string $snakeCaseName): string
-    {
-        $timestamp = date('Y_m_d_His');
-        return "{$timestamp}_{$snakeCaseName}.php";
-    }
-
-    /**
-     * Validates that the specific migration *filename* does not exist.
-     * Outputs error if file exists.
-     *
-     * @param string $filePath The full file path to check.
-     * @param string $relativeFileName The relative file name for display purposes.
-     * @return bool True if the migration file does not exist, false otherwise.
-     */
-    private function validateMigrationDoesNotExist(string $filePath, string $relativeFileName): bool
-    {
-        if (file_exists($filePath)) {
-            CLI::error("Migration file already exists: " . CLI::color($relativeFileName, 'light_cyan'));
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Ensures the base migration directory exists, creating it if necessary.
-     *
-     * @return bool True if directory exists or was created successfully.
-     */
-    private function ensureMigrationDirectoryExists(): bool
-    {
-        $path = rtrim($this->migrationPath, DIRECTORY_SEPARATOR);
-        if (is_dir($path)) {
-            return true; // Already exists
-        }
-
-        // Directory doesn't exist, attempt to create it
-        CLI::write("Migration directory not found, attempting to create: " . str_replace(APPPATH, 'app/', $path), 'dark_gray');
-        try {
-            if (!mkdir($path, 0755, true)) { // Use standard permissions, recursive
-                CLI::error("Error: Could not create migration directory: {$path}. Check permissions.");
-                return false;
-            }
-            CLI::write("Migration directory created successfully.", 'green');
-            return true;
-        } catch (Exception $e) {
-            CLI::error("Exception creating migration directory: {$path}. Reason: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Writes the generated code content to the migration file.
-     * Outputs error if writing fails.
-     *
-     * @param string $filePath The full file path to write to.
-     * @param string $relativeFileName The relative file name for display purposes.
-     * @param string $code The PHP code content to write.
-     * @return bool True on successful write, false otherwise.
-     */
-    private function writeMigrationFileContent(string $filePath, string $relativeFileName, string $code): bool
-    {
-        if (!write_file($filePath, $code)) {
-            CLI::error("Error writing migration file: {$relativeFileName}. Check permissions.");
-            return false;
-        }
-        return true;
+        return $this->codeGenerator->generateGenericMigrationCode();
     }
 }
