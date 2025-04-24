@@ -36,17 +36,9 @@ class Blade extends BaseConfig
 
     /**
      * Disable compilation checks in production for performance
-     * When true, templates will only be recompiled when they change
+     * When false, templates will not be recompiled when they change and cache will not expired
      * 
      * @var bool
      */
-    public $disableCompilationChecksInProduction = true;
-
-    /**
-     * Additional view paths that should be registered with Blade
-     * Key is the namespace, value is the path
-     * 
-     * @var array
-     */
-    public $viewNamespaces = [];
+    public $checksCompilationInProduction = false;
 }

@@ -41,7 +41,8 @@ class BladeService
             'viewsPath' => $this->bladeConfigValues->viewsPath,
             'cachePath' => $this->bladeConfigValues->cachePath,
             'componentNamespace' => $this->bladeConfigValues->componentNamespace,
-            'componentPath' => $this->bladeConfigValues->componentPath
+            'componentPath' => $this->bladeConfigValues->componentPath,
+            'checksCompilationInProduction' => $this->bladeConfigValues->checksCompilationInProduction,
         ];
 
         $this->initialize();
@@ -63,8 +64,8 @@ class BladeService
         );
 
         if (ENVIRONMENT === 'production') {
-            $this->blade->getCompiler()->setIsExpired(function () {
-                return false;
+            $this->blade->getCompiler()->setIsExpired(function (): bool {
+                return $this->config['checksCompilationInProduction'];
             });
         }
 
