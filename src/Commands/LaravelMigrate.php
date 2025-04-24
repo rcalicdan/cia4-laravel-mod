@@ -56,17 +56,7 @@ class LaravelMigrate extends BaseCommand
      */
     private function loadDatabaseConfig()
     {
-        $this->dbConfig = [
-            'host'      => env('database.default.hostname'),
-            'driver'    => env('database.default.DBDriver'),
-            'database'  => env('database.default.database'),
-            'username'  => env('database.default.username'),
-            'password'  => env('database.default.password'),
-            'charset'   => env('database.default.DBCharset', 'utf8'),
-            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix'    => env('database.default.DBPrefix', ''),
-            'port'      => env('database.default.port'),
-        ];
+        $this->dbConfig = service('eloquent')->getDatabaseInformation();
     }
 
     /**

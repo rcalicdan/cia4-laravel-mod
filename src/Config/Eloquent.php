@@ -35,21 +35,26 @@ class Eloquent extends BaseConfig
     protected function setupDatabaseConnection(): void
     {
         $this->capsule = new Capsule;
+        $this->capsule->addConnection($this->getDatabaseInformation());
+        $this->capsule->setAsGlobal();
+        $this->capsule->bootEloquent();
+    }
 
-        $this->capsule->addConnection([
+    public function getDatabaseInformation(): array
+    {
+        return [
             'host'      => env('database.default.hostname', 'localhost'),
-            'driver'    => env('database.default.DBDriver', 'mysql'),
-            'database'  => env('database.default.database', 'ci4'),
+            'driver'    => env('database.default.DBDriver', 'sqlite'),
+            'database'  => env('database.default.database', ''),
             'username'  => env('database.default.username', 'root'),
             'password'  => env('database.default.password', ''),
             'charset'   => env('database.default.DBCharset', 'utf8'),
             'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
             'prefix'    => env('database.default.DBPrefix', ''),
-        ]);
-
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
+            'port'      => env('database.default.port', ''),
+        ];
     }
+
 
     /**
      * Configure pagination once for the entire application

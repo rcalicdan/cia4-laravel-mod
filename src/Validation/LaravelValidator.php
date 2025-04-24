@@ -148,18 +148,8 @@ class LaravelValidator
     private function setupDatabaseConnection()
     {
         $capsule = new Capsule;
-
-        $capsule->addConnection([
-            'host'      => env('database.default.hostname', 'localhost'),
-            'driver'    => env('database.default.DBDriver', 'mysql'),
-            'database'  => env('database.default.database', 'ci4'),
-            'username'  => env('database.default.username', 'root'),
-            'password'  => env('database.default.password', ''),
-            'charset'   => env('database.default.DBCharset', 'utf8'),
-            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix'    => env('database.default.DBPrefix', ''),
-        ]);
-
+        $databaseInformation = service('eloquent')->getDatabaseInformation(); //Need futher testing on performance to check if using service container is faster than using array field
+        $capsule->addConnection($databaseInformation);
         $verifier = new DatabasePresenceVerifier($capsule->getDatabaseManager());
         $this->factory->setPresenceVerifier($verifier);
     }
