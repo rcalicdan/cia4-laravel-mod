@@ -274,18 +274,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('{$tableName}', function (Blueprint \$table) {
-            \$table->id(); // Standard auto-incrementing primary key
-
-            // TODO: Add application-specific columns here
-            // Examples:
-            // \$table->string('name');
-            // \$table->text('description')->nullable();
-
-            \$table->timestamps(); // created_at and updated_at columns
-            // \$table->softDeletes(); // Optional: deleted_at column
+            \$table->id(); 
         });
-
-        CLI::write("Schema::create('{$tableName}', ...) executed.", 'dark_gray'); // Example CLI feedback
     }
 
     /**
@@ -295,7 +285,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('{$tableName}');
-        CLI::write("Schema::dropIfExists('{$tableName}') executed.", 'dark_gray'); // Example CLI feedback
     }
 };
 
@@ -361,7 +350,7 @@ PHP;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB; // If using raw DB statements
+use Illuminate\Support\Facades\DB; 
 
 /**
  * Generic migration for schema or data changes.
