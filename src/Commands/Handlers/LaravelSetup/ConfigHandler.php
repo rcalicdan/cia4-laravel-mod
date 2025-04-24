@@ -14,6 +14,7 @@ class ConfigHandler extends SetupHandler
         $this->publishConfigEloquent();
         $this->publishConfigPagination();
         $this->publishConfigServices();
+        $this->publishConfigBlade();
     }
 
     /**
@@ -27,6 +28,16 @@ class ConfigHandler extends SetupHandler
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
 use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
             'class Eloquent extends BaseConfig' => 'class Eloquent extends BaseConfig',
+        ];
+
+        $this->copyAndReplace($file, $replaces);
+    }
+
+    private function publishConfigBlade(): void
+    {
+        $file     = 'Config/Blade.php';
+        $replaces = [
+            'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
         ];
 
         $this->copyAndReplace($file, $replaces);

@@ -14,22 +14,28 @@ class BladeService
      */
     protected Blade $blade;
 
-    /**
+    /**n
      * @var array Configuration for Blade
      */
-    protected array $config;
+    protected $config;
 
     /**
      * Initialize the BladeService with configuration
      */
     public function __construct()
     {
-        $this->config = [
-            'viewsPath' => APPPATH . 'Views',
-            'cachePath' => WRITEPATH . 'cache/blade',
-            'componentNamespace' => 'components',
-            'componentPath' => APPPATH . 'Views/components',
-        ];
+        $this->config = config('Blade');
+
+        if (!is_object($this->config)) {
+            $this->config = [
+                'viewsPath' => APPPATH . 'Views',
+                'cachePath' => WRITEPATH . 'cache/blade',
+                'componentNamespace' => 'components',
+                'componentPath' => APPPATH . 'Views/components',
+            ];
+        } else {
+            $this->config = get_object_vars($this->config);
+        }
 
         $this->initialize();
     }
@@ -42,20 +48,25 @@ class BladeService
         $this->ensureCacheDirectory();
 
         $container = new BladeContainer();
-        
+
         $this->blade = new Blade(
             $this->config['viewsPath'],
             $this->config['cachePath'],
             $container
         );
 
-        if (ENVIRONMENT === 'production') {
-            $this->blade->getCompiler()->setIsExpired(function() {
-                return false; 
+        if (ENVIRONMENT === 'production' && !empty($this->config['disableCompilationChecksInProduction'])) {
+            $this->blade->getCompiler()->setIsExpired(function () {
+                return false;
             });
-            
-            $this->blade->getCompiler()->setContentTags('{{', '}}');
-            $this->blade->getCompiler()->setEscapedContentTags('{{{', '}}}');
+        }
+
+        if (!empty($this->config['contentTags']) && is_array($this->config['contentTags']) && count($this->config['contentTags']) === 2) {
+            $this->blade->getCompiler()->setContentTags($this->config['contentTags'][0], $this->config['contentTags'][1]);
+        }
+
+        if (!empty($this->config['escapedContentTags']) && is_array($this->config['escapedContentTags']) && count($this->config['escapedContentTags']) === 2) {
+            $this->blade->getCompiler()->setEscapedContentTags($this->config['escapedContentTags'][0], $this->config['escapedContentTags'][1]);
         }
 
         $this->blade->addNamespace(
@@ -63,7 +74,14 @@ class BladeService
             $this->config['componentPath']
         );
 
-        Paginator::useBootstrap();
+       
+        if (!empty($this->config['viewNamespaces']) && is_array($this->config['viewNamespaces'])) {
+            foreach ($this->config['viewNamespaces'] as $namespace => $path) {
+                $this->blade->addNamespace($namespace, $path);
+            }
+        }
+
+        Paginator::useBootstrap(); 
         $this->applyExtensions();
     }
 
