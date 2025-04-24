@@ -15,7 +15,7 @@ use PDOException;
 class LaravelMigrate extends BaseCommand
 {
     protected $group       = 'Database';
-    protected $name        = 'eloquent-migrate';
+    protected $name        = 'eloquent:migrate';
     protected $description = 'Runs Laravel migrations in CodeIgniter 4';
     protected $usage       = 'eloquent:migrate [up|down|refresh|status|fresh]';
     protected $arguments   = [
