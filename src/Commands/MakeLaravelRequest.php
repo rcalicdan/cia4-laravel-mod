@@ -8,9 +8,9 @@ use CodeIgniter\CLI\CLI;
 class MakeLaravelRequest extends BaseCommand
 {
     protected $group = 'Generators';
-    protected $name = 'make:laravel-request';
+    protected $name = 'make:request';
     protected $description = 'Creates a new Laravel-style Form Request class file.';
-    protected $usage = 'make:laravel-request [class_name]';
+    protected $usage = 'make:request [class_name]';
     protected $arguments = [
         'class_name' => 'The name of the class file to create, including any namespaces.',
     ];
@@ -104,7 +104,7 @@ class MakeLaravelRequest extends BaseCommand
 
 namespace {$namespace};
 
-use Rcalicdan\Validation\FormRequest;
+use Rcalicdan\Ci4Larabridge\Validation\FormRequest;
 
 class {$className} extends FormRequest
 {
