@@ -4,6 +4,8 @@
 
 CI4-LaraBridge is a bridge package that brings Laravel-like functionality to CodeIgniter 4 applications. This package aims to provide a familiar Laravel development experience while maintaining the speed and simplicity of the CodeIgniter 4 framework.
 
+>This package is in experimental stage and many more features may change or added
+
 ## Installation
 
 To install the package, run the following command in your CodeIgniter 4 project:
@@ -79,7 +81,7 @@ CI4-LaraBridge provides several custom commands to enhance your development expe
 public function store()
 {
     User::create(StoreUserRequest::validateRequest());
-    return redirect()->route('users.index')->with('success', 'User created successfully');
+    return redirect()->route_to('users.index')->with('success', 'User created successfully');
 }
 ```
 
@@ -138,6 +140,7 @@ public function index()
 ## Plan Features
 1. Eloquent Seeder
 2. Eloquent Factory
+3. More Complex Authentication
 
 ## Limitations
 
@@ -154,4 +157,4 @@ are not fully implemented or may work differently than in Laravel.
 
 After installation and setup, you can begin using Laravel-style syntax in your CodeIgniter 4 application. Check the GitHub repository at https://github.com/rcalicdan/ci4-larabridge for detailed usage examples, available features, and configuration options.
 
->This package is in experimental stage and many more features may change or added
+
