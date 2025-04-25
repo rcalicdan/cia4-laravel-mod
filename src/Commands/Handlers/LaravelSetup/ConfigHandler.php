@@ -122,7 +122,7 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
             return static::getSharedInstance('authorization');
         }
 
-        $provider = new \App\Libraries\Authentication\AuthServiceProvider;
+        $provider = new \App\Libraries\Authorization\AuthServiceProvider;
         $provider->register();
 
         return gate();

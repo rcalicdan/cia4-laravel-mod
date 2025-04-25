@@ -25,7 +25,7 @@ class AuthHandler extends SetupHandler
         $content = <<<'EOD'
 <?php
 
-namespace App\Libraries\Authentication;
+namespace App\Libraries\Authorization;
 
 use Rcalicdan\Ci4Larabridge\Gate;
 use App\Models\User;
