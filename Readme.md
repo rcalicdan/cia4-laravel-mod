@@ -2,7 +2,7 @@
 
 ## Introduction
 
-CI4-LaraBridge is a bridge package that brings Laravel-like functionality to CodeIgniter 4 applications. This package aims to provide a familiar Laravel development experience while maintaining the speed and simplicity of the CodeIgniter 4 framework with touching its core features.
+CI4-LaraBridge is a bridge package that brings Laravel-like functionality to CodeIgniter 4 applications. This package aims to provide a familiar Laravel development experience while maintaining the speed and simplicity of the CodeIgniter 4 framework without touching its core features.
 
 >This package is in experimental stage and many more features may change or added
 
