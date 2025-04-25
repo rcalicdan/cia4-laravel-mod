@@ -48,11 +48,11 @@ CI4-LaraBridge is ideal for:
 
 CI4-LaraBridge brings several key Laravel features to CodeIgniter 4:
 
-- **Eloquent ORM**: Use Laravel's powerful ORM for database operations
-- **Blade Templating**: Implement Blade templates for clean, reusable views
-- **Laravel Validation**: Leverage Laravel's robust validation system
-- **Laravel Style Form Requests**: Encapsulate validation logic in dedicated request classes
-- **Gates and Policies**: Implement Laravel-style authorization
+- **Eloquent ORM**: Use Laravel's powerful ORM for database operations: [Check Here](docs/eloquent/index.md)
+- **Blade Templating**: Implement Blade templates for clean, reusable views: [Check Here](docs/blade/index.md)
+- **Laravel Validation**: Leverage Laravel's robust validation system: [Check Here](docs/validations/index.md)
+- **Laravel Style Form Requests**: Encapsulate validation logic in dedicated request classes:: [Check Here](docs/validation/index.md)
+- **Gates and Policies**: Implement Laravel-style authorization: [Check Here](docs/authorization/index.md)
 - **Simple Authentication**: Easily implement user authentication
 - **Auto Redirect Error Validation**: Automatic redirection with validation errors
 - **Clean Syntax**: Write more expressive, readable code
