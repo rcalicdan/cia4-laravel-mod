@@ -9,7 +9,6 @@ trait SearchPaginationTrait
     /**
      * Enhance a paginator instance with base path and query parameters.
      *
-     * @param LengthAwarePaginator $paginator
      * @return LengthAwarePaginator
      */
     protected function setupPaginator(LengthAwarePaginator $paginator)
@@ -30,8 +29,8 @@ trait SearchPaginationTrait
     /**
      * Override paginate to include setup logic.
      *
-     * @param mixed $query
-     * @param int $perPage
+     * @param  mixed  $query
+     * @param  int  $perPage
      * @return LengthAwarePaginator
      */
     protected function searchPaginateQuery($query, $perPage = 10)

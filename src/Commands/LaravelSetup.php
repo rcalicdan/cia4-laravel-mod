@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
-use CodeIgniter\CLI\CLI;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\AuthHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\ConfigHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\HelpersHandler;
@@ -59,7 +58,7 @@ class LaravelSetup extends BaseCommand
 
     /**
      * The path to the application directory
-     * 
+     *
      * @var string
      */
     protected $distPath = APPPATH;
@@ -69,7 +68,7 @@ class LaravelSetup extends BaseCommand
      */
     public function run(array $params): void
     {
-        $this->sourcePath = __DIR__ . '/../';
+        $this->sourcePath = __DIR__.'/../';
 
         // Initialize handlers
         $configHandler = new ConfigHandler($this->sourcePath, $this->distPath);

@@ -24,11 +24,11 @@ class DatabaseHandler
                 default => $this->handleUnsupportedDriver($driver, 'checking')
             };
         } catch (PDOException $e) {
-            CLI::error("Database connection error: " . $e->getMessage());
+            CLI::error('Database connection error: '.$e->getMessage());
             exit(1);
         }
     }
-    
+
     /**
      * Create database based on configuration
      */
@@ -47,8 +47,8 @@ class DatabaseHandler
             };
 
             CLI::write("Database '$database' created successfully.", 'green');
-        } catch (PDOException | \Exception $e) {
-            CLI::error("Failed to create database: " . $e->getMessage());
+        } catch (PDOException|\Exception $e) {
+            CLI::error('Failed to create database: '.$e->getMessage());
             exit(1);
         }
     }
@@ -61,6 +61,7 @@ class DatabaseHandler
         $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']}";
         $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password']);
         $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$dbConfig['database']}'");
+
         return $stmt->rowCount() > 0;
     }
 
@@ -72,6 +73,7 @@ class DatabaseHandler
         $dsn = "pgsql:host={$dbConfig['host']};port={$dbConfig['port']}";
         $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password']);
         $stmt = $pdo->query("SELECT datname FROM pg_database WHERE datname = '{$dbConfig['database']}'");
+
         return $stmt->rowCount() > 0;
     }
 
@@ -83,6 +85,7 @@ class DatabaseHandler
         $dsn = "sqlsrv:Server={$dbConfig['host']},{$dbConfig['port']}";
         $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password']);
         $stmt = $pdo->query("SELECT name FROM sys.databases WHERE name = '{$dbConfig['database']}'");
+
         return $stmt->rowCount() > 0;
     }
 
@@ -92,6 +95,7 @@ class DatabaseHandler
     private function handleUnsupportedDriver(string $driver, string $operation): bool
     {
         CLI::write("Warning: Auto-{$operation} not supported for '{$driver}'. Assuming database exists.", 'yellow');
+
         return true;
     }
 
@@ -119,7 +123,7 @@ class DatabaseHandler
         $database = $dbConfig['database'];
         $pdo->exec("CREATE DATABASE \"$database\"");
 
-        if (!empty($dbConfig['charset'])) {
+        if (! empty($dbConfig['charset'])) {
             $charset = $dbConfig['charset'];
             $pdo->exec("ALTER DATABASE \"$database\" SET client_encoding TO '$charset'");
         }
@@ -133,7 +137,7 @@ class DatabaseHandler
         $database = $dbConfig['database'];
         $directory = dirname($database);
 
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 
@@ -151,12 +155,12 @@ class DatabaseHandler
         $database = $dbConfig['database'];
         $pdo->exec("CREATE DATABASE [$database]");
 
-        if (!empty($dbConfig['collation'])) {
+        if (! empty($dbConfig['collation'])) {
             $collation = $dbConfig['collation'];
             $pdo->exec("ALTER DATABASE [$database] COLLATE $collation");
         }
     }
-    
+
     /**
      * Drop all database tables
      */

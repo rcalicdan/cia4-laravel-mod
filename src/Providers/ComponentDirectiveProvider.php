@@ -1,6 +1,6 @@
-<?php 
+<?php
 
-namespace Rcalicdan\Ci4Larabridge\Providers; 
+namespace Rcalicdan\Ci4Larabridge\Providers;
 
 use Jenssegers\Blade\Blade;
 
@@ -62,16 +62,15 @@ class ComponentDirectiveProvider
         'finalFilterKeysJson',
     ];
 
-    //======================================================================
+    // ======================================================================
     // Public Registration Method
-    //======================================================================
+    // ======================================================================
 
     /**
      * Registers all component-related directives with the Blade compiler instance.
      * This method is typically called by the main BladeExtension class.
      *
-     * @param Blade $blade The Blade compiler instance provided by Jenssegers\Blade.
-     * @return void
+     * @param  Blade  $blade  The Blade compiler instance provided by Jenssegers\Blade.
      */
     public function register(Blade $blade): void
     {
@@ -81,9 +80,9 @@ class ComponentDirectiveProvider
         $blade->directive('endslot', [$this, 'compileEndSlot']);
     }
 
-    //======================================================================
+    // ======================================================================
     // Directive Compilation Methods (Called by Blade Compiler via `directive` calls)
-    //======================================================================
+    // ======================================================================
 
     /**
      * Compiles the `@component` directive into PHP code.
@@ -91,8 +90,8 @@ class ComponentDirectiveProvider
      * and either prepares for slot content (starts output buffering) or
      * directly renders a self-closing component.
      *
-     * @param string $expression The raw expression string passed to the directive
-     *                           (e.g., "'x-alert', ['type' => 'error'], true").
+     * @param  string  $expression  The raw expression string passed to the directive
+     *                              (e.g., "'x-alert', ['type' => 'error'], true").
      * @return string The compiled PHP code to be executed during view rendering.
      */
     public function compileComponent(string $expression): string
@@ -102,16 +101,16 @@ class ComponentDirectiveProvider
         $phpSetupCode = $this->_generateComponentSetupCode($componentPath, $parsed['attributes']);
 
         if ($parsed['isSelfClosing']) {
-            return "<?php " . $phpSetupCode .
-                "\$__componentData['slot'] = ''; " .
-                "echo blade_view(\$__componentPath, \$__componentData, true); " .
-                "unset(\$__componentPath, \$__componentAttributes, \$__componentData, \$__definedVars, \$__internalVars); " .
-                "?>";
+            return '<?php '.$phpSetupCode.
+                "\$__componentData['slot'] = ''; ".
+                'echo blade_view($__componentPath, $__componentData, true); '.
+                'unset($__componentPath, $__componentAttributes, $__componentData, $__definedVars, $__internalVars); '.
+                '?>';
         } else {
-            return "<?php " . $phpSetupCode .
-                "\$__componentSlot = ''; " .
-                "ob_start(); " .
-                "?>";
+            return '<?php '.$phpSetupCode.
+                "\$__componentSlot = ''; ".
+                'ob_start(); '.
+                '?>';
         }
     }
 
@@ -128,8 +127,8 @@ class ComponentDirectiveProvider
         return "<?php \$__componentSlot = ob_get_clean();
                  \$__componentData['slot'] = \$__componentSlot;
                  echo blade_view(\$__componentPath, \$__componentData, true);
-                 unset(\$__componentPath, \$__componentAttributes, \$__componentData, \$__componentSlot, \$__definedVars, \$__internalVars); " .
-            "?>";
+                 unset(\$__componentPath, \$__componentAttributes, \$__componentData, \$__componentSlot, \$__definedVars, \$__internalVars); ".
+            '?>';
     }
 
     /**
@@ -137,7 +136,7 @@ class ComponentDirectiveProvider
      * This code stores the provided slot name and starts output buffering
      * to capture the content for that named slot.
      *
-     * @param string $expression The slot name expression (e.g., "'footer'").
+     * @param  string  $expression  The slot name expression (e.g., "'footer'").
      * @return string The compiled PHP code.
      */
     public function compileSlot(string $expression): string
@@ -155,13 +154,12 @@ class ComponentDirectiveProvider
      */
     public function compileEndSlot(): string
     {
-        return "<?php \$__componentData[\$__currentSlot] = ob_get_clean(); unset(\$__currentSlot); ?>";
+        return '<?php $__componentData[$__currentSlot] = ob_get_clean(); unset($__currentSlot); ?>';
     }
 
-
-    //======================================================================
+    // ======================================================================
     // Private Helper Methods (Internal logic used by compilation methods)
-    //======================================================================
+    // ======================================================================
 
     /**
      * Parses the raw string expression from the @component directive.
@@ -169,7 +167,7 @@ class ComponentDirectiveProvider
      * and determines if the component is intended to be self-closing (via a trailing ', true').
      * Handles cases with only name, name + attributes, and name + attributes + self-closing flag.
      *
-     * @param string $expression Raw directive expression string.
+     * @param  string  $expression  Raw directive expression string.
      * @return array An array containing 'name' (string), 'attributes' (string, PHP array format),
      *               and 'isSelfClosing' (bool).
      */
@@ -192,7 +190,7 @@ class ComponentDirectiveProvider
                 $lastCommaPos = strrpos($remainingExpression, ',');
                 if ($lastCommaPos !== false) {
                     $attributesString = trim(substr($remainingExpression, 0, $lastCommaPos));
-                    if (!empty($attributesString)) {
+                    if (! empty($attributesString)) {
                         $parsed['attributes'] = $attributesString;
                     }
                 }
@@ -203,9 +201,10 @@ class ComponentDirectiveProvider
         }
 
         // Ensure the attributes string is a valid PHP array representation or empty array '[]'
-        if (empty($parsed['attributes']) || !preg_match('/^\[.*\]$/', trim($parsed['attributes']))) {
+        if (empty($parsed['attributes']) || ! preg_match('/^\[.*\]$/', trim($parsed['attributes']))) {
             $parsed['attributes'] = '[]';
         }
+
         return $parsed;
     }
 
@@ -216,7 +215,7 @@ class ComponentDirectiveProvider
      * If the name doesn't start with 'x-', it's returned as is, assuming it's already
      * a valid view path (e.g., 'shared.modal').
      *
-     * @param string $componentName The component name extracted by `_parseComponentExpression`.
+     * @param  string  $componentName  The component name extracted by `_parseComponentExpression`.
      * @return string The resolved Blade view identifier (e.g., 'components::alert').
      */
     private function _resolveComponentPath(string $componentName): string
@@ -226,8 +225,9 @@ class ComponentDirectiveProvider
         $componentNamespace = 'components';
 
         if (\str_starts_with($componentName, 'x-')) { // PHP 8+ required
-            return $componentNamespace . '::' . substr($componentName, 2);
+            return $componentNamespace.'::'.substr($componentName, 2);
         }
+
         return $componentName;
     }
 
@@ -238,8 +238,8 @@ class ComponentDirectiveProvider
      * variables (using `$internalComponentVars`), merges the scope with passed attributes,
      * and performs a final filter before the data (`$__componentData`) is ready for the view.
      *
-     * @param string $componentPath The resolved Blade view identifier for the component.
-     * @param string $attributesString A string containing the PHP array representation of component attributes.
+     * @param  string  $componentPath  The resolved Blade view identifier for the component.
+     * @param  string  $attributesString  A string containing the PHP array representation of component attributes.
      * @return string A PHP code snippet (without opening/closing tags) to be prepended in the compiled view.
      */
     private function _generateComponentSetupCode(string $componentPath, string $attributesString): string
@@ -250,14 +250,14 @@ class ComponentDirectiveProvider
         $phpCode = '';
         $phpCode .= "\$__componentPath = '{$componentPath}'; ";
         $phpCode .= "\$__componentAttributes = {$attributesString}; ";
-        $phpCode .= "\$__definedVars = get_defined_vars(); ";
+        $phpCode .= '$__definedVars = get_defined_vars(); ';
         $phpCode .= "\$__internalVars = json_decode('{$internalVarsJson}', true); ";
-        $phpCode .= "foreach(array_keys(\$__definedVars) as \$__key) { ";
+        $phpCode .= 'foreach(array_keys($__definedVars) as $__key) { ';
         $phpCode .= "if (\\str_starts_with(\$__key, '__') || in_array(\$__key, \$__internalVars)) { unset(\$__definedVars[\$__key]); } "; // PHP 8+ required
-        $phpCode .= "} ";
-        $phpCode .= "\$__componentData = array_merge(\$__definedVars, \$__componentAttributes); ";
+        $phpCode .= '} ';
+        $phpCode .= '$__componentData = array_merge($__definedVars, $__componentAttributes); ';
         $phpCode .= "\$__finalFilterKeys = json_decode('{$finalFilterKeysJson}', true); ";
-        $phpCode .= "\$__componentData = array_filter(\$__componentData, fn(\$key) => !in_array(\$key, \$__finalFilterKeys), ARRAY_FILTER_USE_KEY); ";
+        $phpCode .= '$__componentData = array_filter($__componentData, fn($key) => !in_array($key, $__finalFilterKeys), ARRAY_FILTER_USE_KEY); ';
 
         return $phpCode;
     }

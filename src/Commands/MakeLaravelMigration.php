@@ -68,16 +68,14 @@ class MakeLaravelMigration extends BaseCommand
 
     /**
      * Base path where Laravel-style migration files will be stored.
-     *
-     * @var string
      */
-    protected string $migrationPath = APPPATH . 'Database/Eloquent-Migrations/';
+    protected string $migrationPath = APPPATH.'Database/Eloquent-Migrations/';
 
     /**
      * Standard Command Exit Codes.
      */
     private const EXIT_SUCCESS = 0;
-    private const EXIT_ERROR   = 1;
+    private const EXIT_ERROR = 1;
 
     /**
      * Handler instances
@@ -88,26 +86,27 @@ class MakeLaravelMigration extends BaseCommand
 
     /**
      * Executes the command logic.
-     * 
+     *
      * Initializes handlers, checks dependencies, processes input parameters,
      * and creates the migration file through a series of steps:
      * 1. Determines the migration name from input parameters
      * 2. Gets explicit table name from --table option if provided
      * 3. Creates the migration file with appropriate template
      *
-     * @param array $params Command parameters passed by Spark.
+     * @param  array  $params  Command parameters passed by Spark.
      * @return int Exit code (EXIT_SUCCESS or EXIT_ERROR).
      */
     public function run(array $params): int
     {
-        $this->inputHandler = new MigrationInputHandler();
+        $this->inputHandler = new MigrationInputHandler;
         $this->fileHandler = new MigrationFileHandler($this->migrationPath);
-        $this->codeGenerator = new MigrationCodeGenerator();
+        $this->codeGenerator = new MigrationCodeGenerator;
 
         helper('filesystem');
 
-        if (!class_exists(Str::class)) {
+        if (! class_exists(Str::class)) {
             CLI::error('Missing dependency: illuminate/support. Please run: composer require illuminate/support');
+
             return self::EXIT_ERROR;
         }
 
@@ -121,13 +120,13 @@ class MakeLaravelMigration extends BaseCommand
         if ($this->createMigrationFile($migrationName, $explicitTableName)) {
             return self::EXIT_SUCCESS;
         }
-        
+
         return self::EXIT_ERROR;
     }
 
     /**
      * Orchestrates the creation of the migration file.
-     * 
+     *
      * Handles the complete migration file creation process including:
      * - Converting migration name to snake_case format
      * - Generating the complete file path
@@ -136,8 +135,8 @@ class MakeLaravelMigration extends BaseCommand
      * - Determining migration type and generating appropriate code
      * - Writing the final migration file
      *
-     * @param string $migrationName The descriptive name of the migration (e.g., CreateUsersTable).
-     * @param string|null $explicitTableName Table name provided via --table option, if any.
+     * @param  string  $migrationName  The descriptive name of the migration (e.g., CreateUsersTable).
+     * @param  string|null  $explicitTableName  Table name provided via --table option, if any.
      * @return bool True on successful file creation, false otherwise.
      */
     protected function createMigrationFile(string $migrationName, ?string $explicitTableName): bool
@@ -147,23 +146,25 @@ class MakeLaravelMigration extends BaseCommand
         $targetFile = $this->fileHandler->getFullPath($fileName);
         $relativeTargetFile = $this->fileHandler->getRelativePath($targetFile);
 
-        if (!$this->fileHandler->validateMigrationDoesNotExist($targetFile, $relativeTargetFile)) {
+        if (! $this->fileHandler->validateMigrationDoesNotExist($targetFile, $relativeTargetFile)) {
             $force = $this->inputHandler->isForceEnabled();
-            if (!$force) {
+            if (! $force) {
                 CLI::write('Use the --force option to overwrite if necessary (use with caution!).', 'yellow');
+
                 return false;
             }
             CLI::write("Overwriting existing file due to --force option: {$relativeTargetFile}", 'light_red');
         }
 
-        if (!$this->fileHandler->ensureMigrationDirectoryExists()) {
+        if (! $this->fileHandler->ensureMigrationDirectoryExists()) {
             return false;
         }
 
         $code = $this->generateMigrationCode($migrationName, $explicitTableName);
 
         if ($this->fileHandler->writeMigrationFileContent($targetFile, $relativeTargetFile, $code)) {
-            CLI::write("Migration created successfully: " . CLI::color($relativeTargetFile, 'green'));
+            CLI::write('Migration created successfully: '.CLI::color($relativeTargetFile, 'green'));
+
             return true;
         }
 
@@ -172,30 +173,33 @@ class MakeLaravelMigration extends BaseCommand
 
     /**
      * Determines the migration type and generates the corresponding code.
-     * 
+     *
      * Generates appropriate migration code based on:
      * - Explicit table name (forces "modify" template)
      * - Inferred table name from migration name (creates "create" template)
      * - Falls back to generic template if table cannot be inferred
      *
-     * @param string $migrationName Original migration name provided by user.
-     * @param string|null $explicitTableName Table name from --table option.
+     * @param  string  $migrationName  Original migration name provided by user.
+     * @param  string|null  $explicitTableName  Table name from --table option.
      * @return string Generated PHP code for the migration file.
      */
     private function generateMigrationCode(string $migrationName, ?string $explicitTableName): string
     {
-        if (!empty($explicitTableName)) {
-            CLI::write("Generating MODIFY migration for table: " . CLI::color($explicitTableName, 'cyan'));
+        if (! empty($explicitTableName)) {
+            CLI::write('Generating MODIFY migration for table: '.CLI::color($explicitTableName, 'cyan'));
+
             return $this->codeGenerator->generateModifyMigrationCode($explicitTableName);
         }
 
         $inferredTableName = $this->codeGenerator->inferTableNameForCreate($migrationName);
         if ($inferredTableName) {
-            CLI::write("Generating CREATE migration for table: " . CLI::color($inferredTableName, 'cyan'));
+            CLI::write('Generating CREATE migration for table: '.CLI::color($inferredTableName, 'cyan'));
+
             return $this->codeGenerator->generateCreateMigrationCode($inferredTableName);
         }
 
-        CLI::write("Generating GENERIC migration (could not infer table from name, use --table=<table> for specific table modifications)", 'cyan');
+        CLI::write('Generating GENERIC migration (could not infer table from name, use --table=<table> for specific table modifications)', 'cyan');
+
         return $this->codeGenerator->generateGenericMigrationCode();
     }
 }

@@ -9,7 +9,7 @@ class ModelCodeGenerator
     /**
      * Generates model class code using resolved details.
      *
-     * @param array $details Resolved model details.
+     * @param  array  $details  Resolved model details.
      * @return string The generated model code.
      */
     public function generateModelCode(array $details): string
@@ -39,7 +39,7 @@ PHP;
      * Converts a base model name (PascalCase) to a table name (snake_case, plural).
      * Requires illuminate/support package.
      *
-     * @param string $baseModelName The base model class name (e.g., User, ProductCategory).
+     * @param  string  $baseModelName  The base model class name (e.g., User, ProductCategory).
      * @return string The table name (e.g., users, product_categories).
      */
     public function getTableName(string $baseModelName): string

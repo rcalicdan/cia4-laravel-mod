@@ -15,28 +15,29 @@ class Auth
     /**
      * The singleton instance of the Authentication library.
      *
-     * @var \Rcalicdan\Ci4Larabridge\Authentication\Authentication|null
+     * @var Authentication|null
      */
     protected static $instance;
 
     /**
      * Retrieves the singleton instance of the Authentication library.
      *
-     * @return \Rcalicdan\Ci4Larabridge\Authentication\Authentication The Authentication instance.
+     * @return Authentication The Authentication instance.
      */
     public static function getInstance()
     {
-        if (!self::$instance) {
+        if (! self::$instance) {
             self::$instance = new Authentication;
         }
+
         return self::$instance;
     }
 
     /**
      * Handles dynamic static method calls to the Authentication library.
      *
-     * @param string $method The method name to call.
-     * @param array  $args   The arguments to pass to the method.
+     * @param  string  $method  The method name to call.
+     * @param  array  $args  The arguments to pass to the method.
      * @return mixed The result of the method call.
      */
     public static function __callStatic($method, $args)
@@ -77,7 +78,7 @@ class Auth
     /**
      * Attempts to authenticate a user with the given credentials.
      *
-     * @param array $credentials The user credentials to authenticate.
+     * @param  array  $credentials  The user credentials to authenticate.
      * @return bool True if authentication is successful, false otherwise.
      */
     public static function attempt($credentials)
@@ -88,7 +89,7 @@ class Auth
     /**
      * Logs in a user.
      *
-     * @param \Rcalicdan\Ci4Larabridge\Models\User $user The user to log in.
+     * @param  \Rcalicdan\Ci4Larabridge\Models\User  $user  The user to log in.
      * @return bool True if the login is successful, false otherwise.
      */
     public static function login($user)

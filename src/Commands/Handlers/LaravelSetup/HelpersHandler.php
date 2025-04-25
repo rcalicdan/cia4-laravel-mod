@@ -13,10 +13,10 @@ class HelpersHandler extends SetupHandler
     public function setupHelpers(): void
     {
         $file = 'Config/Autoload.php';
-        $path = $this->distPath . $file;
+        $path = $this->distPath.$file;
         $cleanPath = clean_path($path);
 
-        $config = new AutoloadConfig();
+        $config = new AutoloadConfig;
         $helpers = $config->helpers;
         $newHelpers = array_unique(array_merge($helpers, ['auth', 'authorization', 'blade', 'http', 'url_back']));
 
@@ -25,12 +25,13 @@ class HelpersHandler extends SetupHandler
 
         // Check if the content is updated
         if ($output === $content) {
-            $this->write(CLI::color('  Autoload Setup: ', 'green') . 'Helper autoloading already configured.');
+            $this->write(CLI::color('  Autoload Setup: ', 'green').'Helper autoloading already configured.');
+
             return;
         }
 
         if (write_file($path, $output)) {
-            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
+            $this->write(CLI::color('  Updated: ', 'green').$cleanPath);
 
             // Copy all helper files to App/Helpers
             $this->copyHelperFiles();
@@ -58,13 +59,13 @@ class HelpersHandler extends SetupHandler
     }
 
     /**
-     * @param string $content    The content of Config\Autoload.
-     * @param array  $newHelpers The list of helpers.
+     * @param  string  $content  The content of Config\Autoload.
+     * @param  array  $newHelpers  The list of helpers.
      */
     private function updateAutoloadHelpers(string $content, array $newHelpers): string
     {
         $pattern = '/^    public \$helpers = \[.*?\];/msu';
-        $replace = '    public $helpers = [\'' . implode("', '", $newHelpers) . '\'];';
+        $replace = '    public $helpers = [\''.implode("', '", $newHelpers).'\'];';
 
         return preg_replace($pattern, $replace, $content);
     }

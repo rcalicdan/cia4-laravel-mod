@@ -4,8 +4,8 @@ namespace Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate;
 
 use CodeIgniter\CLI\CLI;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Database\Migrations\DatabaseMigrationRepository;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Facade;
 
@@ -15,7 +15,7 @@ class MigrationHandler
     protected $repository;
     protected $migrator;
     protected $migrationPath;
-    
+
     /**
      * Setup the Laravel environment
      */
@@ -24,16 +24,16 @@ class MigrationHandler
         $this->setupDatabase($dbConfig);
         $this->setupRepository();
         $this->setupMigrator();
-        
+
         return $this;
     }
-    
+
     /**
      * Initialize database connection
      */
     private function setupDatabase(array $dbConfig)
     {
-        $this->capsule = new Capsule();
+        $this->capsule = new Capsule;
         $this->capsule->addConnection($dbConfig);
 
         $this->capsule->setAsGlobal();
@@ -64,7 +64,7 @@ class MigrationHandler
             'migrations'
         );
 
-        if (!$this->repository->repositoryExists()) {
+        if (! $this->repository->repositoryExists()) {
             $this->repository->createRepository();
             CLI::write('Laravel migration repository created.', 'green');
         }
@@ -75,8 +75,8 @@ class MigrationHandler
      */
     private function setupMigrator()
     {
-        $this->migrationPath = APPPATH . 'Database/Eloquent-Migrations';
-        $filesystem = new Filesystem();
+        $this->migrationPath = APPPATH.'Database/Eloquent-Migrations';
+        $filesystem = new Filesystem;
         $this->migrator = new Migrator(
             $this->repository,
             $this->capsule->getDatabaseManager(),
@@ -84,7 +84,7 @@ class MigrationHandler
         );
         $this->migrator->setConnection('default');
     }
-    
+
     /**
      * Run migrations up
      */
@@ -93,10 +93,10 @@ class MigrationHandler
         $before = $this->repository->getRan();
         $this->migrator->run($this->migrationPath);
         $after = $this->repository->getRan();
-        
+
         return array_diff($after, $before);
     }
-    
+
     /**
      * Rollback migrations
      */
@@ -105,10 +105,10 @@ class MigrationHandler
         $before = $this->repository->getRan();
         $this->migrator->rollback($this->migrationPath);
         $after = $this->repository->getRan();
-        
+
         return array_diff($before, $after);
     }
-    
+
     /**
      * Reset and rerun migrations
      */
@@ -117,7 +117,7 @@ class MigrationHandler
         $this->migrator->reset($this->migrationPath);
         $this->migrator->run($this->migrationPath);
     }
-    
+
     /**
      * Get migration status
      */
@@ -133,7 +133,7 @@ class MigrationHandler
 
         return $status;
     }
-    
+
     /**
      * Get database connection
      */

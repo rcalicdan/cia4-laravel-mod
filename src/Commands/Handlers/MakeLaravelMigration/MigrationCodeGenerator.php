@@ -9,7 +9,7 @@ class MigrationCodeGenerator
     /**
      * Generates migration code for creating a new table.
      *
-     * @param string $tableName The table name.
+     * @param  string  $tableName  The table name.
      * @return string The migration code.
      */
     public function generateCreateMigrationCode(string $tableName): string
@@ -54,7 +54,7 @@ PHP;
     /**
      * Generates migration code for modifying an existing table.
      *
-     * @param string $tableName The table name.
+     * @param  string  $tableName  The table name.
      * @return string The migration code.
      */
     public function generateModifyMigrationCode(string $tableName): string
@@ -142,7 +142,7 @@ PHP;
     /**
      * Infers the table name for a "create" migration using naming conventions.
      *
-     * @param string $migrationName PascalCase or snake_case migration name.
+     * @param  string  $migrationName  PascalCase or snake_case migration name.
      * @return string|null The inferred table name (e.g., 'users', 'product_categories') or null.
      */
     public function inferTableNameForCreate(string $migrationName): ?string

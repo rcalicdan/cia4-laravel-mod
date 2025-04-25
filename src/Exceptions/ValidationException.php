@@ -12,7 +12,7 @@ class ValidationException extends Exception
     public function __construct(RedirectResponse $response)
     {
         parent::__construct('Validation failed');
-        $this->response = $response;    
+        $this->response = $response;
         $this->handleResponse();
     }
 
@@ -20,7 +20,7 @@ class ValidationException extends Exception
     {
         return $this->response;
     }
-    
+
     protected function handleResponse()
     {
         $this->response->send();

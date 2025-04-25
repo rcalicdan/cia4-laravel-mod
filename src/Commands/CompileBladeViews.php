@@ -1,4 +1,5 @@
 <?php
+
 namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
@@ -14,27 +15,27 @@ class CompileBladeViews extends BaseCommand
     public function run(array $params)
     {
         CLI::write('Starting Blade view compilation...', 'yellow');
-        
+
         // Get blade service but we'll access the compiler directly
         $bladeService = service('blade');
         $blade = $bladeService->getBlade();
-        
+
         // For Jenssegers/Blade, we can access the compiler like this
         $compiler = $blade->compiler();
-        $viewsPath = APPPATH . 'Views';
-        $filesystem = new Filesystem();
-        
+        $viewsPath = APPPATH.'Views';
+        $filesystem = new Filesystem;
+
         // Get all blade templates
         $files = $this->findBladeTemplates($viewsPath);
-        
+
         $successful = 0;
         $failed = 0;
-        
+
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
-            
+
             try {
                 // Force compile the view
                 $compiler->compile($file);
@@ -45,21 +46,21 @@ class CompileBladeViews extends BaseCommand
                 $failed++;
             }
         }
-        
+
         CLI::write("Compilation complete: {$successful} succeeded, {$failed} failed", 'yellow');
     }
-    
+
     protected function findBladeTemplates($directory)
     {
         $files = [];
-        $filesystem = new Filesystem();
-        
+        $filesystem = new Filesystem;
+
         foreach ($filesystem->allFiles($directory) as $file) {
             if (str_ends_with($file->getPathname(), '.blade.php')) {
                 $files[] = $file->getPathname();
             }
         }
-        
+
         return $files;
     }
 }

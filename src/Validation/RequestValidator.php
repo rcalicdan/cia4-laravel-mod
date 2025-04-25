@@ -2,45 +2,47 @@
 
 namespace Rcalicdan\Ci4Larabridge\Validation;
 
-use Rcalicdan\Ci4Larabridge\Exceptions\ValidationException;
 use CodeIgniter\HTTP\IncomingRequest;
+use Rcalicdan\Ci4Larabridge\Exceptions\ValidationException;
 
 class RequestValidator
 {
-     /**
+    /**
      * Validate request data directly from controller
      *
-     * @param array $rules Validation rules
-     * @param array $messages Custom error messages (optional)
-     * @param array $attributes Custom attribute names (optional)
-     * @return \Rcalicdan\Ci4Larabridge\Validation\ValidatedData Object containing validated data and helper methods
+     * @param  array  $rules  Validation rules
+     * @param  array  $messages  Custom error messages (optional)
+     * @param  array  $attributes  Custom attribute names (optional)
+     * @return ValidatedData Object containing validated data and helper methods
+     *
      * @throws ValidationException When validation fails
      */
     public static function validate(array $rules, array $messages = [], array $attributes = []): ValidatedData
     {
         $request = \Config\Services::request();
         $validator = service('laravelValidator');
-        
+
         // Combine POST data and FILES
         $data = array_merge($request->getPost(), self::collectFiles($request));
-        
+
         $result = $validator->validate($data, $rules, $messages, $attributes);
-        
-        if (!$result['success']) {
+
+        if (! $result['success']) {
             $response = redirect()->back()
                 ->withInput()
-                ->with('errors', $result['errorsByField']);
-            
+                ->with('errors', $result['errorsByField'])
+            ;
+
             throw new ValidationException($response);
         }
-        
+
         return new ValidatedData($result['validated']);
     }
-    
+
     /**
      * Collect files from the request and format them for validation
-     * 
-     * @param IncomingRequest $request The request instance
+     *
+     * @param  IncomingRequest  $request  The request instance
      * @return array Array of processed files
      */
     protected static function collectFiles(IncomingRequest $request)
@@ -65,8 +67,8 @@ class RequestValidator
 
     /**
      * Process multiple files from the same input
-     * 
-     * @param array $fileInfoArray Array of uploaded files
+     *
+     * @param  array  $fileInfoArray  Array of uploaded files
      * @return array Processed files in Laravel-compatible format
      */
     private static function processMultipleFiles(array $fileInfoArray)
@@ -84,8 +86,8 @@ class RequestValidator
 
     /**
      * Process a single file upload
-     * 
-     * @param object $file The uploaded file object
+     *
+     * @param  object  $file  The uploaded file object
      * @return array|null File in Laravel-compatible format or null if invalid
      */
     private static function processSingleFile($file)
@@ -95,8 +97,8 @@ class RequestValidator
 
     /**
      * Format file data into Laravel-compatible structure
-     * 
-     * @param object $file The uploaded file object
+     *
+     * @param  object  $file  The uploaded file object
      * @return array Formatted file data
      */
     private static function formatFileData($file)
@@ -107,7 +109,7 @@ class RequestValidator
             'size' => $file->getSize(),
             'tmp_name' => $file->getTempName(),
             'error' => 0,
-            '_ci_file' => $file // Store the original file for later use
+            '_ci_file' => $file, // Store the original file for later use
         ];
     }
 }

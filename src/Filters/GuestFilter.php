@@ -15,7 +15,7 @@ class GuestFilter implements FilterInterface
             return redirect()->to('/dashboard');
         }
     }
-    
+
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         // Do nothing after

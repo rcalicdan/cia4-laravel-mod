@@ -2,9 +2,8 @@
 
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
-use Jenssegers\Blade\Blade;
-use Rcalicdan\Ci4Larabridge\Blade\BladeExtension;
 use Illuminate\Pagination\Paginator;
+use Jenssegers\Blade\Blade;
 use Jenssegers\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
 
@@ -21,7 +20,7 @@ class BladeService
     protected array $config;
 
     /**
-     * @var ConfigBlade Configuration values for Blade 
+     * @var ConfigBlade Configuration values for Blade
      */
     protected $bladeConfigValues;
 
@@ -36,7 +35,7 @@ class BladeService
     public function __construct()
     {
         $this->bladeConfigValues = config('Blade');
-        $this->bladeExtension = new BladeExtension();
+        $this->bladeExtension = new BladeExtension;
         $this->config = [
             'viewsPath' => $this->bladeConfigValues->viewsPath,
             'cachePath' => $this->bladeConfigValues->cachePath,
@@ -55,7 +54,7 @@ class BladeService
     {
         $this->ensureCacheDirectory();
 
-        $container = new BladeContainer();
+        $container = new BladeContainer;
 
         $this->blade = new Blade(
             $this->config['viewsPath'],
@@ -85,11 +84,11 @@ class BladeService
     {
         $cachePath = $this->config['cachePath'];
 
-        if (!is_dir($cachePath)) {
+        if (! is_dir($cachePath)) {
             mkdir($cachePath, 0777, true);
         }
 
-        if (!is_writable($cachePath)) {
+        if (! is_writable($cachePath)) {
             log_message('error', "Blade cache path is not writable: {$cachePath}");
         }
     }
@@ -99,8 +98,9 @@ class BladeService
      */
     protected function applyExtensions(): void
     {
-        if (!class_exists(BladeExtension::class)) {
+        if (! class_exists(BladeExtension::class)) {
             log_message('warning', 'BladeExtension class not found. Custom directives are disabled.');
+
             return;
         }
 
@@ -111,13 +111,13 @@ class BladeService
 
     /**
      * Process view data with extensions
-     * 
-     * @param array $data The view data to process
+     *
+     * @param  array  $data  The view data to process
      * @return array Processed view data
      */
     public function processData(array $data): array
     {
-        if (!class_exists(BladeExtension::class)) {
+        if (! class_exists(BladeExtension::class)) {
             return $data;
         }
 
@@ -130,8 +130,8 @@ class BladeService
 
     /**
      * Filter internal keys from view data
-     * 
-     * @param array $data The view data to filter
+     *
+     * @param  array  $data  The view data to filter
      * @return array Filtered view data
      */
     public function filterInternalKeys(array $data): array
@@ -155,15 +155,16 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn($key) => !in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
      * Render a view with Blade
-     * 
-     * @param string $view The view identifier in dot notation
-     * @param array $data Data to be passed to the view
+     *
+     * @param  string  $view  The view identifier in dot notation
+     * @param  array  $data  Data to be passed to the view
      * @return string Rendered HTML string
+     *
      * @throws \Throwable Rendering exceptions in non-production environments
      */
     public function render(string $view, array $data = []): string
@@ -180,13 +181,13 @@ class BladeService
                 throw $e;
             }
 
-            return "<!-- View Rendering Error -->";
+            return '<!-- View Rendering Error -->';
         }
     }
 
     /**
      * Get the Blade instance
-     * 
+     *
      * @return Blade The Blade engine instance
      */
     public function getBlade(): Blade
@@ -196,13 +197,13 @@ class BladeService
 
     /**
      * Compiles all blade views
-     * 
-     * @param bool $force Force recompilation
+     *
+     * @param  bool  $force  Force recompilation
      * @return array Compilation results
      */
     public function compileViews(bool $force = false): array
     {
-        $filesystem = new \Illuminate\Filesystem\Filesystem();
+        $filesystem = new \Illuminate\Filesystem\Filesystem;
         $compiler = $this->blade->getCompiler();
 
         // Get all .blade.php files
@@ -211,13 +212,13 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
             try {
-                if ($force || !$compiler->isExpired($viewsPath . '/' . $relativePath)) {
-                    $compiler->compile($viewsPath . '/' . $relativePath);
+                if ($force || ! $compiler->isExpired($viewsPath.'/'.$relativePath)) {
+                    $compiler->compile($viewsPath.'/'.$relativePath);
                 }
                 $results[$viewName] = true;
             } catch (\Exception $e) {
@@ -230,9 +231,6 @@ class BladeService
 
     /**
      * Get all Blade template files recursively
-     * 
-     * @param string $directory
-     * @return array
      */
     protected function getBladeFiles(string $directory): array
     {

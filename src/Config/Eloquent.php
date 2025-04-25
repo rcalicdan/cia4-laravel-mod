@@ -2,13 +2,13 @@
 
 namespace Rcalicdan\Ci4Larabridge\Config;
 
+use CodeIgniter\Config\BaseConfig;
+use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Config\Repository;
-use Illuminate\Support\Facades\Facade;
 use Illuminate\Hashing\HashManager;
 use Illuminate\Pagination\Paginator;
-use CodeIgniter\Config\BaseConfig;
+use Illuminate\Support\Facades\Facade;
 
 class Eloquent extends BaseConfig
 {
@@ -43,18 +43,17 @@ class Eloquent extends BaseConfig
     public function getDatabaseInformation(): array
     {
         return [
-            'host'      => env('database.default.hostname', 'localhost'),
-            'driver'    => env('database.default.DBDriver', 'sqlite'),
-            'database'  => env('database.default.database', ''),
-            'username'  => env('database.default.username', 'root'),
-            'password'  => env('database.default.password', ''),
-            'charset'   => env('database.default.DBCharset', 'utf8'),
+            'host' => env('database.default.hostname', 'localhost'),
+            'driver' => env('database.default.DBDriver', 'sqlite'),
+            'database' => env('database.default.database', ''),
+            'username' => env('database.default.username', 'root'),
+            'password' => env('database.default.password', ''),
+            'charset' => env('database.default.DBCharset', 'utf8'),
             'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix'    => env('database.default.DBPrefix', ''),
-            'port'      => env('database.default.port', ''),
+            'prefix' => env('database.default.DBPrefix', ''),
+            'port' => env('database.default.port', ''),
         ];
     }
-
 
     /**
      * Configure pagination once for the entire application
@@ -90,7 +89,7 @@ class Eloquent extends BaseConfig
      */
     protected function setupContainer(): void
     {
-        $this->container = new Container();
+        $this->container = new Container;
         Facade::setFacadeApplication($this->container);
     }
 
@@ -116,7 +115,7 @@ class Eloquent extends BaseConfig
                     'bcrypt' => [
                         'rounds' => 10,
                     ],
-                ]
+                ],
             ]);
         });
     }

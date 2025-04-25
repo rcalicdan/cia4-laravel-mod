@@ -16,21 +16,22 @@ use Rcalicdan\Ci4Larabridge\Providers\ComponentDirectiveProvider;
  */
 class BladeExtension
 {
-    //======================================================================
+    // ======================================================================
     // Public Entry Points (Called by blade_view helper)
-    //======================================================================
+    // ======================================================================
 
     /**
      * Processes the view data array before it's passed to the Blade engine.
      * This allows for modification or addition of data, such as rendering
      * pagination links or setting up validation error handling.
      *
-     * @param array $data The original data array for the view.
+     * @param  array  $data  The original data array for the view.
      * @return array The processed data array.
      */
     public function processData(array $data): array
     {
         $this->processPaginators($data);
+
         return $this->addErrorsHandler($data);
     }
 
@@ -39,8 +40,7 @@ class BladeExtension
      * This includes method spoofing, permission checks, error handling,
      * and delegates component system directives to its provider.
      *
-     * @param Blade $blade The Blade compiler instance.
-     * @return void
+     * @param  Blade  $blade  The Blade compiler instance.
      */
     public function registerDirectives(Blade $blade): void
     {
@@ -51,13 +51,13 @@ class BladeExtension
         $this->_registerAuthDirectives($blade);
 
         // Delegate component directive registration to the dedicated provider
-        $componentProvider = new ComponentDirectiveProvider();
+        $componentProvider = new ComponentDirectiveProvider;
         $componentProvider->register($blade);
     }
 
-    //======================================================================
+    // ======================================================================
     // Data Processing Helpers (Called internally by processData)
-    //======================================================================
+    // ======================================================================
 
     /**
      * Processes `LengthAwarePaginator` instances within the view data.
@@ -67,8 +67,7 @@ class BladeExtension
      * Note: This method's logic is preserved exactly as provided previously.
      * Ensure `RcalicdanPaginationRenderer` exists and functions as expected.
      *
-     * @param array &$data The view data array (passed by reference).
-     * @return void
+     * @param  array  &$data  The view data array (passed by reference).
      */
     protected function processPaginators(&$data): void
     {
@@ -80,7 +79,7 @@ class BladeExtension
                 }
                 // Attempt to use PaginationRenderer if it exists
                 if (class_exists(PaginationRenderer::class)) {
-                    $renderer = new PaginationRenderer();
+                    $renderer = new PaginationRenderer;
                     $data[$key]->linksHtml = $renderer->render($value, $theme);
                 } else {
                     // Log a warning if the expected renderer is missing
@@ -97,87 +96,94 @@ class BladeExtension
      * accessible in the view via an object with `has()` and `first()` methods,
      * enabling the use of the `@error` directive.
      *
-     * @param array $data The view data array.
+     * @param  array  $data  The view data array.
      * @return array The data array, potentially with an `$errors` object added.
      */
     protected function addErrorsHandler(array $data): array
     {
         $sessionErrors = session('errors');
-        if (!isset($data['errors']) && !empty($sessionErrors) && is_array($sessionErrors)) {
-            $data['errors'] = new class($sessionErrors) {
+        if (! isset($data['errors']) && ! empty($sessionErrors) && is_array($sessionErrors)) {
+            $data['errors'] = new class($sessionErrors)
+            {
                 protected array $errors;
+
                 public function __construct(array $errors)
                 {
                     $this->errors = $errors;
                 }
+
                 public function has(string $key): bool
                 {
                     return isset($this->errors[$key]);
                 }
+
                 public function first(string $key): ?string
                 {
                     return $this->errors[$key] ?? null;
                 }
+
                 public function getBag(string $key = 'default'): array
                 {
                     return $this->errors;
                 }
+
                 public function any(): bool
                 {
-                    return !empty($this->errors);
+                    return ! empty($this->errors);
                 }
+
                 public function all(): array
                 {
                     return $this->errors;
                 }
             };
         }
+
         return $data;
     }
 
-    //======================================================================
+    // ======================================================================
     // Directive Registrars (Called internally by registerDirectives)
-    //======================================================================
+    // ======================================================================
 
     /**
      * Registers directives for HTTP method spoofing in forms.
      * Provides @method('PUT'), @delete, @put, @patch.
      *
-     * @param Blade $blade The Blade compiler instance.
-     * @return void
+     * @param  Blade  $blade  The Blade compiler instance.
      */
     private function _registerMethodDirectives(Blade $blade): void
     {
         $blade->directive('method', function ($expression) {
             $method = strtoupper(trim($expression, "()\"'"));
+
             return "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">";
         });
-        $blade->directive('delete', fn() => '<input type="hidden" name=\"_method\" value=\"DELETE\">');
-        $blade->directive('put', fn() => '<input type="hidden" name=\"_method\" value=\"PUT\">');
-        $blade->directive('patch', fn() => '<input type="hidden" name=\"_method\" value=\"PATCH\">');
+        $blade->directive('delete', fn () => '<input type="hidden" name=\"_method\" value=\"DELETE\">');
+        $blade->directive('put', fn () => '<input type="hidden" name=\"_method\" value=\"PUT\">');
+        $blade->directive('patch', fn () => '<input type="hidden" name=\"_method\" value=\"PATCH\">');
     }
 
     /**
      * Registers directives for simple permission checks.
-     * Provides @can(...) and @cannot(...). 
+     * Provides @can(...) and @cannot(...).
      *
-     * @param Blade $blade The Blade compiler instance.
-     * @return void
+     * @param  Blade  $blade  The Blade compiler instance.
      */
     private function _registerPermissionDirectives(Blade $blade): void
     {
-        $blade->directive('can', fn($expression) => "<?php if(can($expression)): ?>");
-        $blade->directive('endcan', fn() => "<?php endif; ?>");
-        $blade->directive('cannot', fn($expression) => "<?php if(cannot($expression)): ?>");
-        $blade->directive('endcannot', fn() => "<?php endif; ?>");
+        $blade->directive('can', fn ($expression) => "<?php if(can($expression)): ?>");
+        $blade->directive('endcan', fn () => '<?php endif; ?>');
+        $blade->directive('cannot', fn ($expression) => "<?php if(cannot($expression)): ?>");
+        $blade->directive('endcannot', fn () => '<?php endif; ?>');
     }
 
     private function _registerAuthDirectives(Blade $blade): void
     {
-        $blade->directive('auth', fn() => "<?php if(auth()->check()):?>");
-        $blade->directive('endauth', fn() => "<?php endif;?>");
-        $blade->directive('guest', fn() => "<?php if(auth()->guest()):?>");
-        $blade->directive('endguest', fn() => "<?php endif;?>");
+        $blade->directive('auth', fn () => '<?php if(auth()->check()):?>');
+        $blade->directive('endauth', fn () => '<?php endif;?>');
+        $blade->directive('guest', fn () => '<?php if(auth()->guest()):?>');
+        $blade->directive('endguest', fn () => '<?php endif;?>');
     }
 
     /**
@@ -185,8 +191,7 @@ class BladeExtension
      * Provides @error('field_name') ... @enderror. Relies on the `$errors`
      * object added by the `addErrorsHandler` method.
      *
-     * @param Blade $blade The Blade compiler instance.
-     * @return void
+     * @param  Blade  $blade  The Blade compiler instance.
      */
     private function _registerErrorDirectives(Blade $blade): void
     {
@@ -198,7 +203,7 @@ class BladeExtension
                 \$message = \$__bladeErrors->first(\$__fieldName);
             ?>";
         });
-        $blade->directive('enderror', fn() => "<?php unset(\$message, \$__fieldName, \$__bladeErrors); endif; ?>");
+        $blade->directive('enderror', fn () => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
     }
 
     private function _registerBackDirectives(Blade $blade)
@@ -206,6 +211,7 @@ class BladeExtension
         $blade->directive('back', function ($expression) {
             $expression = trim($expression, "()'\"");
             $default = $expression ? ", $expression" : '';
+
             return "<?php echo '<input type=\"hidden\" name=\"back\" value=\"'.e(back_url($default)).'\">'; ?>";
         });
     }

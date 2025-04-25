@@ -44,11 +44,13 @@
     },
     "require-dev": {
         "codeigniter4/framework": "^4.0",
-        "friendsofphp/php-cs-fixer": "^3.75"
+        "laravel/pint": "^1.10",
+        "phpstan/phpstan": "^1.12"
     },
     "scripts": {
-        "cs": "php-cs-fixer fix --dry-run --diff",
-        "cs-fix": "php-cs-fixer fix"
+        "format": "./vendor/bin/pint",
+        "format-test": "./vendor/bin/pint --test",
+        "analyse": "./vendor/bin/phpstan analyse"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

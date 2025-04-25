@@ -10,20 +10,20 @@ use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\OutputHandler;
 
 class LaravelMigrate extends BaseCommand
 {
-    protected $group       = 'Database';
-    protected $name        = 'eloquent:migrate';
+    protected $group = 'Database';
+    protected $name = 'eloquent:migrate';
     protected $description = 'Runs Laravel migrations in CodeIgniter 4';
-    protected $usage       = 'eloquent:migrate [up|down|refresh|status|fresh]';
-    protected $arguments   = [
+    protected $usage = 'eloquent:migrate [up|down|refresh|status|fresh]';
+    protected $arguments = [
         'action' => 'The action to perform: up, down, refresh, status, or fresh (default: up)',
     ];
-    protected $options    = [];
-    
+    protected $options = [];
+
     // Handlers
     protected $dbHandler;
     protected $migrationHandler;
     protected $outputHandler;
-    
+
     protected $dbConfig = [];
 
     /**
@@ -33,15 +33,15 @@ class LaravelMigrate extends BaseCommand
     {
         try {
             // Initialize handlers
-            $this->dbHandler = new DatabaseHandler();
+            $this->dbHandler = new DatabaseHandler;
             $this->migrationHandler = new LaravelMigrateMigrationHandler;
-            $this->outputHandler = new OutputHandler();
-            
+            $this->outputHandler = new OutputHandler;
+
             // Load database configuration
             $this->loadDatabaseConfig();
 
             // Check if database exists before proceeding
-            if (!$this->dbHandler->checkDatabaseExists($this->dbConfig)) {
+            if (! $this->dbHandler->checkDatabaseExists($this->dbConfig)) {
                 $this->promptAndCreateDatabase();
             }
 
@@ -51,9 +51,9 @@ class LaravelMigrate extends BaseCommand
             // Execute the requested action
             $action = $params[0] ?? 'up';
             $this->executeAction($action);
-            
+
         } catch (\Exception $e) {
-            CLI::error("Error executing migration command: " . $e->getMessage());
+            CLI::error('Error executing migration command: '.$e->getMessage());
         }
     }
 
@@ -90,29 +90,35 @@ class LaravelMigrate extends BaseCommand
             case 'up':
                 $migrations = $this->migrationHandler->runMigrations();
                 $this->outputHandler->showUpResult($migrations);
+
                 break;
-                
+
             case 'down':
                 $migrations = $this->migrationHandler->rollbackMigrations();
                 $this->outputHandler->showDownResult($migrations);
+
                 break;
-                
+
             case 'refresh':
                 $this->migrationHandler->refreshMigrations();
                 $this->outputHandler->showRefreshResult();
+
                 break;
-                
+
             case 'status':
                 $status = $this->migrationHandler->getMigrationStatus();
                 $this->outputHandler->showStatusResult($status);
+
                 break;
-                
+
             case 'fresh':
                 $this->handleFreshAction();
+
                 break;
-                
+
             default:
                 $this->outputHandler->showUsage();
+
                 break;
         }
     }

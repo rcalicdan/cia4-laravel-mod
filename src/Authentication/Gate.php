@@ -4,7 +4,7 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 /**
  * Gate
- * 
+ *
  * The Gate class provides a simple way to authorize user actions using
  * abilities and policies. It implements the Singleton pattern to ensure
  * a single instance is used throughout the application.
@@ -13,69 +13,72 @@ class Gate
 {
     /**
      * Registered abilities/permissions with their associated callbacks
-     * 
+     *
      * @var array
      */
     protected static $abilities = [];
 
     /**
      * Registered policies for models
-     * 
+     *
      * @var array
      */
     protected static $policies = [];
 
     /**
      * The current Gate instance (Singleton)
-     * 
+     *
      * @var Gate
      */
     protected static $instance;
 
     /**
      * Get the current Gate instance or create a new one
-     * 
+     *
      * @return Gate
      */
     public static function getInstance()
     {
-        if (!self::$instance) {
-            self::$instance = new self();
+        if (! self::$instance) {
+            self::$instance = new self;
         }
+
         return self::$instance;
     }
 
     /**
      * Define a new ability/permission with a callback
-     * 
-     * @param string $ability The name of the ability
-     * @param callable $callback Function that determines if the ability is allowed
+     *
+     * @param  string  $ability  The name of the ability
+     * @param  callable  $callback  Function that determines if the ability is allowed
      * @return $this
      */
     public function define($ability, $callback)
     {
         static::$abilities[$ability] = $callback;
+
         return $this;
     }
 
     /**
      * Register a policy for a model
-     * 
-     * @param string|object $model The model class or object
-     * @param string $policy The policy class
+     *
+     * @param  string|object  $model  The model class or object
+     * @param  string  $policy  The policy class
      * @return $this
      */
     public function policy($model, $policy)
     {
         static::$policies[is_string($model) ? $model : get_class($model)] = $policy;
+
         return $this;
     }
 
     /**
      * Check if an ability is allowed
-     * 
-     * @param string $ability The ability to check
-     * @param array $arguments Arguments to pass to the ability check
+     *
+     * @param  string  $ability  The ability to check
+     * @param  array  $arguments  Arguments to pass to the ability check
      * @return bool
      */
     public function allows($ability, $arguments = [])
@@ -85,23 +88,23 @@ class Gate
 
     /**
      * Check if an ability is denied
-     * 
-     * @param string $ability The ability to check
-     * @param array $arguments Arguments to pass to the ability check
+     *
+     * @param  string  $ability  The ability to check
+     * @param  array  $arguments  Arguments to pass to the ability check
      * @return bool
      */
     public function denies($ability, $arguments = [])
     {
-        return !$this->check($ability, $arguments);
+        return ! $this->check($ability, $arguments);
     }
 
     /**
      * Check if the given ability is allowed for the arguments
-     * 
+     *
      * First checks direct ability definitions, then falls back to policy checks
-     * 
-     * @param string $ability The ability to check
-     * @param array $arguments Arguments to pass to the ability check
+     *
+     * @param  string  $ability  The ability to check
+     * @param  array  $arguments  Arguments to pass to the ability check
      * @return bool
      */
     public function check($ability, $arguments = [])
@@ -119,23 +122,23 @@ class Gate
 
     /**
      * Call the policy method for a user and ability
-     * 
-     * @param object $user The user to check permissions for
-     * @param string $ability The ability/method name in the policy
-     * @param array $arguments Additional arguments to pass to the policy method
+     *
+     * @param  object  $user  The user to check permissions for
+     * @param  string  $ability  The ability/method name in the policy
+     * @param  array  $arguments  Additional arguments to pass to the policy method
      * @return bool|null
      */
     public function callPolicyMethod($user, $ability, $arguments)
     {
         $instance = $arguments[0] ?? null;
 
-        if (!$instance) {
+        if (! $instance) {
             return false;
         }
 
         $policy = $this->getPolicyFor($instance);
 
-        if (!$policy) {
+        if (! $policy) {
             return false;
         }
 
@@ -165,8 +168,8 @@ class Gate
 
     /**
      * Get the policy instance for the given class
-     * 
-     * @param string|object $class The model class or object
+     *
+     * @param  string|object  $class  The model class or object
      * @return object|null The policy instance or null if not found
      */
     public function getPolicyFor($class)
@@ -176,7 +179,7 @@ class Gate
         }
 
         if (isset(static::$policies[$class])) {
-            return new static::$policies[$class]();
+            return new static::$policies[$class];
         }
 
         return null;

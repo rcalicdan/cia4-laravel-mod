@@ -13,7 +13,7 @@
  * @param  string|null  $default  Fallback URL
  * @return string
  */
-if (!function_exists('back_url')) {
+if (! function_exists('back_url')) {
     function back_url(?string $default = null): string
     {
         $request = service('request');

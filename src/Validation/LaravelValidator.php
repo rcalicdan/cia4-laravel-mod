@@ -2,11 +2,11 @@
 
 namespace Rcalicdan\Ci4Larabridge\Validation;
 
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
-use Illuminate\Validation\Factory;
-use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Validation\DatabasePresenceVerifier;
+use Illuminate\Validation\Factory;
 
 class LaravelValidator
 {
@@ -28,10 +28,10 @@ class LaravelValidator
     /**
      * Validate data against rules
      *
-     * @param array $data Data to validate
-     * @param array $rules Validation rules
-     * @param array $messages Custom error messages (optional)
-     * @param array $attributes Custom attribute names (optional)
+     * @param  array  $data  Data to validate
+     * @param  array  $rules  Validation rules
+     * @param  array  $messages  Custom error messages (optional)
+     * @param  array  $attributes  Custom attribute names (optional)
      * @return array Result with success flag and errors if any
      */
     public function validate(array $data, array $rules, array $messages = [], array $attributes = [])
@@ -47,13 +47,13 @@ class LaravelValidator
             return [
                 'success' => false,
                 'errors' => $validator->errors()->all(),
-                'errorsByField' => $errorsByField
+                'errorsByField' => $errorsByField,
             ];
         }
 
         return [
             'success' => true,
-            'validated' => $validator->validated()
+            'validated' => $validator->validated(),
         ];
     }
 
@@ -62,7 +62,7 @@ class LaravelValidator
      */
     private function initializeFactory()
     {
-        $loader = new ArrayLoader();
+        $loader = new ArrayLoader;
         $loader->addMessages('en', 'validation', $this->getValidationMessages());
 
         $translator = new Translator($loader, 'en');
@@ -79,8 +79,10 @@ class LaravelValidator
                 $file = $value['_ci_file'];
                 $tempPath = $file->getTempName();
                 $imageInfo = @getimagesize($tempPath);
+
                 return $imageInfo !== false;
             }
+
             return false;
         });
 
@@ -88,8 +90,10 @@ class LaravelValidator
             if (is_array($value) && isset($value['_ci_file'])) {
                 $file = $value['_ci_file'];
                 $extension = strtolower(pathinfo($file->getName(), PATHINFO_EXTENSION));
+
                 return in_array($extension, $parameters) || in_array($file->getClientMimeType(), $parameters);
             }
+
             return false;
         });
 
@@ -98,8 +102,10 @@ class LaravelValidator
                 $file = $value['_ci_file'];
                 $maxSize = (int) $parameters[0]; // Size in kilobytes
                 $fileSize = $file->getSize() / 1024; // Convert bytes to kilobytes
+
                 return $fileSize <= $maxSize;
             }
+
             return false;
         });
 
@@ -110,8 +116,10 @@ class LaravelValidator
         $this->factory->extend('ci_file', function ($attribute, $value, $parameters, $validator) {
             if (is_array($value) && isset($value['_ci_file'])) {
                 $file = $value['_ci_file'];
-                return $file->isValid() && !$file->hasMoved();
+
+                return $file->isValid() && ! $file->hasMoved();
             }
+
             return false;
         });
 
@@ -133,11 +141,12 @@ class LaravelValidator
                     'video/3gpp',
                     'video/x-matroska',
                     'video/avi',
-                    'video/mov'
+                    'video/mov',
                 ];
 
                 return in_array($mimeType, $videoMimeTypes);
             }
+
             return false;
         });
     }
@@ -148,7 +157,7 @@ class LaravelValidator
     private function setupDatabaseConnection()
     {
         $capsule = new Capsule;
-        $databaseInformation = service('eloquent')->getDatabaseInformation(); //Need futher testing on performance to check if using service container is faster than using array field
+        $databaseInformation = service('eloquent')->getDatabaseInformation(); // Need futher testing on performance to check if using service container is faster than using array field
         $capsule->addConnection($databaseInformation);
         $verifier = new DatabasePresenceVerifier($capsule->getDatabaseManager());
         $this->factory->setPresenceVerifier($verifier);
@@ -156,8 +165,6 @@ class LaravelValidator
 
     /**
      * Get all validation messages
-     * 
-     * @return array
      */
     private function getValidationMessages(): array
     {
@@ -277,12 +284,11 @@ class LaravelValidator
             'uploaded' => 'The :attribute failed to upload.',
             'url' => 'The :attribute must be a valid URL.',
             'uuid' => 'The :attribute must be a valid UUID.',
-            'ci_file'=> 'The :attribute must be a valid file',
+            'ci_file' => 'The :attribute must be a valid file',
             'ci_image' => 'The :attribute must be a valid image.',
             'ci_mimes' => 'The :attribute must be a file of type: :values.',
             'ci_file_size' => 'The :attribute must be less than :value kilobytes.',
             'ci_video' => 'The :attribute must be a valid video file.',
-
 
             // Custom validation attributes
             'attributes' => [],

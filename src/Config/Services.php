@@ -2,12 +2,11 @@
 
 namespace Rcalicdan\Ci4Larabridge\Config;
 
-use Rcalicdan\Ci4Larabridge\Config\Eloquent;
+use CodeIgniter\Config\BaseService;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
+use Rcalicdan\Ci4Larabridge\Blade\BladeService;
 use Rcalicdan\Ci4Larabridge\Providers\AuthServiceProvider;
 use Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
-use CodeIgniter\Config\BaseService;
-use Rcalicdan\Ci4Larabridge\Blade\BladeService;
 
 /**
  * Services Configuration file.
@@ -26,23 +25,22 @@ class Services extends BaseService
 {
     /**
      * Returns an instance of the Eloquent class.
-     * 
-     * @param bool $getShared Whether to return a shared instance.
-     * @return Eloquent
+     *
+     * @param  bool  $getShared  Whether to return a shared instance.
      */
     public static function eloquent($getShared = true): Eloquent
     {
         if ($getShared) {
             return static::getSharedInstance('eloquent');
         }
-        return new Eloquent();
+
+        return new Eloquent;
     }
 
     /**
      * Returns an instance of the LaravelValidator class.
-     * 
-     * @param bool $getShared Whether to return a shared instance.
-     * @return LaravelValidator
+     *
+     * @param  bool  $getShared  Whether to return a shared instance.
      */
     public static function laravelValidator($getShared = true): LaravelValidator
     {
@@ -50,14 +48,13 @@ class Services extends BaseService
             return static::getSharedInstance('laravelValidator');
         }
 
-        return new LaravelValidator();
+        return new LaravelValidator;
     }
 
     /**
      * Returns an instance of the Gate class.
-     * 
-     * @param bool $getShared Whether to return a shared instance.
-     * @return Gate
+     *
+     * @param  bool  $getShared  Whether to return a shared instance.
      */
     public static function authorization($getShared = true): Gate
     {
@@ -73,9 +70,6 @@ class Services extends BaseService
 
     /**
      * Return the BladeService instance
-     *
-     * @param bool $getShared
-     * @return BladeService
      */
     public static function blade(bool $getShared = true): BladeService
     {
@@ -83,6 +77,6 @@ class Services extends BaseService
             return static::getSharedInstance('blade');
         }
 
-        return new BladeService();
+        return new BladeService;
     }
 }

@@ -42,6 +42,7 @@ class MakeLaravelRequest extends BaseCommand
 
             if (empty($className)) {
                 CLI::error('Request class name cannot be empty.');
+
                 return '';
             }
         }
@@ -56,30 +57,30 @@ class MakeLaravelRequest extends BaseCommand
         $className = array_pop($segments);
 
         // Ensure the class name ends with "Request" if not already
-        if (!str_ends_with($className, 'Request')) {
+        if (! str_ends_with($className, 'Request')) {
             $className .= 'Request';
         }
 
         // Set the namespace
         $namespace = 'App\Requests';
-        if (!empty($segments)) {
-            $namespace .= '\\' . implode('\\', $segments);
+        if (! empty($segments)) {
+            $namespace .= '\\'.implode('\\', $segments);
         }
 
         // Create directory structure and get file path
         $directory = $this->createDirectoryStructure($segments);
-        $path = $directory . '/' . $className . '.php';
+        $path = $directory.'/'.$className.'.php';
 
         return [$namespace, $className, $path];
     }
 
     protected function createDirectoryStructure(array $segments): string
     {
-        $directory = APPPATH . 'Requests';
+        $directory = APPPATH.'Requests';
 
         foreach ($segments as $segment) {
-            $directory .= '/' . $segment;
-            if (!is_dir($directory)) {
+            $directory .= '/'.$segment;
+            if (! is_dir($directory)) {
                 mkdir($directory, 0777, true);
             }
         }
@@ -90,7 +91,8 @@ class MakeLaravelRequest extends BaseCommand
     protected function fileExists(string $path): bool
     {
         if (file_exists($path)) {
-            CLI::error(basename($path, '.php') . ' already exists!');
+            CLI::error(basename($path, '.php').' already exists!');
+
             return true;
         }
 
@@ -135,9 +137,9 @@ EOD;
     protected function createFile(string $path, string $content): void
     {
         if (write_file($path, $content)) {
-            CLI::write('Created: ' . CLI::color($path, 'green'));
+            CLI::write('Created: '.CLI::color($path, 'green'));
         } else {
-            CLI::error('Error creating file: ' . $path);
+            CLI::error('Error creating file: '.$path);
         }
     }
 }

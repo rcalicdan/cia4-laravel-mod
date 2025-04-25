@@ -14,7 +14,7 @@ class ValidatedData
     /**
      * Constructor
      *
-     * @param array $data The validated data
+     * @param  array  $data  The validated data
      */
     public function __construct(array $data)
     {
@@ -24,7 +24,7 @@ class ValidatedData
     /**
      * Get all validated data
      *
-     * @param bool $asObject Whether to return as object (true) or array (false)
+     * @param  bool  $asObject  Whether to return as object (true) or array (false)
      * @return mixed Validated data as object or array
      */
     public function validated($asObject = false)
@@ -45,7 +45,7 @@ class ValidatedData
     /**
      * Get only specified keys from validated data
      *
-     * @param string|array $keys The keys to get
+     * @param  string|array  $keys  The keys to get
      * @return array
      */
     public function only($keys)
@@ -60,7 +60,7 @@ class ValidatedData
     /**
      * Get all validated data except specified keys
      *
-     * @param string|array $keys The keys to exclude
+     * @param  string|array  $keys  The keys to exclude
      * @return array
      */
     public function except($keys)
@@ -75,8 +75,8 @@ class ValidatedData
     /**
      * Get a specific field from validated data
      *
-     * @param string $key The key to get
-     * @param mixed $default Default value if key doesn't exist
+     * @param  string  $key  The key to get
+     * @param  mixed  $default  Default value if key doesn't exist
      * @return mixed
      */
     public function get($key, $default = null)
@@ -87,7 +87,7 @@ class ValidatedData
     /**
      * Check if the validated data contains a non-empty value for the given field
      *
-     * @param string $key The field name to check
+     * @param  string  $key  The field name to check
      * @return bool True if the field exists and has a non-empty value
      */
     public function has(string $key): bool
@@ -100,13 +100,13 @@ class ValidatedData
     /**
      * Check if the validated data contains a file for the given field
      *
-     * @param string $key The file field name to check
+     * @param  string  $key  The file field name to check
      * @return bool True if a valid file exists for the field
      */
     public function hasFile(string $key): bool
     {
         // Check if the field exists in the data
-        if (!isset($this->data[$key])) {
+        if (! isset($this->data[$key])) {
             return false;
         }
 
@@ -132,12 +132,12 @@ class ValidatedData
     /**
      * Get the file instance for the given field
      *
-     * @param string $key The file field name
+     * @param  string  $key  The file field name
      * @return mixed|null The file instance or null if not found
      */
     public function file(string $key)
     {
-        if (!$this->hasFile($key)) {
+        if (! $this->hasFile($key)) {
             return null;
         }
 
@@ -156,7 +156,8 @@ class ValidatedData
                     $files[$index] = $singleFile['_ci_file'];
                 }
             }
-            return !empty($files) ? $files : null;
+
+            return ! empty($files) ? $files : null;
         }
 
         return null;
@@ -164,8 +165,6 @@ class ValidatedData
 
     /**
      * Get validation errors collection
-     *
-     * @return ErrorsCollection
      */
     public function getErrors(): ErrorsCollection
     {
@@ -175,7 +174,7 @@ class ValidatedData
     /**
      * Magic method to access data as properties
      *
-     * @param string $name Property name
+     * @param  string  $name  Property name
      * @return mixed
      */
     public function __get($name)
@@ -186,7 +185,7 @@ class ValidatedData
     /**
      * Check if key exists in data
      *
-     * @param string $name Property name
+     * @param  string  $name  Property name
      * @return bool
      */
     public function __isset($name)

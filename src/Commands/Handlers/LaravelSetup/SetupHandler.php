@@ -16,14 +16,14 @@ abstract class SetupHandler
 
     /**
      * The path to the application directory
-     * 
+     *
      * @var string
      */
     protected $distPath;
 
     /**
      * Content replacer for file operations
-     * 
+     *
      * @var ContentReplacer
      */
     protected $replacer;
@@ -35,27 +35,28 @@ abstract class SetupHandler
     {
         $this->sourcePath = $sourcePath;
         $this->distPath = $distPath;
-        $this->replacer = new ContentReplacer();
+        $this->replacer = new ContentReplacer;
     }
 
     /**
      * Copy a file from source to destination with optional replacements
-     * 
-     * @param string $file     Relative file path like 'Config/Auth.php'.
-     * @param array  $replaces [search => replace]
+     *
+     * @param  string  $file  Relative file path like 'Config/Auth.php'.
+     * @param  array  $replaces  [search => replace]
      */
     protected function copyAndReplace(string $file, array $replaces = []): void
     {
         $path = "{$this->sourcePath}/{$file}";
 
-        if (!file_exists($path)) {
-            $this->error("  Source file not found: " . clean_path($path));
+        if (! file_exists($path)) {
+            $this->error('  Source file not found: '.clean_path($path));
+
             return;
         }
 
         $content = file_get_contents($path);
 
-        if (!empty($replaces)) {
+        if (! empty($replaces)) {
             $content = $this->replacer->replace($content, $replaces);
         }
 
@@ -64,8 +65,8 @@ abstract class SetupHandler
 
     /**
      * Copy a file from source to destination without modifications
-     * 
-     * @param string $file Relative file path
+     *
+     * @param  string  $file  Relative file path
      */
     protected function copyFile(string $file): void
     {
@@ -74,18 +75,18 @@ abstract class SetupHandler
 
     /**
      * Write a file, handling overwrite confirmation
-     * 
-     * @param string $file    Relative file path
-     * @param string $content File content
+     *
+     * @param  string  $file  Relative file path
+     * @param  string  $content  File content
      */
     protected function writeFile(string $file, string $content): void
     {
-        $path = $this->distPath . $file;
+        $path = $this->distPath.$file;
         $cleanPath = clean_path($path);
 
         $directory = dirname($path);
 
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0777, true);
         }
 
@@ -93,16 +94,17 @@ abstract class SetupHandler
             $overwrite = (bool) CLI::getOption('f');
 
             if (
-                !$overwrite
+                ! $overwrite
                 && $this->prompt("  File '{$cleanPath}' already exists in destination. Overwrite?", ['n', 'y']) === 'n'
             ) {
                 $this->error("  Skipped {$cleanPath}. If you wish to overwrite, please use the '-f' option or reply 'y' to the prompt.");
+
                 return;
             }
         }
 
         if (write_file($path, $content)) {
-            $this->write(CLI::color('  Created: ', 'green') . $cleanPath);
+            $this->write(CLI::color('  Created: ', 'green').$cleanPath);
         } else {
             $this->error("  Error creating {$cleanPath}.");
         }
@@ -110,8 +112,8 @@ abstract class SetupHandler
 
     /**
      * Display an error message
-     * 
-     * @param string $message Error message
+     *
+     * @param  string  $message  Error message
      */
     protected function error(string $message): void
     {
@@ -120,8 +122,8 @@ abstract class SetupHandler
 
     /**
      * Display a message
-     * 
-     * @param string $message Message to display
+     *
+     * @param  string  $message  Message to display
      */
     protected function write(string $message): void
     {
@@ -130,10 +132,10 @@ abstract class SetupHandler
 
     /**
      * Prompt for user input
-     * 
-     * @param string $message Prompt message
-     * @param array|null $options Optional response options
-     * @param string|null $validation Validation rules
+     *
+     * @param  string  $message  Prompt message
+     * @param  array|null  $options  Optional response options
+     * @param  string|null  $validation  Validation rules
      * @return string User response
      */
     protected function prompt(string $message, ?array $options = null, ?string $validation = null): string

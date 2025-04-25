@@ -4,11 +4,10 @@ namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
-use Config\Autoload;
 
 /**
  * Policy Generator Command
- * 
+ *
  * Creates new policy class files in the application with optional
  * subdirectory support and model-specific templates.
  */
@@ -63,7 +62,7 @@ class MakePolicy extends BaseCommand
     /**
      * Run the policy generation command.
      *
-     * @param array $params Command parameters
+     * @param  array  $params  Command parameters
      * @return void
      */
     public function run(array $params)
@@ -80,8 +79,6 @@ class MakePolicy extends BaseCommand
 
     /**
      * Extract the model name from command arguments.
-     *
-     * @return string|null
      */
     protected function extractModelOptionFromArguments(): ?string
     {
@@ -91,6 +88,7 @@ class MakePolicy extends BaseCommand
         foreach ($argv as $arg) {
             if (strpos($arg, '--model=') === 0) {
                 $modelName = substr($arg, 8);
+
                 break;
             }
         }
@@ -101,8 +99,8 @@ class MakePolicy extends BaseCommand
     /**
      * Create a policy file with optional model-specific template.
      *
-     * @param string $policyName The name of the policy (with optional subdirectories)
-     * @param string|null $model The associated model name if any
+     * @param  string  $policyName  The name of the policy (with optional subdirectories)
+     * @param  string|null  $model  The associated model name if any
      * @return void
      */
     protected function createPolicy(string $policyName, ?string $model = null)
@@ -115,7 +113,7 @@ class MakePolicy extends BaseCommand
         $className = $this->sanitizeClassName($className);
 
         // Ensure class name has proper suffix
-        if (!str_ends_with($className, 'Policy')) {
+        if (! str_ends_with($className, 'Policy')) {
             $className .= 'Policy';
         }
 
@@ -124,19 +122,20 @@ class MakePolicy extends BaseCommand
         $relativePath = implode('/', $segments);
 
         // Setup directory structure
-        $baseDirectory = APPPATH . 'Policies';
-        $subDirectory = dirname($baseDirectory . '/' . $relativePath);
+        $baseDirectory = APPPATH.'Policies';
+        $subDirectory = dirname($baseDirectory.'/'.$relativePath);
 
         // Create directories if needed
-        if (!is_dir($subDirectory)) {
+        if (! is_dir($subDirectory)) {
             mkdir($subDirectory, 0777, true);
         }
 
-        $path = $baseDirectory . '/' . $relativePath . '.php';
+        $path = $baseDirectory.'/'.$relativePath.'.php';
 
         // Prevent overwriting existing files
         if (file_exists($path)) {
-            CLI::error($relativePath . ' already exists!');
+            CLI::error($relativePath.' already exists!');
+
             return;
         }
 
@@ -146,7 +145,7 @@ class MakePolicy extends BaseCommand
 
         if ($subdirs[0] !== '.') {
             foreach ($subdirs as $dir) {
-                if (!empty($dir)) {
+                if (! empty($dir)) {
                     $namespaceSegments[] = $this->sanitizeClassName($dir);
                 }
             }
@@ -161,7 +160,7 @@ class MakePolicy extends BaseCommand
 
         // Write the file
         if (write_file($path, $template)) {
-            CLI::write('Policy created: ' . CLI::color($relativePath, 'green'));
+            CLI::write('Policy created: '.CLI::color($relativePath, 'green'));
         } else {
             CLI::error('Error creating policy file!');
         }
@@ -170,9 +169,9 @@ class MakePolicy extends BaseCommand
     /**
      * Generate a policy template for model-specific policies.
      *
-     * @param string $policyName The name of the policy class
-     * @param string $model The associated model name
-     * @param string $namespace The namespace to use for the policy
+     * @param  string  $policyName  The name of the policy class
+     * @param  string  $model  The associated model name
+     * @param  string  $namespace  The namespace to use for the policy
      * @return string
      */
     protected function getModelPolicyTemplate(string $policyName, string $model, string $namespace)
@@ -180,8 +179,8 @@ class MakePolicy extends BaseCommand
         // Normalize model name
         $modelName = str_replace('Model', '', $model);
 
-        if (!str_contains($modelName, '\\')) {
-            $modelName = 'App\\Models\\' . $modelName;
+        if (! str_contains($modelName, '\\')) {
+            $modelName = 'App\\Models\\'.$modelName;
         }
 
         $modelClass = $this->getModelClass($modelName);
@@ -262,8 +261,8 @@ EOD;
     /**
      * Generate a basic policy template.
      *
-     * @param string $policyName The name of the policy class
-     * @param string $namespace The namespace to use for the policy
+     * @param  string  $policyName  The name of the policy class
+     * @param  string  $namespace  The namespace to use for the policy
      * @return string
      */
     protected function getBasicPolicyTemplate(string $policyName, string $namespace)
@@ -291,20 +290,20 @@ EOD;
     /**
      * Extract the class name from a fully qualified model name.
      *
-     * @param string $modelName The fully qualified model name
+     * @param  string  $modelName  The fully qualified model name
      * @return string
      */
     protected function getModelClass(string $modelName)
     {
         $parts = explode('\\', $modelName);
+
         return end($parts);
     }
 
     /**
      * Sanitize and normalize a class name.
      *
-     * @param string $name The raw class name
-     * @return string
+     * @param  string  $name  The raw class name
      */
     protected function sanitizeClassName(string $name): string
     {
@@ -318,12 +317,12 @@ EOD;
     /**
      * Get an option value from CLI input.
      *
-     * @param string $option The option name
-     * @return string|null
+     * @param  string  $option  The option name
      */
     protected function getOption(string $option): ?string
     {
         $options = CLI::getOptions();
+
         return $options[$option] ?? null;
     }
 }

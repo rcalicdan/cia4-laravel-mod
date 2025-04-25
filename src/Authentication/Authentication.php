@@ -6,28 +6,28 @@ use Rcalicdan\Ci4Larabridge\Models\User;
 
 /**
  * Authentication management class
- * 
+ *
  * Handles user authentication, login/logout functionality, and session management
  */
 class Authentication
 {
     /**
      * Session service instance
-     * 
+     *
      * @var \CodeIgniter\Session\Session
      */
     protected $session;
 
     /**
      * Currently authenticated user
-     * 
+     *
      * @var User|null
      */
     protected $user = null;
 
     /**
      * Constructor
-     * 
+     *
      * Initializes the session service
      */
     public function __construct()
@@ -37,9 +37,9 @@ class Authentication
 
     /**
      * Get the currently authenticated user
-     * 
+     *
      * Retrieves the authenticated user from cache or database
-     * 
+     *
      * @return User|null The authenticated user or null if not authenticated
      */
     public function user(): ?User
@@ -49,17 +49,18 @@ class Authentication
         }
 
         $userId = $this->session->get('auth_user_id');
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
         $this->user = User::find($userId);
+
         return $this->user;
     }
 
     /**
      * Check if a user is currently authenticated
-     * 
+     *
      * @return bool True if authenticated, false otherwise
      */
     public function check(): bool
@@ -74,13 +75,13 @@ class Authentication
      */
     public function guest(): bool
     {
-        return !$this->check();
+        return ! $this->check();
     }
 
     /**
      * Attempt to authenticate a user with the provided credentials
-     * 
-     * @param array $credentials Credentials containing 'email' and 'password'
+     *
+     * @param  array  $credentials  Credentials containing 'email' and 'password'
      * @return bool True if authentication successful, false otherwise
      */
     public function attempt(array $credentials): bool
@@ -89,6 +90,7 @@ class Authentication
 
         if ($user && password_verify($credentials['password'], $user->password)) {
             $this->login($user);
+
             return true;
         }
 
@@ -97,10 +99,10 @@ class Authentication
 
     /**
      * Log in a user
-     * 
+     *
      * Sets up the session for the authenticated user
-     * 
-     * @param User $user The user to log in
+     *
+     * @param  User  $user  The user to log in
      * @return bool Always returns true on success
      */
     public function login($user): bool
@@ -116,9 +118,9 @@ class Authentication
 
     /**
      * Log out the current user
-     * 
+     *
      * Clears user data from session and regenerates session ID
-     * 
+     *
      * @return bool Always returns true on success
      */
     public function logout(): bool

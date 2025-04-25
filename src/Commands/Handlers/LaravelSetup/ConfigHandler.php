@@ -22,7 +22,7 @@ class ConfigHandler extends SetupHandler
      */
     private function publishConfigEloquent(): void
     {
-        $file     = 'Config/Eloquent.php';
+        $file = 'Config/Eloquent.php';
         $replaces = [
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
@@ -35,7 +35,7 @@ use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
 
     private function publishConfigBlade(): void
     {
-        $file     = 'Config/Blade.php';
+        $file = 'Config/Blade.php';
         $replaces = [
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
         ];
@@ -48,7 +48,7 @@ use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
      */
     private function publishConfigPagination(): void
     {
-        $file     = 'Config/Pagination.php';
+        $file = 'Config/Pagination.php';
         $replaces = [
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
@@ -65,14 +65,14 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
     private function publishConfigServices(): void
     {
         // First check if App/Config/Services.php exists
-        $appServicesPath = $this->distPath . 'Config/Services.php';
+        $appServicesPath = $this->distPath.'Config/Services.php';
 
         if (file_exists($appServicesPath)) {
             // Add methods to existing Services class
             $this->addServiceMethods($appServicesPath);
         } else {
             // Copy the entire Services class
-            $file     = 'Config/Services.php';
+            $file = 'Config/Services.php';
             $replaces = [
                 'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             ];
@@ -90,7 +90,7 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
 
         // Check if class already has our methods
         if (strpos($content, 'eloquent(') !== false) {
-            $this->write(CLI::color('  Skipped: ', 'yellow') . 'Services class already has eloquent() method.');
+            $this->write(CLI::color('  Skipped: ', 'yellow').'Services class already has eloquent() method.');
         } else {
             // Add eloquent method
             $pattern = '/}(\s*)$/'; // Find the closing brace of the class
@@ -162,9 +162,9 @@ EOD;
             $newContent = preg_replace($pattern, $serviceMethods, $content);
 
             if ($newContent !== $content && write_file($servicesPath, $newContent)) {
-                $this->write(CLI::color('  Updated: ', 'green') . clean_path($servicesPath));
+                $this->write(CLI::color('  Updated: ', 'green').clean_path($servicesPath));
             } else {
-                $this->error("  Error updating Services class.");
+                $this->error('  Error updating Services class.');
             }
         }
     }
