@@ -44,13 +44,11 @@
     },
     "require-dev": {
         "codeigniter4/framework": "^4.0",
-        "laravel/pint": "^1.10",
-        "phpstan/phpstan": "^1.12"
+        "laravel/pint": "^1.10"
     },
     "scripts": {
         "format": "./vendor/bin/pint",
         "format-test": "./vendor/bin/pint --test",
-        "analyse": "./vendor/bin/phpstan analyse"
     },
     "minimum-stability": "dev",
     "prefer-stable": true
