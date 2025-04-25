@@ -574,7 +574,7 @@ To extend Blade with custom directives, you can create your own extension class 
 
 namespace App\Libraries;
 
-use Jenssegers\Blade\Blade;
+use Rcalicdan\Blade\Blade;
 
 class MyBladeExtensions
 {

@@ -3,8 +3,8 @@
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Illuminate\Pagination\Paginator;
-use Jenssegers\Blade\Blade;
-use Jenssegers\Blade\Container as BladeContainer;
+use Rcalicdan\Blade\Blade;
+use Rcalicdan\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
 
 class BladeService

@@ -21,12 +21,6 @@
     "support": {
         "source": "https://github.com/rcalicdan/ci4-larabridge"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/rcalicdan/blade"
-        }
-    ],
     "require": {
         "php": "^8.1",
         "guzzlehttp/guzzle": "^7.9",
@@ -40,7 +34,7 @@
         "illuminate/pagination": "^11.0",
         "illuminate/validation": "^11.0",
         "illuminate/view": "^11.0",
-        "jenssegers/blade": "dev-master"
+        "rcalicdan/blade": "^1.0"
     },
     "require-dev": {
         "codeigniter4/framework": "^4.0",

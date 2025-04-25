@@ -2,7 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Providers;
 
-use Jenssegers\Blade\Blade;
+use Rcalicdan\Blade\Blade;
 
 /**
  * Provides and registers Blade directives for the component system.
@@ -70,7 +70,7 @@ class ComponentDirectiveProvider
      * Registers all component-related directives with the Blade compiler instance.
      * This method is typically called by the main BladeExtension class.
      *
-     * @param  Blade  $blade  The Blade compiler instance provided by Jenssegers\Blade.
+     * @param  Blade  $blade  The Blade compiler instance provided by Rcalicdan\Blade.
      */
     public function register(Blade $blade): void
     {

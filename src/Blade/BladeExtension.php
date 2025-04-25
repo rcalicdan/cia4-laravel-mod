@@ -3,7 +3,7 @@
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Illuminate\Pagination\LengthAwarePaginator;
-use Jenssegers\Blade\Blade;
+use Rcalicdan\Blade\Blade;
 use Rcalicdan\Ci4Larabridge\Providers\ComponentDirectiveProvider;
 
 /**
