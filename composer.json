@@ -48,7 +48,7 @@
     },
     "scripts": {
         "format": "./vendor/bin/pint",
-        "format-test": "./vendor/bin/pint --test",
+        "format-test": "./vendor/bin/pint --test"
     },
     "minimum-stability": "dev",
     "prefer-stable": true
