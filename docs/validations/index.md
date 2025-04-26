@@ -13,6 +13,37 @@ This documentation covers how to use the Laravel-inspired validation components 
 7. [Displaying Errors in Blade Views](#displaying-errors-in-blade-views)
 8. [Examples and Patterns](#examples-and-patterns)
 
+## Important: Database Validation Rules Compatibility
+
+⚠️ **IMPORTANT NOTE:** Validation rules that require database interaction such as `unique`, `exists`, `in`, and other Laravel validation rules that query the database will **only work if you're using the Eloquent database driver**. These validations will not function correctly if you're using CodeIgniter's native database driver.
+
+If you're using CodeIgniter's database driver, you'll need to implement custom validation for database-related checks. For example:
+
+```php
+public function rules()
+{
+    return [
+        'email' => 'required|email', // Can't use unique:users,email with CI database
+        // Other non-DB validation rules
+    ];
+}
+
+public function withValidator($validator)
+{
+    $validator->after(function ($validator) {
+        // Manual check for email uniqueness using CI database
+        $db = \Config\Database::connect();
+        $existingUser = $db->table('users')->where('email', $this->email)->get()->getRowArray();
+        
+        if ($existingUser) {
+            $validator->errors()->add('email', 'This email address is already registered');
+        }
+    });
+}
+```
+
+Please be careful when implementing validation rules that need database access if you're not using Eloquent.
+
 ## Form Request Validation
 
 ### Creating Form Request Classes
