@@ -7,8 +7,11 @@ use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Hashing\HashManager;
+use Illuminate\Pagination\Cursor;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Facade;
+use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 
 class Eloquent extends BaseConfig
 {
@@ -22,8 +25,14 @@ class Eloquent extends BaseConfig
      */
     protected $capsule;
 
+    /**
+     * @var Pagination  Configuration values for Eloquent Pagination
+     */
+    protected $paginationConfig;
+
     public function __construct()
     {
+        $this->paginationConfig = config('Pagination');
         $this->setupDatabaseConnection();
         $this->setupContainer();
         $this->registerServices();
@@ -69,19 +78,35 @@ class Eloquent extends BaseConfig
             return current_url();
         });
 
-        $paginator = Paginator::class;
+        Paginator::$defaultView = $this->paginationConfig->defaultView;
 
-        // Set the global resolvers to use our container
-        $paginator::currentPageResolver(function () {
-            return $this->container->make('paginator.currentPage');
+        Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
+
+        Paginator::viewFactoryResolver(function () {
+            return new PaginationRenderer();
         });
 
-        $paginator::currentPathResolver(function () {
-            return $this->container->make('paginator.currentPath');
+        Paginator::currentPathResolver(function () {
+            return current_url();
         });
 
-        // Use Bootstrap styling for pagination
-        $paginator::useBootstrap();
+        Paginator::currentPageResolver(function ($pageName = 'page') {
+            $page = service('request')->getVar($pageName);
+
+            if (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) {
+                return (int) $page;
+            }
+
+            return 1;
+        });
+
+        Paginator::queryStringResolver(function () {
+            return Services::uri()->getQuery();
+        });
+
+        CursorPaginator::currentCursorResolver(static function ($cursorName = 'cursor') {
+            return Cursor::fromEncoded(service('request')->getVar($cursorName));
+        });
     }
 
     /**

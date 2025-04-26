@@ -6,13 +6,6 @@ use CodeIgniter\Config\BaseConfig;
 
 class Pagination extends BaseConfig
 {
-    /**
-     * Default theme for pagination
-     */
-    public $theme = 'bootstrap';
-
-    /**
-     * Number of links to display on each side of current page
-     */
-    public $window = 5;
+    public $defaultView = 'pagination::bootstrap';
+    public $defaultSimpleView = 'pagination::simple';
 }

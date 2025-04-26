@@ -30,8 +30,6 @@ class BladeExtension
      */
     public function processData(array $data): array
     {
-        $this->processPaginators($data);
-
         return $this->addErrorsHandler($data);
     }
 
@@ -58,37 +56,6 @@ class BladeExtension
     // ======================================================================
     // Data Processing Helpers (Called internally by processData)
     // ======================================================================
-
-    /**
-     * Processes `LengthAwarePaginator` instances within the view data.
-     * Intended to add rendered pagination links (e.g., `linksHtml` property)
-     * using a specified renderer class.
-     *
-     * Note: This method's logic is preserved exactly as provided previously.
-     * Ensure `RcalicdanPaginationRenderer` exists and functions as expected.
-     *
-     * @param  array  &$data  The view data array (passed by reference).
-     */
-    protected function processPaginators(&$data): void
-    {
-        foreach ($data as $key => $value) {
-            if ($value instanceof LengthAwarePaginator) {
-                $theme = config('Pagination')->theme ?? 'bootstrap';
-                if (isset($data['paginationTheme'])) {
-                    $theme = $data['paginationTheme'];
-                }
-                // Attempt to use PaginationRenderer if it exists
-                if (class_exists(PaginationRenderer::class)) {
-                    $renderer = new PaginationRenderer;
-                    $data[$key]->linksHtml = $renderer->render($value, $theme);
-                } else {
-                    // Log a warning if the expected renderer is missing
-                    log_message('warning', 'PaginationRenderer class not found. Pagination links not rendered.');
-                    $data[$key]->linksHtml = '<!-- Pagination Renderer Missing -->';
-                }
-            }
-        }
-    }
 
     /**
      * Adds a simple error handling object, mimicking Laravel's `$errors` variable.
