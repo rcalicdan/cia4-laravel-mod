@@ -41,7 +41,7 @@ class BladeService
             'cachePath' => $this->bladeConfigValues->cachePath,
             'componentNamespace' => $this->bladeConfigValues->componentNamespace,
             'componentPath' => $this->bladeConfigValues->componentPath,
-            'checksCompilationInProduction' => $this->bladeConfigValues->checksCompilationInProduction,
+            'checksCompilationInProduction' => $this->bladeConfigValues->checksCompilationInProduction ?? false,
         ];
 
         $this->initialize();
@@ -107,6 +107,10 @@ class BladeService
         if (method_exists($this->bladeExtension, 'registerDirectives')) {
             $this->bladeExtension->registerDirectives($this->blade);
         }
+
+        if (method_exists($this->bladeConfigValues, 'registerCustomDirectives')) {
+            $this->bladeConfigValues->registerCustomDirectives($this->blade);
+        }
     }
 
     /**
@@ -155,7 +159,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -212,13 +216,13 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath.'/', '', $file);
+            $relativePath = str_replace($viewsPath . '/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
             try {
-                if ($force || ! $compiler->isExpired($viewsPath.'/'.$relativePath)) {
-                    $compiler->compile($viewsPath.'/'.$relativePath);
+                if ($force || ! $compiler->isExpired($viewsPath . '/' . $relativePath)) {
+                    $compiler->compile($viewsPath . '/' . $relativePath);
                 }
                 $results[$viewName] = true;
             } catch (\Exception $e) {
