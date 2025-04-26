@@ -3,171 +3,320 @@
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Illuminate\Pagination\LengthAwarePaginator;
-use Rcalicdan\Blade\Blade; // Your Blade engine class
 
 class PaginationRenderer
 {
-    protected Blade $blade;
-    protected int $window; // Number of links on each side of current page
+    /**
+     * @var int Window of links to display around current page
+     */
+    protected $window;
 
-    public function __construct(Blade $blade)
+    /**
+     * Render pagination links for a paginator
+     *
+     * @param  string  $theme
+     * @return string
+     */
+    public function render(LengthAwarePaginator $paginator, $theme = 'bootstrap')
     {
-        $this->blade = $blade;
+        // Load the pagination config
         $paginationConfig = config('Pagination');
-        // Ensure window has a sensible default if not configured
+        $renderers = $paginationConfig->renderers ?? [];
         $this->window = $paginationConfig->window ?? 3;
+
+        // If the theme exists in renderers, use it
+        $rendererFunction = $renderers[$theme] ?? null;
+        if ($rendererFunction && function_exists($rendererFunction)) {
+            return call_user_func($rendererFunction, $paginator, $paginationConfig);
+        }
+
+        // Use the class methods based on theme
+        $method = 'render'.ucfirst($theme);
+        if (method_exists($this, $method)) {
+            return $this->$method($paginator);
+        }
+
+        // Fallback to bootstrap theme
+        return $this->renderBootstrap($paginator);
     }
 
     /**
-     * Render pagination links using Blade views.
+     * Render Bootstrap pagination
+     *
+     * @return string
      */
-    public function render(LengthAwarePaginator $paginator, ?string $theme = null): string
+    protected function renderBootstrap(LengthAwarePaginator $paginator)
     {
-        // Don't render if there's only one page
-        if (!$paginator->hasPages()) {
-            return '';
-        }
+        $output = '<ul class="pagination">';
 
-        $paginationConfig = config('Pagination');
-        $theme = $theme ?? $paginationConfig->theme ?? 'bootstrap';
+        // Add navigation links
+        $output .= $this->renderPrevButton($paginator, 'bootstrap');
+        $output .= $this->renderPageLinks($paginator, 'bootstrap');
+        $output .= $this->renderNextButton($paginator, 'bootstrap');
 
-        // Calculate the elements array manually
-        $elements = $this->getElements($paginator);
+        $output .= '</ul>';
 
-        $viewName = "pagination::{$theme}";
-
-        // Basic view existence check (adapt as needed)
-        $viewExists = $this->viewExists($viewName);
-
-        if (!$viewExists) {
-             log_message('warning', "Pagination view '{$viewName}' not found. Falling back to 'pagination::bootstrap'.");
-             $viewName = 'pagination::bootstrap';
-             if (!$this->viewExists($viewName)) {
-                 log_message('error', "Fallback pagination view 'pagination::bootstrap' not found. Cannot render pagination.");
-                 return '<!-- Pagination Error: Bootstrap view missing -->';
-             }
-        }
-
-        try {
-            return $this->blade->render($viewName, [
-                'paginator' => $paginator,
-                'elements' => $elements, // Pass the manually calculated elements
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'Error rendering pagination view (' . $viewName . '): ' . $e->getMessage() . $e->getTraceAsString());
-            return '<!-- Pagination Rendering Error -->';
-        }
+        return $output;
     }
 
     /**
-     * Check if a Blade view exists.
+     * Render Tailwind pagination
+     *
+     * @return string
      */
-    protected function viewExists(string $viewName): bool
+    protected function renderTailwind(LengthAwarePaginator $paginator)
     {
-         try {
-            // Option 1: If your Blade instance has an 'exists' method
-            if (method_exists($this->blade, 'exists')) {
-                return $this->blade->exists($viewName);
+        $output = '<nav><ul class="flex items-center -space-x-px h-10 text-base">';
+
+        // Add navigation links
+        $output .= $this->renderPrevButton($paginator, 'tailwind');
+        $output .= $this->renderPageLinks($paginator, 'tailwind');
+        $output .= $this->renderNextButton($paginator, 'tailwind');
+
+        $output .= '</ul></nav>';
+
+        return $output;
+    }
+
+    /**
+     * Render Bulma pagination
+     *
+     * @return string
+     */
+    protected function renderBulma(LengthAwarePaginator $paginator)
+    {
+        $output = '<nav class="pagination is-centered" role="navigation" aria-label="pagination">';
+
+        // Previous and Next buttons with Bulma classes
+        $output .= $this->renderPrevButton($paginator, 'bulma');
+        $output .= $this->renderNextButton($paginator, 'bulma');
+
+        // Page list with Bulma styling
+        $output .= '<ul class="pagination-list">';
+        $output .= $this->renderPageLinks($paginator, 'bulma');
+        $output .= '</ul></nav>';
+
+        return $output;
+    }
+
+    /**
+     * Render previous page button
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  string  $theme
+     * @return string
+     */
+    protected function renderPrevButton($paginator, $theme)
+    {
+        if ($theme === 'bootstrap') {
+            if ($paginator->onFirstPage()) {
+                return '<li class="page-item disabled"><span class="page-link">&laquo;</span></li>';
+            } else {
+                return '<li class="page-item"><a class="page-link" href="'.$paginator->previousPageUrl().'">&laquo;</a></li>';
             }
-            // Option 2: If your Blade instance has a 'getFinder' method
-            if (method_exists($this->blade, 'getFinder') && method_exists($this->blade->getFinder(), 'find')) {
-                 $this->blade->getFinder()->find($viewName); // Throws exception if not found
-                 return true;
+        } elseif ($theme === 'tailwind') {
+            if ($paginator->onFirstPage()) {
+                return '<li><span class="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg cursor-not-allowed">&laquo;</span></li>';
+            } else {
+                return '<li><a href="'.$paginator->previousPageUrl().'" class="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700">&laquo;</a></li>';
             }
-            // Default assumption if no check method is found
-            return true;
-        } catch (\InvalidArgumentException $e) { // Catch exceptions from find()
-             return false;
-        } catch (\Throwable $e) { // Catch other potential errors
-             log_message('error', 'Error checking view existence: ' . $e->getMessage());
-             return false; // Assume not found on error
+        } elseif ($theme === 'bulma') {
+            if ($paginator->onFirstPage()) {
+                return '<a class="pagination-previous" disabled>&laquo;</a>';
+            } else {
+                return '<a class="pagination-previous" href="'.$paginator->previousPageUrl().'">&laquo;</a>';
+            }
         }
+
+        return '';
     }
 
     /**
-     * Manually calculate the pagination elements (links and ellipsis).
-     * Returns an array compatible with the pagination Blade views.
+     * Render next page button
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  string  $theme
+     * @return string
      */
-    protected function getElements(LengthAwarePaginator $paginator): array
+    protected function renderNextButton($paginator, $theme)
     {
-        $currentPage = $paginator->currentPage();
+        if ($theme === 'bootstrap') {
+            if ($paginator->hasMorePages()) {
+                return '<li class="page-item"><a class="page-link" href="'.$paginator->nextPageUrl().'">&raquo;</a></li>';
+            } else {
+                return '<li class="page-item disabled"><span class="page-link">&raquo;</span></li>';
+            }
+        } elseif ($theme === 'tailwind') {
+            if ($paginator->hasMorePages()) {
+                return '<li><a href="'.$paginator->nextPageUrl().'" class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700">&raquo;</a></li>';
+            } else {
+                return '<li><span class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg cursor-not-allowed">&raquo;</span></li>';
+            }
+        } elseif ($theme === 'bulma') {
+            if ($paginator->hasMorePages()) {
+                return '<a class="pagination-next" href="'.$paginator->nextPageUrl().'">&raquo;</a>';
+            } else {
+                return '<a class="pagination-next" disabled>&raquo;</a>';
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Render page links
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  string  $theme
+     * @return string
+     */
+    protected function renderPageLinks($paginator, $theme)
+    {
         $lastPage = $paginator->lastPage();
-        $onEachSide = $this->window; // Use the configured window size
+        $currentPage = $paginator->currentPage();
 
-        // If there are not enough pages to necessitate truncation, display all page links.
-        if ($lastPage <= ($onEachSide * 2) + 5) {
-            $elements = $this->generatePageRange(1, $lastPage, $paginator);
+        if ($currentPage <= $this->window + 2) {
+            return $this->renderStartingPages($paginator, $lastPage, $currentPage, $theme);
+        } elseif ($currentPage > $lastPage - ($this->window + 2)) {
+            return $this->renderEndingPages($paginator, $lastPage, $currentPage, $theme);
+        } else {
+            return $this->renderMiddlePages($paginator, $lastPage, $currentPage, $theme);
         }
-        // If the current page is near the start
-        elseif ($currentPage <= $onEachSide + 2) {
-            $elements = [
-                $this->generatePageRange(1, min($onEachSide * 2 + 1, $lastPage), $paginator), // Show starting pages
-                $this->getEllipsis(), // Ellipsis
-                $this->generatePageRange($lastPage, $lastPage, $paginator), // Last page
-            ];
-        }
-        // If the current page is near the end
-        elseif ($currentPage > $lastPage - ($onEachSide + 2)) {
-             $elements = [
-                $this->generatePageRange(1, 1, $paginator), // First page
-                $this->getEllipsis(), // Ellipsis
-                $this->generatePageRange(max(1, $lastPage - ($onEachSide * 2)), $lastPage, $paginator), // Show ending pages
-            ];
-        }
-        // If the current page is somewhere in the middle
-        else {
-             $elements = [
-                $this->generatePageRange(1, 1, $paginator), // First page
-                $this->getEllipsis(), // Ellipsis
-                $this->generatePageRange($currentPage - $onEachSide, $currentPage + $onEachSide, $paginator), // Window around current
-                $this->getEllipsis(), // Ellipsis
-                $this->generatePageRange($lastPage, $lastPage, $paginator), // Last page
-            ];
+    }
+
+    /**
+     * Render starting pages
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  int  $lastPage
+     * @param  int  $currentPage
+     * @param  string  $theme
+     * @return string
+     */
+    protected function renderStartingPages($paginator, $lastPage, $currentPage, $theme)
+    {
+        $output = '';
+
+        // Beginning pages
+        for ($i = 1; $i <= min($this->window * 2 + 1, $lastPage); $i++) {
+            $output .= $this->renderPageLink($paginator, $i, $currentPage, $theme);
         }
 
-        // Flatten slightly and filter out nulls/empty arrays
-        $finalElements = [];
-        foreach ($elements as $element) {
-            if (is_array($element) && !empty($element)) {
-                $finalElements[] = $element;
-            } elseif (is_string($element)) {
-                 // Check if the last element was also an ellipsis to avoid double "..."
-                 if (empty($finalElements) || end($finalElements) !== $element) {
-                     $finalElements[] = $element;
-                 }
+        // Show ellipsis and last page if needed
+        if ($lastPage > $this->window * 2 + 1) {
+            if ($lastPage > $this->window * 2 + 2) {
+                $output .= $this->renderEllipsis($theme);
+            }
+            $output .= $this->renderPageLink($paginator, $lastPage, $currentPage, $theme);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Render ending pages
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  int  $lastPage
+     * @param  int  $currentPage
+     * @param  string  $theme
+     * @return string
+     */
+    protected function renderEndingPages($paginator, $lastPage, $currentPage, $theme)
+    {
+        $output = $this->renderPageLink($paginator, 1, $currentPage, $theme);
+
+        if ($lastPage - ($this->window * 2) > 2) {
+            $output .= $this->renderEllipsis($theme);
+        }
+
+        for ($i = max(1, $lastPage - ($this->window * 2)); $i <= $lastPage; $i++) {
+            $output .= $this->renderPageLink($paginator, $i, $currentPage, $theme);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Render middle pages
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  int  $lastPage
+     * @param  int  $currentPage
+     * @param  string  $theme
+     * @return string
+     */
+    protected function renderMiddlePages($paginator, $lastPage, $currentPage, $theme)
+    {
+        $output = $this->renderPageLink($paginator, 1, $currentPage, $theme);
+
+        if ($currentPage - $this->window > 2) {
+            $output .= $this->renderEllipsis($theme);
+        }
+
+        for ($i = max(2, $currentPage - $this->window); $i <= min($lastPage - 1, $currentPage + $this->window); $i++) {
+            $output .= $this->renderPageLink($paginator, $i, $currentPage, $theme);
+        }
+
+        if ($currentPage + $this->window < $lastPage - 1) {
+            $output .= $this->renderEllipsis($theme);
+        }
+
+        $output .= $this->renderPageLink($paginator, $lastPage, $currentPage, $theme);
+
+        return $output;
+    }
+
+    /**
+     * Render page link based on theme
+     *
+     * @param  LengthAwarePaginator  $paginator
+     * @param  int  $page
+     * @param  int  $currentPage
+     * @param  string  $theme
+     * @return string
+     */
+    protected function renderPageLink($paginator, $page, $currentPage, $theme)
+    {
+        if ($theme === 'bootstrap') {
+            if ($page == $currentPage) {
+                return '<li class="page-item active"><span class="page-link">'.$page.'</span></li>';
+            } else {
+                return '<li class="page-item"><a class="page-link" href="'.$paginator->url($page).'">'.$page.'</a></li>';
+            }
+        } elseif ($theme === 'tailwind') {
+            if ($page == $currentPage) {
+                return '<li><span class="flex items-center justify-center px-4 h-10 leading-tight text-blue-600 border border-gray-300 bg-blue-50">'.$page.'</span></li>';
+            } else {
+                return '<li><a href="'.$paginator->url($page).'" class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700">'.$page.'</a></li>';
+            }
+        } elseif ($theme === 'bulma') {
+            if ($page == $currentPage) {
+                return '<li><a class="pagination-link is-current" aria-label="Page '.$page.'" aria-current="page">'.$page.'</a></li>';
+            } else {
+                return '<li><a class="pagination-link" href="'.$paginator->url($page).'" aria-label="Go to page '.$page.'">'.$page.'</a></li>';
             }
         }
 
-        return $finalElements;
+        return '';
     }
 
     /**
-     * Generate an array of page numbers and URLs for a given range.
-     * This is the key method that needs to be fixed.
+     * Render ellipsis based on theme
+     *
+     * @param  string  $theme
+     * @return string
      */
-    protected function generatePageRange(int $start, int $end, LengthAwarePaginator $paginator): array
+    protected function renderEllipsis($theme)
     {
-        $links = [];
-        for ($page = $start; $page <= $end; $page++) {
-            // Use page number as key and URL as value - this is crucial for proper rendering
-            $links[$page] = $paginator->url($page);
+        if ($theme === 'bootstrap') {
+            return '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        } elseif ($theme === 'tailwind') {
+            return '<li><span class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300">...</span></li>';
+        } elseif ($theme === 'bulma') {
+            return '<li><span class="pagination-ellipsis">&hellip;</span></li>';
         }
-        return $links;
-    }
 
-    /**
-     * Get the ellipsis string marker.
-     */
-    protected function getEllipsis(): string
-    {
-        return '...';
-    }
-
-    /**
-     * Helper to access the Blade instance.
-     */
-    public function getBladeInstance(): Blade
-    {
-        return $this->blade;
+        return '';
     }
 }

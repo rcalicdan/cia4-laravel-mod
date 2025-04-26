@@ -2,7 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Rcalicdan\Ci4Larabridge\Models\Model;
 
 class User extends Model
 {

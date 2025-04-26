@@ -41,7 +41,6 @@ class BladeService
             'cachePath' => $this->bladeConfigValues->cachePath,
             'componentNamespace' => $this->bladeConfigValues->componentNamespace,
             'componentPath' => $this->bladeConfigValues->componentPath,
-            'pagination' =>  __DIR__ . '/../Views/pagination',
             'checksCompilationInProduction' => $this->bladeConfigValues->checksCompilationInProduction ?? false,
         ];
 
@@ -69,21 +68,12 @@ class BladeService
             });
         }
 
-        // Add Component Namespace
         $this->blade->addNamespace(
             $this->config['componentNamespace'],
             $this->config['componentPath']
         );
 
-        // *** ADD THIS LINE to register the pagination namespace ***
-        if (isset($this->config['pagination']) && is_dir($this->config['pagination'])) {
-            $this->blade->addNamespace('pagination', $this->config['pagination']);
-        } else {
-            log_message('warning', 'Pagination view path not found or not configured in BladeService config.');
-        }
-        // *** END OF ADDED LINE ***
-
-        Paginator::useBootstrap(); // This sets the default Laravel paginator view, might conflict slightly but shouldn't break our custom rendering via linksHtml
+        Paginator::useBootstrap();
         $this->applyExtensions();
     }
 

@@ -5,7 +5,6 @@ namespace Rcalicdan\Ci4Larabridge\Blade;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Rcalicdan\Blade\Blade;
 use Rcalicdan\Ci4Larabridge\Providers\ComponentDirectiveProvider;
-use Throwable;
 
 /**
  * Provides CodeIgniter-specific integrations for the Blade templating engine.
@@ -61,72 +60,34 @@ class BladeExtension
     // ======================================================================
 
     /**
-     * Processes Paginator instances, adding 'linksHtml' using Blade views via the 'blade' service.
+     * Processes `LengthAwarePaginator` instances within the view data.
+     * Intended to add rendered pagination links (e.g., `linksHtml` property)
+     * using a specified renderer class.
+     *
+     * Note: This method's logic is preserved exactly as provided previously.
+     * Ensure `RcalicdanPaginationRenderer` exists and functions as expected.
+     *
+     * @param  array  &$data  The view data array (passed by reference).
      */
-    /**
-     * Processes Paginator instances, adding 'linksHtml' using Blade views via the 'blade' service.
-     */
-    // In BladeExtension.php, modify the processPaginators method:
-    protected function processPaginators(array $data): array
+    protected function processPaginators(&$data): void
     {
-        $hasPaginator = false;
-        foreach ($data as $value) {
+        foreach ($data as $key => $value) {
             if ($value instanceof LengthAwarePaginator) {
-                $hasPaginator = true;
-                break;
-            }
-        }
-
-        if (!$hasPaginator) {
-            return $data;
-        }
-
-        try {
-            // Get the BladeService instance
-            $bladeService = service('blade');
-            if (!$bladeService instanceof BladeService) {
-                log_message('error', 'Invalid Blade service instance type returned.');
-                throw new \RuntimeException('Invalid Blade service instance type returned.');
-            }
-
-            // Get the actual Blade engine instance
-            $bladeEngineInstance = $bladeService->getBlade();
-            if (!$bladeEngineInstance instanceof Blade) {
-                log_message('error', 'Invalid Blade engine instance type retrieved from BladeService.');
-                throw new \RuntimeException('Invalid Blade engine instance type retrieved from BladeService.');
-            }
-
-            // Instantiate the renderer with the ENGINE instance
-            static $renderer = null;
-            if ($renderer === null || (method_exists($renderer, 'getBladeInstance') && $renderer->getBladeInstance() !== $bladeEngineInstance)) {
-                $renderer = new PaginationRenderer($bladeEngineInstance);
-            }
-
-            // Process each paginator
-            foreach ($data as $key => $value) {
-                if ($value instanceof LengthAwarePaginator) {
-                    if (isset($value->linksHtml)) continue;
-
-                    $theme = config('Pagination')->theme ?? 'bootstrap';
-                    if (isset($data['paginationTheme'])) {
-                        $theme = $data['paginationTheme'];
-                    }
-
-                    // Before rendering, modify the paginator's url method
-                    // to ensure it returns just simple URLs
-                    $value->linksHtml = $renderer->render($value, $theme);
+                $theme = config('Pagination')->theme ?? 'bootstrap';
+                if (isset($data['paginationTheme'])) {
+                    $theme = $data['paginationTheme'];
                 }
-            }
-        } catch (Throwable $e) {
-            log_message('error', 'Error processing paginators: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            foreach ($data as $key => $value) {
-                if ($value instanceof LengthAwarePaginator && !isset($data[$key]->linksHtml)) {
-                    $data[$key]->linksHtml = '<!-- Pagination Processing Error -->';
+                // Attempt to use PaginationRenderer if it exists
+                if (class_exists(PaginationRenderer::class)) {
+                    $renderer = new PaginationRenderer;
+                    $data[$key]->linksHtml = $renderer->render($value, $theme);
+                } else {
+                    // Log a warning if the expected renderer is missing
+                    log_message('warning', 'PaginationRenderer class not found. Pagination links not rendered.');
+                    $data[$key]->linksHtml = '<!-- Pagination Renderer Missing -->';
                 }
             }
         }
-
-        return $data;
     }
 
     /**
@@ -198,9 +159,9 @@ class BladeExtension
 
             return "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">";
         });
-        $blade->directive('delete', fn() => '<input type="hidden" name=\"_method\" value=\"DELETE\">');
-        $blade->directive('put', fn() => '<input type="hidden" name=\"_method\" value=\"PUT\">');
-        $blade->directive('patch', fn() => '<input type="hidden" name=\"_method\" value=\"PATCH\">');
+        $blade->directive('delete', fn () => '<input type="hidden" name=\"_method\" value=\"DELETE\">');
+        $blade->directive('put', fn () => '<input type="hidden" name=\"_method\" value=\"PUT\">');
+        $blade->directive('patch', fn () => '<input type="hidden" name=\"_method\" value=\"PATCH\">');
     }
 
     /**
@@ -211,18 +172,18 @@ class BladeExtension
      */
     private function _registerPermissionDirectives(Blade $blade): void
     {
-        $blade->directive('can', fn($expression) => "<?php if(can($expression)): ?>");
-        $blade->directive('endcan', fn() => '<?php endif; ?>');
-        $blade->directive('cannot', fn($expression) => "<?php if(cannot($expression)): ?>");
-        $blade->directive('endcannot', fn() => '<?php endif; ?>');
+        $blade->directive('can', fn ($expression) => "<?php if(can($expression)): ?>");
+        $blade->directive('endcan', fn () => '<?php endif; ?>');
+        $blade->directive('cannot', fn ($expression) => "<?php if(cannot($expression)): ?>");
+        $blade->directive('endcannot', fn () => '<?php endif; ?>');
     }
 
     private function _registerAuthDirectives(Blade $blade): void
     {
-        $blade->directive('auth', fn() => '<?php if(auth()->check()):?>');
-        $blade->directive('endauth', fn() => '<?php endif;?>');
-        $blade->directive('guest', fn() => '<?php if(auth()->guest()):?>');
-        $blade->directive('endguest', fn() => '<?php endif;?>');
+        $blade->directive('auth', fn () => '<?php if(auth()->check()):?>');
+        $blade->directive('endauth', fn () => '<?php endif;?>');
+        $blade->directive('guest', fn () => '<?php if(auth()->guest()):?>');
+        $blade->directive('endguest', fn () => '<?php endif;?>');
     }
 
     /**
@@ -242,7 +203,7 @@ class BladeExtension
                 \$message = \$__bladeErrors->first(\$__fieldName);
             ?>";
         });
-        $blade->directive('enderror', fn() => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
+        $blade->directive('enderror', fn () => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
     }
 
     private function _registerBackDirectives(Blade $blade)
