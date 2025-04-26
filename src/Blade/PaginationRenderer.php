@@ -61,7 +61,6 @@ class PaginationRenderer
 
     /**
      * Check if a Blade view exists.
-     * Adapt this method based on your Blade engine's capabilities.
      */
     protected function viewExists(string $viewName): bool
     {
@@ -75,12 +74,8 @@ class PaginationRenderer
                  $this->blade->getFinder()->find($viewName); // Throws exception if not found
                  return true;
             }
-            // Option 3: Add more checks if needed (e.g., direct file check)
-
-            // Default assumption if no check method is found (less safe)
-            // log_message('debug', 'No view existence check method found on Blade instance for pagination.');
+            // Default assumption if no check method is found
             return true;
-
         } catch (\InvalidArgumentException $e) { // Catch exceptions from find()
              return false;
         } catch (\Throwable $e) { // Catch other potential errors
@@ -89,13 +84,9 @@ class PaginationRenderer
         }
     }
 
-
     /**
      * Manually calculate the pagination elements (links and ellipsis).
      * Returns an array compatible with the pagination Blade views.
-     *
-     * @param LengthAwarePaginator $paginator
-     * @return array
      */
     protected function getElements(LengthAwarePaginator $paginator): array
     {
@@ -104,12 +95,10 @@ class PaginationRenderer
         $onEachSide = $this->window; // Use the configured window size
 
         // If there are not enough pages to necessitate truncation, display all page links.
-        // Calculate total links needed: 1 (current) + 2 * window + 2 (first/last) + 2 (ellipsis) = 2*window + 5
         if ($lastPage <= ($onEachSide * 2) + 5) {
             $elements = $this->generatePageRange(1, $lastPage, $paginator);
         }
-        // If the current page is near the start, show the beginning block, ellipsis, and the last page.
-        // Boundary calculation: current page <= window size + buffer (e.g., 2 for first page + ellipsis)
+        // If the current page is near the start
         elseif ($currentPage <= $onEachSide + 2) {
             $elements = [
                 $this->generatePageRange(1, min($onEachSide * 2 + 1, $lastPage), $paginator), // Show starting pages
@@ -117,8 +106,7 @@ class PaginationRenderer
                 $this->generatePageRange($lastPage, $lastPage, $paginator), // Last page
             ];
         }
-        // If the current page is near the end, show the first page, ellipsis, and the ending block.
-        // Boundary calculation: current page > last page - (window size + buffer)
+        // If the current page is near the end
         elseif ($currentPage > $lastPage - ($onEachSide + 2)) {
              $elements = [
                 $this->generatePageRange(1, 1, $paginator), // First page
@@ -126,8 +114,7 @@ class PaginationRenderer
                 $this->generatePageRange(max(1, $lastPage - ($onEachSide * 2)), $lastPage, $paginator), // Show ending pages
             ];
         }
-        // If the current page is somewhere in the middle, show the first page, ellipsis,
-        // the window around the current page, another ellipsis, and the last page.
+        // If the current page is somewhere in the middle
         else {
              $elements = [
                 $this->generatePageRange(1, 1, $paginator), // First page
@@ -138,7 +125,7 @@ class PaginationRenderer
             ];
         }
 
-        // Flatten slightly and filter out nulls/empty arrays if the logic produced any
+        // Flatten slightly and filter out nulls/empty arrays
         $finalElements = [];
         foreach ($elements as $element) {
             if (is_array($element) && !empty($element)) {
@@ -156,16 +143,13 @@ class PaginationRenderer
 
     /**
      * Generate an array of page numbers and URLs for a given range.
-     *
-     * @param int $start
-     * @param int $end
-     * @param LengthAwarePaginator $paginator
-     * @return array<int, string>
+     * This is the key method that needs to be fixed.
      */
     protected function generatePageRange(int $start, int $end, LengthAwarePaginator $paginator): array
     {
         $links = [];
         for ($page = $start; $page <= $end; $page++) {
+            // Use page number as key and URL as value - this is crucial for proper rendering
             $links[$page] = $paginator->url($page);
         }
         return $links;
@@ -173,8 +157,6 @@ class PaginationRenderer
 
     /**
      * Get the ellipsis string marker.
-     *
-     * @return string
      */
     protected function getEllipsis(): string
     {
@@ -182,7 +164,7 @@ class PaginationRenderer
     }
 
     /**
-     * Helper to access the Blade instance (e.g., for caching checks).
+     * Helper to access the Blade instance.
      */
     public function getBladeInstance(): Blade
     {
