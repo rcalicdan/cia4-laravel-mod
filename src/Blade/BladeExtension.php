@@ -65,7 +65,6 @@ class BladeExtension
      */
     protected function processPaginators(array $data): array
     {
-        // Flag to check if any paginators exist to avoid unnecessary service calls
         $hasPaginator = false;
         foreach ($data as $value) {
             if ($value instanceof LengthAwarePaginator) {
@@ -75,59 +74,67 @@ class BladeExtension
         }
 
         if (!$hasPaginator) {
-            return $data; // No paginators, nothing to do
+            return $data;
         }
 
         try {
-            // Attempt to get the Blade service instance
-            /** @var Blade $bladeInstance */
-            $bladeInstance = service('blade'); // Rely on the service container
+            // 1. Get the BladeService instance
+            $bladeService = service('blade');
 
-            // Basic type check (optional but recommended)
-            if (!$bladeInstance instanceof Blade) {
-                // This shouldn't happen if Services.php is correct, but good safeguard
-                log_message('error', 'Service "blade" did not return a valid Blade instance type. Pagination links may not render.');
+            if (!$bladeService instanceof BladeService) {
+                log_message('error', 'Service "blade" did not return an instance of \Rcalicdan\Ci4Larabridge\Blade\BladeService.');
                 throw new \RuntimeException('Invalid Blade service instance type returned.');
             }
 
+            // 2. Get the actual Blade ENGINE instance using getBlade()
+            if (!method_exists($bladeService, 'getBlade')) { // Check if method exists
+                log_message('error', 'Method "getBlade()" not found on BladeService. Cannot retrieve Blade engine for pagination.');
+                throw new \RuntimeException('Cannot get Blade engine from BladeService.');
+            }
+            $bladeEngineInstance = $bladeService->getBlade(); // *** Use getBlade() ***
 
-            // Instantiate the renderer (can still cache statically for performance within a request)
+
+            // 3. Type check the retrieved engine instance
+            if (!$bladeEngineInstance instanceof Blade) {
+                $expectedType = Blade::class;
+                $actualType = is_object($bladeEngineInstance) ? get_class($bladeEngineInstance) : gettype($bladeEngineInstance);
+                log_message('error', "BladeService::getBlade() did not return a valid Blade engine instance. Expected {$expectedType}, got {$actualType}.");
+                throw new \RuntimeException('Invalid Blade engine instance type retrieved from BladeService.');
+            }
+
+
+            // 4. Instantiate the renderer with the ENGINE instance
             static $renderer = null;
-            // Check if renderer exists or if blade instance changed (e.g. testing)
-            if ($renderer === null || (method_exists($renderer, 'getBladeInstance') && $renderer->getBladeInstance() !== $bladeInstance)) {
-                $renderer = new PaginationRenderer($bladeInstance);
+            // Use getBladeInstance() which we added to PaginationRenderer earlier
+            if ($renderer === null || (method_exists($renderer, 'getBladeInstance') && $renderer->getBladeInstance() !== $bladeEngineInstance)) {
+                $renderer = new PaginationRenderer($bladeEngineInstance); // Pass the ENGINE
             }
 
             // Iterate and render
             foreach ($data as $key => $value) {
                 if ($value instanceof LengthAwarePaginator) {
-                    // Avoid overwriting if linksHtml was somehow set manually
                     if (isset($value->linksHtml)) continue;
 
                     $theme = config('Pagination')->theme ?? 'bootstrap';
                     if (isset($data['paginationTheme'])) {
                         $theme = $data['paginationTheme'];
                     }
-                    // The render method now uses the Blade instance passed to the constructor
                     $data[$key]->linksHtml = $renderer->render($value, $theme);
                 }
             }
         } catch (Throwable $e) {
-            // Log error only once per request if service isn't defined
             static $loggedSvcError = false;
             if (!$loggedSvcError) {
-                log_message('error', 'Service "blade" not found. Please configure it in app/Config/Services.php for automatic pagination rendering. ' . $e->getMessage());
+                log_message('error', 'Service "blade" not found. Ensure it is defined in app/Config/Services.php. ' . $e->getMessage());
                 $loggedSvcError = true;
             }
-            // Assign placeholder to paginators
             foreach ($data as $key => $value) {
                 if ($value instanceof LengthAwarePaginator && !isset($data[$key]->linksHtml)) {
-                    $data[$key]->linksHtml = '<!-- Pagination Error: Blade service not found -->';
+                    $data[$key]->linksHtml = '<!-- Pagination Error: Blade service config issue -->';
                 }
             }
         } catch (Throwable $e) {
-            // Catch other errors during rendering or instantiation
-            log_message('error', 'Error processing paginators: ' . $e->getMessage());
+            log_message('error', 'Error processing paginators: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             foreach ($data as $key => $value) {
                 if ($value instanceof LengthAwarePaginator && !isset($data[$key]->linksHtml)) {
                     $data[$key]->linksHtml = '<!-- Pagination Processing Error -->';
