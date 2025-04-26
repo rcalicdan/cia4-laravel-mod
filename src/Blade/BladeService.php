@@ -41,6 +41,7 @@ class BladeService
             'cachePath' => $this->bladeConfigValues->cachePath,
             'componentNamespace' => $this->bladeConfigValues->componentNamespace,
             'componentPath' => $this->bladeConfigValues->componentPath,
+            'pagination' =>  __DIR__ . '/../Views/pagination',
             'checksCompilationInProduction' => $this->bladeConfigValues->checksCompilationInProduction ?? false,
         ];
 
