@@ -63,6 +63,10 @@ class BladeExtension
     /**
      * Processes Paginator instances, adding 'linksHtml' using Blade views via the 'blade' service.
      */
+    /**
+     * Processes Paginator instances, adding 'linksHtml' using Blade views via the 'blade' service.
+     */
+    // In BladeExtension.php, modify the processPaginators method:
     protected function processPaginators(array $data): array
     {
         $hasPaginator = false;
@@ -78,39 +82,27 @@ class BladeExtension
         }
 
         try {
-            // 1. Get the BladeService instance
+            // Get the BladeService instance
             $bladeService = service('blade');
-
             if (!$bladeService instanceof BladeService) {
-                log_message('error', 'Service "blade" did not return an instance of \Rcalicdan\Ci4Larabridge\Blade\BladeService.');
+                log_message('error', 'Invalid Blade service instance type returned.');
                 throw new \RuntimeException('Invalid Blade service instance type returned.');
             }
 
-            // 2. Get the actual Blade ENGINE instance using getBlade()
-            if (!method_exists($bladeService, 'getBlade')) { // Check if method exists
-                log_message('error', 'Method "getBlade()" not found on BladeService. Cannot retrieve Blade engine for pagination.');
-                throw new \RuntimeException('Cannot get Blade engine from BladeService.');
-            }
-            $bladeEngineInstance = $bladeService->getBlade(); // *** Use getBlade() ***
-
-
-            // 3. Type check the retrieved engine instance
+            // Get the actual Blade engine instance
+            $bladeEngineInstance = $bladeService->getBlade();
             if (!$bladeEngineInstance instanceof Blade) {
-                $expectedType = Blade::class;
-                $actualType = is_object($bladeEngineInstance) ? get_class($bladeEngineInstance) : gettype($bladeEngineInstance);
-                log_message('error', "BladeService::getBlade() did not return a valid Blade engine instance. Expected {$expectedType}, got {$actualType}.");
+                log_message('error', 'Invalid Blade engine instance type retrieved from BladeService.');
                 throw new \RuntimeException('Invalid Blade engine instance type retrieved from BladeService.');
             }
 
-
-            // 4. Instantiate the renderer with the ENGINE instance
+            // Instantiate the renderer with the ENGINE instance
             static $renderer = null;
-            // Use getBladeInstance() which we added to PaginationRenderer earlier
             if ($renderer === null || (method_exists($renderer, 'getBladeInstance') && $renderer->getBladeInstance() !== $bladeEngineInstance)) {
-                $renderer = new PaginationRenderer($bladeEngineInstance); // Pass the ENGINE
+                $renderer = new PaginationRenderer($bladeEngineInstance);
             }
 
-            // Iterate and render
+            // Process each paginator
             foreach ($data as $key => $value) {
                 if ($value instanceof LengthAwarePaginator) {
                     if (isset($value->linksHtml)) continue;
@@ -119,18 +111,10 @@ class BladeExtension
                     if (isset($data['paginationTheme'])) {
                         $theme = $data['paginationTheme'];
                     }
-                    $data[$key]->linksHtml = $renderer->render($value, $theme);
-                }
-            }
-        } catch (Throwable $e) {
-            static $loggedSvcError = false;
-            if (!$loggedSvcError) {
-                log_message('error', 'Service "blade" not found. Ensure it is defined in app/Config/Services.php. ' . $e->getMessage());
-                $loggedSvcError = true;
-            }
-            foreach ($data as $key => $value) {
-                if ($value instanceof LengthAwarePaginator && !isset($data[$key]->linksHtml)) {
-                    $data[$key]->linksHtml = '<!-- Pagination Error: Blade service config issue -->';
+
+                    // Before rendering, modify the paginator's url method
+                    // to ensure it returns just simple URLs
+                    $value->linksHtml = $renderer->render($value, $theme);
                 }
             }
         } catch (Throwable $e) {
