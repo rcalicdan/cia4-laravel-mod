@@ -68,9 +68,13 @@ class BladeService
         );
 
         if (ENVIRONMENT === 'production') {
-            $this->blade->getCompiler()->setIsExpired(function (): bool {
-                return $this->config['checksCompilationInProduction'];
-            });
+            try {
+                $this->blade->getCompiler()->setIsExpired(function (): bool {
+                    return $this->config['checksCompilationInProduction'];
+                });
+            } catch (\Exception $e) {
+                log_message('warning', 'Unable to set compiler expiration check: ' . $e->getMessage());
+            }
         }
 
         $this->blade->addNamespace(
