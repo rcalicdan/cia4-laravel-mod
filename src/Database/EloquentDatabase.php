@@ -93,7 +93,7 @@ class EloquentDatabase
             return new PaginationRenderer;
         });
 
-        Paginator::$defaultView = $this->paginationConfig->defaultView;
+        Paginator::$defaultView = 'paginator::boostrap';
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(function () {
