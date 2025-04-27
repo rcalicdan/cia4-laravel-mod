@@ -30,26 +30,14 @@ class EloquentCollector extends BaseCollector
     protected $title = 'Eloquent';
 
     /**
-     * Get the Capsule instance
-     */
-    protected function getCapsule(): Capsule
-    {
-        return Capsule::getInstance();
-    }
-
-    /**
      * Get database query log
      */
     protected function getQueryLog(): array
     {
-        // Use the getInstance static method to get the Capsule instance
-        $capsule = Capsule::getInstance();
-        if (!$capsule) {
-            return [];
-        }
-        
         try {
-            return $capsule->getConnection()->getQueryLog();
+            // We can't call getInstance() because it doesn't exist
+            // Instead, access the connection directly through the global manager
+            return Capsule::connection()->getQueryLog();
         } catch (\Exception $e) {
             return [];
         }
