@@ -139,7 +139,8 @@ EOD;
         $content = str_replace(
             'namespace Rcalicdan\Ci4Larabridge\Models;',
             'namespace App\Models;
-use Rcalicdan\Ci4Larabridge\Models;',
+            
+use Rcalicdan\Ci4Larabridge\Models\Model;',
             $content
         );
 
