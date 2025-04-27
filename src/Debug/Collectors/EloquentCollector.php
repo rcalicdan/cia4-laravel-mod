@@ -162,10 +162,10 @@ class EloquentCollector extends BaseCollector
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
                 <tr style="background-color: #f8f9fa;">
-                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: left;">#</th>
-                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: right;">Time</th>
-                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: left;">Query</th>
-                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: center;">Count</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: left;">#</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: right;">Time</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: left;">Query</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: center;">Count</th>
                 </tr>
             </thead>
             <tbody>
@@ -186,7 +186,7 @@ class EloquentCollector extends BaseCollector
                 $time = sprintf('%.2f ms', $info['total_time']);
 
                 $output .= sprintf(
-                    '<tr style="background-color: #fff8e1;"><td style="padding: 8px; border-bottom: 1px solid #000000;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: center;"><span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span></td></tr>',
+                    '<tr style="background-color: #fff8e1;"><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: center;"><span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span></td></tr>',
                     ++$index,
                     $time,
                     htmlspecialchars($sql),
@@ -208,7 +208,7 @@ class EloquentCollector extends BaseCollector
                     : '1';
 
                 $output .= sprintf(
-                    '<tr style="%s"><td style="padding: 8px; border-bottom: 1px solid #000000;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: center;">%s</td></tr>',
+                    '<tr style="%s"><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: center;">%s</td></tr>',
                     $rowStyle,
                     ++$index,
                     $time,
