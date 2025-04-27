@@ -93,8 +93,8 @@ class EloquentDatabase
             return new PaginationRenderer;
         });
 
-        Paginator::$defaultView = $this->paginationConfig->defaultView ?? 'pagination::bootstrap';
-        Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView ?? 'pagination::simple';
+        Paginator::$defaultView = $this->paginationConfig->defaultView;
+        Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(function () {
             return $this->container->get('paginator.renderer');
