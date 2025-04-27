@@ -30,6 +30,32 @@ class EloquentCollector extends BaseCollector
     protected $title = 'Eloquent';
 
     /**
+     * Get the Capsule instance
+     */
+    protected function getCapsule(): Capsule
+    {
+        return Capsule::getInstance();
+    }
+
+    /**
+     * Get database query log
+     */
+    protected function getQueryLog(): array
+    {
+        // Use the getInstance static method to get the Capsule instance
+        $capsule = Capsule::getInstance();
+        if (!$capsule) {
+            return [];
+        }
+        
+        try {
+            return $capsule->getConnection()->getQueryLog();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
      * Returns timeline data formatted for the toolbar.
      *
      * @return array The formatted data or an empty array.
@@ -38,7 +64,7 @@ class EloquentCollector extends BaseCollector
     {
         $data = [];
 
-        $queries = Capsule::getConnection()->getQueryLog();
+        $queries = $this->getQueryLog();
         
         foreach ($queries as $index => $query) {
             // Calculate query time in ms
@@ -69,7 +95,7 @@ class EloquentCollector extends BaseCollector
      */
     public function display(): string
     {
-        $queries = Capsule::getConnection()->getQueryLog();
+        $queries = $this->getQueryLog();
         
         if (empty($queries)) {
             return '<p>No Eloquent queries were recorded.</p>';
@@ -96,7 +122,7 @@ class EloquentCollector extends BaseCollector
      */
     public function getBadgeValue(): int
     {
-        return count(Capsule::getConnection()->getQueryLog());
+        return count($this->getQueryLog());
     }
 
     /**
