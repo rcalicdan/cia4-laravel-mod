@@ -2,7 +2,6 @@
 
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
-use Illuminate\Pagination\LengthAwarePaginator;
 use Rcalicdan\Blade\Blade;
 use Rcalicdan\Ci4Larabridge\Providers\ComponentDirectiveProvider;
 

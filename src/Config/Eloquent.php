@@ -3,155 +3,68 @@
 namespace Rcalicdan\Ci4Larabridge\Config;
 
 use CodeIgniter\Config\BaseConfig;
-use Illuminate\Config\Repository;
-use Illuminate\Container\Container;
-use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Hashing\HashManager;
-use Illuminate\Pagination\Cursor;
-use Illuminate\Pagination\CursorPaginator;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Facade;
-use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 
+/**
+ * Eloquent Configuration
+ *
+ * Contains database connection settings for integrating Eloquent ORM
+ * with CodeIgniter 4. These settings map to the default database configuration
+ * in CodeIgniter.
+ */
 class Eloquent extends BaseConfig
 {
     /**
-     * @var Container
+     * Database hostname or IP address
+     *
+     * @var string
      */
-    protected $container;
-
+    public $databaseHost = env('database.default.hostname', 'localhost');
     /**
-     * @var Capsule
+     * Database driver to use
+     *
+     * @var string
      */
-    protected $capsule;
-
+    public $databaseDriver = env('database.default.DBDriver', 'sqlite');
     /**
-     * @var Pagination  Configuration values for Eloquent Pagination
+     * Database name to connect to
+     *
+     * @var string
      */
-    protected $paginationConfig;
-
-    public function __construct()
-    {
-        $this->paginationConfig = config('Pagination');
-        $this->setupDatabaseConnection();
-        $this->setupContainer();
-        $this->registerServices();
-    }
-
+    public $databaseName = env('database.default.database', '');
     /**
-     * Configure and initialize the database connection
+     * Database username for authentication
+     *
+     * @var string
      */
-    protected function setupDatabaseConnection(): void
-    {
-        $this->capsule = new Capsule;
-        $this->capsule->addConnection($this->getDatabaseInformation());
-        $this->capsule->setAsGlobal();
-        $this->capsule->bootEloquent();
-    }
-
-    public function getDatabaseInformation(): array
-    {
-        return [
-            'host' => env('database.default.hostname', 'localhost'),
-            'driver' => env('database.default.DBDriver', 'sqlite'),
-            'database' => env('database.default.database', ''),
-            'username' => env('database.default.username', 'root'),
-            'password' => env('database.default.password', ''),
-            'charset' => env('database.default.DBCharset', 'utf8'),
-            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix' => env('database.default.DBPrefix', ''),
-            'port' => env('database.default.port', ''),
-        ];
-    }
-
+    public $databaseUsername = env('database.default.username', 'root');
     /**
-     * Configure pagination once for the entire application
+     * Database password for authentication
+     *
+     * @var string
      */
-    protected function configurePagination(): void
-    {
-        // Register a singleton instance of some pagination components
-        $this->container->singleton('paginator.currentPage', function () {
-            return isset($_GET['page']) ? (int) $_GET['page'] : 1;
-        });
-
-        $this->container->singleton('paginator.currentPath', function () {
-            return current_url();
-        });
-
-        Paginator::$defaultView = $this->paginationConfig->defaultView;
-
-        Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
-
-        Paginator::viewFactoryResolver(function () {
-            return new PaginationRenderer();
-        });
-
-        Paginator::currentPathResolver(function () {
-            return current_url();
-        });
-
-        Paginator::currentPageResolver(function ($pageName = 'page') {
-            $page = service('request')->getVar($pageName);
-
-            if (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) {
-                return (int) $page;
-            }
-
-            return 1;
-        });
-
-        Paginator::queryStringResolver(function () {
-            return Services::uri()->getQuery();
-        });
-
-        CursorPaginator::currentCursorResolver(static function ($cursorName = 'cursor') {
-            return Cursor::fromEncoded(service('request')->getVar($cursorName));
-        });
-    }
-
+    public $databasePassword = env('database.default.password', '');
     /**
-     * Initialize the container and set it as the Facade application root
+     * Database connection character set
+     *
+     * @var string
      */
-    protected function setupContainer(): void
-    {
-        $this->container = new Container;
-        Facade::setFacadeApplication($this->container);
-    }
-
+    public $databaseCharset = env('database.default.DBCharset', 'utf8');
     /**
-     * Register required services in the container
+     * Database collation setting
+     *
+     * @var string
      */
-    protected function registerServices(): void
-    {
-        $this->registerConfigService();
-        $this->registerHashService();
-        $this->configurePagination();
-    }
-
+    public $databaseCollation = env('database.default.DBCollat', 'utf8_general_ci');
     /**
-     * Register the configuration repository
+     * Table prefix for database connections
+     *
+     * @var string
      */
-    protected function registerConfigService(): void
-    {
-        $this->container->singleton('config', function () {
-            return new Repository([
-                'hashing' => [
-                    'driver' => 'bcrypt',
-                    'bcrypt' => [
-                        'rounds' => 10,
-                    ],
-                ],
-            ]);
-        });
-    }
-
+    public $databasePrefix = env('database.default.DBPrefix', '');
     /**
-     * Register the hash manager service
+     * Database connection port
+     *
+     * @var string
      */
-    protected function registerHashService(): void
-    {
-        $this->container->singleton('hash', function ($app) {
-            return new HashManager($app);
-        });
-    }
+    public $databasePort = env('database.default.port', '');
 }

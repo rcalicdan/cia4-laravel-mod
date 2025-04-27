@@ -53,7 +53,7 @@ use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
 use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
-            'class Pagination extends BaseConfig' => 'class Pagination extends BasePagination',
+            'class Pagination extends BaseConfig' => 'class Pagination extends BaseConfig',
         ];
 
         $this->copyAndReplace($file, $replaces);
@@ -65,7 +65,7 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
     private function publishConfigServices(): void
     {
         // First check if App/Config/Services.php exists
-        $appServicesPath = $this->distPath.'Config/Services.php';
+        $appServicesPath = $this->distPath . 'Config/Services.php';
 
         if (file_exists($appServicesPath)) {
             // Add methods to existing Services class
@@ -90,7 +90,7 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
 
         // Check if class already has our methods
         if (strpos($content, 'eloquent(') !== false) {
-            $this->write(CLI::color('  Skipped: ', 'yellow').'Services class already has eloquent() method.');
+            $this->write(CLI::color('  Skipped: ', 'yellow') . 'Services class already has eloquent() method.');
         } else {
             // Add eloquent method
             $pattern = '/}(\s*)$/'; // Find the closing brace of the class
@@ -102,12 +102,13 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
      * @param bool $getShared
      * @return Eloquent
      */
-    public static function eloquent($getShared = true): Eloquent
+    public static function eloquent($getShared = true): \Rcalicdan\Ci4Larabridge\Database\EloquentDatabase
     {
         if ($getShared) {
             return static::getSharedInstance('eloquent');
         }
-        return new Eloquent();
+            
+        return new \Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
     }
 
     /**
@@ -162,7 +163,7 @@ EOD;
             $newContent = preg_replace($pattern, $serviceMethods, $content);
 
             if ($newContent !== $content && write_file($servicesPath, $newContent)) {
-                $this->write(CLI::color('  Updated: ', 'green').clean_path($servicesPath));
+                $this->write(CLI::color('  Updated: ', 'green') . clean_path($servicesPath));
             } else {
                 $this->error('  Error updating Services class.');
             }

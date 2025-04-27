@@ -5,6 +5,7 @@ namespace Rcalicdan\Ci4Larabridge\Config;
 use CodeIgniter\Config\BaseService;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
 use Rcalicdan\Ci4Larabridge\Blade\BladeService;
+use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 use Rcalicdan\Ci4Larabridge\Providers\AuthServiceProvider;
 use Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
 
@@ -28,13 +29,13 @@ class Services extends BaseService
      *
      * @param  bool  $getShared  Whether to return a shared instance.
      */
-    public static function eloquent($getShared = true): Eloquent
+    public static function eloquent($getShared = true):EloquentDatabase
     {
         if ($getShared) {
             return static::getSharedInstance('eloquent');
         }
 
-        return new Eloquent;
+        return new EloquentDatabase;
     }
 
     /**

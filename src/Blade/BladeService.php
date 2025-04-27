@@ -30,6 +30,11 @@ class BladeService
     protected $bladeExtension;
 
     /**
+     * @var array Data to be passed to the view
+     */
+    protected array $viewData = [];
+
+    /**
      * Initialize the BladeService with configuration
      */
     public function __construct()
@@ -171,11 +176,20 @@ class BladeService
      *
      * @throws \Throwable Rendering exceptions in non-production environments
      */
+    /**
+     * Render a view with Blade
+     * 
+     * @param string $view The view identifier in dot notation
+     * @param array $data Additional data to be passed to the view
+     * @return string Rendered HTML string
+     * @throws \Throwable Rendering exceptions in non-production environments
+     */
     public function render(string $view, array $data = []): string
     {
         try {
-            $data = $this->processData($data);
-            $filteredData = $this->filterInternalKeys($data);
+            $mergedData = array_merge($this->viewData ?? [], $data);
+            $processedData = $this->processData($mergedData);
+            $filteredData = $this->filterInternalKeys($processedData);
 
             return $this->blade->make($view, $filteredData)->render();
         } catch (\Throwable $e) {
@@ -185,7 +199,9 @@ class BladeService
                 throw $e;
             }
 
-            return '<!-- View Rendering Error -->';
+            return "<!-- View Rendering Error -->";
+        } finally {
+            $this->viewData = [];
         }
     }
 

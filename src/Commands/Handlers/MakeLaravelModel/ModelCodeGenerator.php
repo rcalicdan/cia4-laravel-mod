@@ -25,7 +25,7 @@ class ModelCodeGenerator
 
 namespace {$fullNamespace};
 
-use Illuminate\Database\Eloquent\Model;
+use Rcalicdan\Ci4Larabridge\Models\Model;
 
 class {$baseClassName} extends Model
 {
