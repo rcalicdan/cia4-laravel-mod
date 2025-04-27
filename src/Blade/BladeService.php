@@ -164,7 +164,19 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * Set data to be passed to the view
+     * 
+     * @param array $data Data to be passed to the view
+     * @return self Returns the current instance for method chaining
+     */
+    public function setData(array $data = []): self
+    {
+        $this->viewData = $this->processData($data);
+        return $this;
     }
 
     /**
@@ -233,13 +245,13 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath.'/', '', $file);
+            $relativePath = str_replace($viewsPath . '/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
             try {
-                if ($force || ! $compiler->isExpired($viewsPath.'/'.$relativePath)) {
-                    $compiler->compile($viewsPath.'/'.$relativePath);
+                if ($force || ! $compiler->isExpired($viewsPath . '/' . $relativePath)) {
+                    $compiler->compile($viewsPath . '/' . $relativePath);
                 }
                 $results[$viewName] = true;
             } catch (\Exception $e) {
