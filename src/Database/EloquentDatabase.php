@@ -53,6 +53,8 @@ class EloquentDatabase
         $this->capsule->addConnection($this->getDatabaseInformation());
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
+        $this->capsule->getConnection()->enableQueryLog();
+       
     }
 
     public function getDatabaseInformation(): array
