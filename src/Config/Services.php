@@ -29,7 +29,7 @@ class Services extends BaseService
      *
      * @param  bool  $getShared  Whether to return a shared instance.
      */
-    public static function eloquent($getShared = true):EloquentDatabase
+    public static function eloquent($getShared = true): EloquentDatabase
     {
         if ($getShared) {
             return static::getSharedInstance('eloquent');

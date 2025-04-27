@@ -27,7 +27,7 @@ class EloquentDatabase
     protected $capsule;
 
     /**
-     * @var Pagination  Configuration values for Eloquent Pagination
+     * @var Pagination Configuration values for Eloquent Pagination
      */
     protected $paginationConfig;
 
@@ -88,7 +88,7 @@ class EloquentDatabase
         });
 
         $this->container->singleton('paginator.renderer', function () {
-            return new PaginationRenderer();
+            return new PaginationRenderer;
         });
 
         Paginator::$defaultView = $this->paginationConfig->defaultView ?? 'pagination::bootstrap';
@@ -104,6 +104,7 @@ class EloquentDatabase
 
         Paginator::currentPageResolver(function ($pageName = 'page') use ($request) {
             $page = $request->getVar($pageName);
+
             return (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) ? (int) $page : 1;
         });
 

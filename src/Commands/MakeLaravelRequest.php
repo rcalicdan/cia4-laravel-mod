@@ -7,14 +7,49 @@ use CodeIgniter\CLI\CLI;
 
 class MakeLaravelRequest extends BaseCommand
 {
+    /**
+     * The group the command is lumped under when listing commands.
+     *
+     * @var string
+     */
     protected $group = 'Generators';
+
+    /**
+     * The command's name.
+     *
+     * @var string
+     */
     protected $name = 'make:request';
+
+    /**
+     * The command's short description.
+     *
+     * @var string
+     */
     protected $description = 'Creates a new Laravel-style Form Request class file.';
+
+    /**
+     * The command's usage.
+     *
+     * @var string
+     */
     protected $usage = 'make:request [class_name]';
+
+    /**
+     * The command's arguments.
+     *
+     * @var array<string, string>
+     */
     protected $arguments = [
         'class_name' => 'The name of the class file to create, including any namespaces.',
     ];
 
+    /**
+     * Execute the command.
+     *
+     * @param  array  $params  Command parameters
+     * @return void
+     */
     public function run(array $params)
     {
         $className = $this->getClassName($params);
@@ -33,6 +68,12 @@ class MakeLaravelRequest extends BaseCommand
         $this->createFile($path, $template);
     }
 
+    /**
+     * Get the class name from parameters or prompt for it.
+     *
+     * @param  array  $params  Command parameters
+     * @return string The class name or empty string if invalid
+     */
     protected function getClassName(array $params): string
     {
         $className = array_shift($params);
@@ -50,30 +91,38 @@ class MakeLaravelRequest extends BaseCommand
         return $className;
     }
 
+    /**
+     * Parse the input class name into namespace, class name, and file path.
+     *
+     * @param  string  $input  The raw class name input
+     * @return array Array containing [namespace, className, filePath]
+     */
     protected function parseClassDetails(string $input): array
     {
-        // Parse the class name
         $segments = explode('/', $input);
         $className = array_pop($segments);
 
-        // Ensure the class name ends with "Request" if not already
         if (! str_ends_with($className, 'Request')) {
             $className .= 'Request';
         }
 
-        // Set the namespace
         $namespace = 'App\Requests';
         if (! empty($segments)) {
             $namespace .= '\\'.implode('\\', $segments);
         }
 
-        // Create directory structure and get file path
         $directory = $this->createDirectoryStructure($segments);
         $path = $directory.'/'.$className.'.php';
 
         return [$namespace, $className, $path];
     }
 
+    /**
+     * Create directory structure for the request class.
+     *
+     * @param  array  $segments  Directory segments
+     * @return string The final directory path
+     */
     protected function createDirectoryStructure(array $segments): string
     {
         $directory = APPPATH.'Requests';
@@ -88,6 +137,12 @@ class MakeLaravelRequest extends BaseCommand
         return $directory;
     }
 
+    /**
+     * Check if the file already exists.
+     *
+     * @param  string  $path  File path to check
+     * @return bool True if file exists, false otherwise
+     */
     protected function fileExists(string $path): bool
     {
         if (file_exists($path)) {
@@ -99,6 +154,13 @@ class MakeLaravelRequest extends BaseCommand
         return false;
     }
 
+    /**
+     * Build the request class template.
+     *
+     * @param  string  $namespace  The namespace for the class
+     * @param  string  $className  The class name
+     * @return string The complete class template
+     */
     protected function buildTemplate(string $namespace, string $className): string
     {
         return <<<EOD
@@ -110,6 +172,11 @@ use Rcalicdan\Ci4Larabridge\Validation\FormRequest;
 
 class {$className} extends FormRequest
 {
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
     public function rules()
     {
         return [
@@ -117,6 +184,11 @@ class {$className} extends FormRequest
         ];
     }
     
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
     public function messages()
     {
         return [
@@ -124,6 +196,11 @@ class {$className} extends FormRequest
         ];
     }
     
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array
+     */
     public function attributes()
     {
         return [
@@ -134,6 +211,12 @@ class {$className} extends FormRequest
 EOD;
     }
 
+    /**
+     * Create the file with the given content.
+     *
+     * @param  string  $path  The file path
+     * @param  string  $content  The file content
+     */
     protected function createFile(string $path, string $content): void
     {
         if (write_file($path, $content)) {

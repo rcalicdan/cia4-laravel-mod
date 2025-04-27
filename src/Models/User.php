@@ -2,8 +2,6 @@
 
 namespace Rcalicdan\Ci4Larabridge\Models;
 
-use Rcalicdan\Ci4Larabridge\Models\Model;
-
 class User extends Model
 {
     /**

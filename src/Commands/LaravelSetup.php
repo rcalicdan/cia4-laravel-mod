@@ -65,6 +65,8 @@ class LaravelSetup extends BaseCommand
 
     /**
      * Execute the setup process
+     * Initialize handlers
+     * Execute setup steps
      */
     public function run(array $params): void
     {

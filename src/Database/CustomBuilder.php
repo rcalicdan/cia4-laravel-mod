@@ -10,7 +10,7 @@ class CustomBuilder extends Builder
     /**
      * Paginate the given query and append query string parameters.
      *
-     * @param int $perPage
+     * @param  int  $perPage
      * @return LengthAwarePaginator
      */
     public function paginateWithQueryString($perPage = 15)

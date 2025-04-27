@@ -9,18 +9,18 @@ namespace Rcalicdan\Ci4Larabridge\Blade;
  */
 class PaginationRenderer
 {
-    /** 
-     *@var string $view The view name to render 
+    /**
+     * @var string The view name to render
      */
     protected $view;
 
-    /** 
-     * @var mixed $viewBridge The Blade view bridge instance 
+    /**
+     * @var mixed The Blade view bridge instance
      */
     protected $viewBridge;
 
-    /** 
-     * @var array $data The data to pass to the view 
+    /**
+     * @var array The data to pass to the view
      */
     protected $data = [];
 
@@ -37,17 +37,17 @@ class PaginationRenderer
     public function __construct()
     {
         $this->viewBridge = service('blade');
-        $paginationPath = is_dir(APPPATH . 'Views/pagination')
-            ? APPPATH . 'Views/pagination'
-            : __DIR__ . '/../Views/pagination';
+        $paginationPath = is_dir(APPPATH.'Views/pagination')
+            ? APPPATH.'Views/pagination'
+            : __DIR__.'/../Views/pagination';
         $this->viewBridge->getBlade()->addNamespace('pagination', $paginationPath);
     }
 
     /**
      * make - Sets the view and data for rendering
      *
-     * @param string $view The view name to render
-     * @param array $data The data to pass to the view
+     * @param  string  $view  The view name to render
+     * @param  array  $data  The data to pass to the view
      * @return $this
      */
     public function make($view, $data = [])
@@ -61,7 +61,7 @@ class PaginationRenderer
     /**
      * setData - Updates the view data
      *
-     * @param array $data The data to pass to the view
+     * @param  array  $data  The data to pass to the view
      * @return $this
      */
     public function setData($data = [])

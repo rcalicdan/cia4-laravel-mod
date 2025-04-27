@@ -12,14 +12,14 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $viewsPath = APPPATH . 'Views';
+    public $viewsPath = APPPATH.'Views';
 
     /**
      * Path to the cache directory for compiled templates
      *
      * @var string
      */
-    public $cachePath = WRITEPATH . 'cache/blade';
+    public $cachePath = WRITEPATH.'cache/blade';
 
     /**
      * Component namespace for Blade components
@@ -33,7 +33,7 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $componentPath = APPPATH . 'Views/components';
+    public $componentPath = APPPATH.'Views/components';
 
     /**
      * Disable compilation checks in production for performance
@@ -45,8 +45,6 @@ class Blade extends BaseConfig
 
     /**
      * Register Custom Directives
-     * 
-     * @return void
      */
     public function registerCustomDirectives(BladeDirective $blade): void
     {

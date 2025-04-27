@@ -164,7 +164,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -178,10 +178,11 @@ class BladeService
      */
     /**
      * Render a view with Blade
-     * 
-     * @param string $view The view identifier in dot notation
-     * @param array $data Additional data to be passed to the view
+     *
+     * @param  string  $view  The view identifier in dot notation
+     * @param  array  $data  Additional data to be passed to the view
      * @return string Rendered HTML string
+     *
      * @throws \Throwable Rendering exceptions in non-production environments
      */
     public function render(string $view, array $data = []): string
@@ -199,7 +200,7 @@ class BladeService
                 throw $e;
             }
 
-            return "<!-- View Rendering Error -->";
+            return '<!-- View Rendering Error -->';
         } finally {
             $this->viewData = [];
         }
@@ -232,13 +233,13 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
             try {
-                if ($force || ! $compiler->isExpired($viewsPath . '/' . $relativePath)) {
-                    $compiler->compile($viewsPath . '/' . $relativePath);
+                if ($force || ! $compiler->isExpired($viewsPath.'/'.$relativePath)) {
+                    $compiler->compile($viewsPath.'/'.$relativePath);
                 }
                 $results[$viewName] = true;
             } catch (\Exception $e) {
