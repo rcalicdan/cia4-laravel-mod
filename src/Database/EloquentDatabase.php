@@ -2,6 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Database;
 
+use CodeIgniter\Pager\PagerRenderer;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -85,37 +86,34 @@ class EloquentDatabase
             return $_GET['page'] ?? 1;
         });
 
-        $this->container->singleton('paginator.currentPath', function () use ($currentUrl) {
-            return $currentUrl;
-        });
+        Paginator::$defaultView = $this->paginationConfig->defaultView;
 
-        $this->container->singleton('paginator.renderer', function () {
-            return new PaginationRenderer;
-        });
-
-        Paginator::$defaultView = 'paginator::boostrap';
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(function () {
-            return $this->container->get('paginator.renderer');
+            return new PaginationRenderer();
         });
 
-        Paginator::currentPathResolver(function () use ($currentUrl) {
-            return $currentUrl;
+        Paginator::currentPathResolver(function () {
+            return current_url();
         });
 
-        Paginator::currentPageResolver(function ($pageName = 'page') use ($request) {
-            $page = $request->getVar($pageName);
+        Paginator::currentPageResolver(function ($pageName = 'page') {
+            $page = service('request')->getVar($pageName);
 
-            return (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) ? (int) $page : 1;
+            if (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) {
+                return (int) $page;
+            }
+
+            return 1;
         });
 
-        Paginator::queryStringResolver(function () use ($uri) {
-            return $uri->getQuery();
+        Paginator::queryStringResolver(function () {
+            return service('uri')->getQuery();
         });
 
-        CursorPaginator::currentCursorResolver(function ($cursorName = 'cursor') use ($request) {
-            return Cursor::fromEncoded($request->getVar($cursorName));
+        CursorPaginator::currentCursorResolver(static function ($cursorName = 'cursor') {
+            return Cursor::fromEncoded(service('request')->getVar($cursorName));
         });
     }
 
