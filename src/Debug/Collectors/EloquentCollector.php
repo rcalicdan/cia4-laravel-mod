@@ -36,11 +36,7 @@ class EloquentCollector extends BaseCollector
     {
         try {
             $log = Capsule::connection()->getQueryLog();
-            
-            // Debug the actual structure returned
-            // Uncomment this if you need to see the raw data structure:
-            log_message('debug', 'Eloquent Query Log: ' . print_r($log, true));
-            
+
             return $log;
         } catch (\Exception $e) {
             return [];
@@ -57,10 +53,10 @@ class EloquentCollector extends BaseCollector
         }
 
         $index = 0;
-        return preg_replace_callback('/\?/', function() use ($bindings, &$index) {
+        return preg_replace_callback('/\?/', function () use ($bindings, &$index) {
             $value = $bindings[$index] ?? '?';
             $index++;
-            
+
             if (is_null($value)) {
                 return 'NULL';
             }
@@ -70,7 +66,7 @@ class EloquentCollector extends BaseCollector
             if (is_bool($value)) {
                 return $value ? 'TRUE' : 'FALSE';
             }
-            
+
             return "'" . addslashes($value) . "'";
         }, $sql);
     }
@@ -84,9 +80,8 @@ class EloquentCollector extends BaseCollector
     {
         $data = [];
         $queries = $this->getQueryLog();
-        
+
         foreach ($queries as $index => $query) {
-            // Get execution time - same extraction logic as in display()
             $duration = 0;
             if (isset($query['time'])) {
                 $duration = (float) $query['time'];
@@ -95,21 +90,19 @@ class EloquentCollector extends BaseCollector
             } elseif (isset($query['elapsed'])) {
                 $duration = (float) $query['elapsed'];
             }
-            
-            // Convert to milliseconds if needed - use the same condition as in display()
+
             if ($duration > 0 && $duration < 0.1) {
                 $duration = $duration * 1000;
             }
-            
-            // Extract query type for display
-            $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches) 
-                ? strtoupper($matches[1]) 
+
+            $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches)
+                ? strtoupper($matches[1])
                 : 'QUERY';
-            
+
             $data[] = [
                 'name'      => "#{$index} {$queryType}",
                 'component' => 'Eloquent',
-                'start'     => 0, // We don't have start time info
+                'start'     => 0,
                 'duration'  => $duration,
             ];
         }
@@ -123,7 +116,7 @@ class EloquentCollector extends BaseCollector
     public function display(): string
     {
         $queries = $this->getQueryLog();
-        
+
         if (empty($queries)) {
             return '<p>No Eloquent queries were recorded.</p>';
         }
@@ -145,17 +138,17 @@ class EloquentCollector extends BaseCollector
             } elseif (isset($query['elapsed'])) {
                 $duration = (float) $query['elapsed'];
             }
-            
+
             // Convert to milliseconds if needed
             if ($duration > 0 && $duration < 0.1) {
                 $duration = $duration * 1000;
             }
-            
+
             $time = sprintf('%.2f ms', $duration);
-            
+
             // Format the SQL query with bindings
             $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
-            
+
             $output .= '<tr>';
             $output .= '<td>' . ($index + 1) . '</td>';
             $output .= '<td class="text-right">' . $time . '</td>';
