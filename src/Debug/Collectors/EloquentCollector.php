@@ -71,6 +71,18 @@ class EloquentCollector extends BaseCollector
         }, $sql);
     }
 
+    protected function normalizeTime($time): float
+    {
+        $time = (float) $time;
+
+        // If time is already in seconds, convert to milliseconds
+        if ($time > 0 && $time < 0.1) {
+            $time = $time * 1000;
+        }
+
+        return $time;
+    }
+
     /**
      * Returns timeline data formatted for the toolbar.
      *
@@ -84,15 +96,11 @@ class EloquentCollector extends BaseCollector
         foreach ($queries as $index => $query) {
             $duration = 0;
             if (isset($query['time'])) {
-                $duration = (float) $query['time'];
+                $duration = $this->normalizeTime($query['time']);
             } elseif (isset($query['duration'])) {
-                $duration = (float) $query['duration'];
+                $duration = $this->normalizeTime($query['duration']);
             } elseif (isset($query['elapsed'])) {
-                $duration = (float) $query['elapsed'];
-            }
-
-            if ($duration > 0 && $duration < 0.1) {
-                $duration = $duration * 1000;
+                $duration = $this->normalizeTime($query['elapsed']);
             }
 
             $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches)
@@ -132,18 +140,14 @@ class EloquentCollector extends BaseCollector
             // Get execution time
             $duration = 0;
             if (isset($query['time'])) {
-                $duration = (float) $query['time'];
+                $duration = $this->normalizeTime($query['time']);
             } elseif (isset($query['duration'])) {
-                $duration = (float) $query['duration'];
+                $duration = $this->normalizeTime($query['duration']);
             } elseif (isset($query['elapsed'])) {
-                $duration = (float) $query['elapsed'];
+                $duration = $this->normalizeTime($query['elapsed']);
             }
 
-            // Convert to milliseconds if needed
-            if ($duration > 0 && $duration < 0.1) {
-                $duration = $duration * 1000;
-            }
-
+            // No need for additional conversion here
             $time = sprintf('%.2f ms', $duration);
 
             // Format the SQL query with bindings
