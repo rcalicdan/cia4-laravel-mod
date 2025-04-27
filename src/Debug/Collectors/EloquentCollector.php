@@ -85,11 +85,13 @@ class EloquentCollector extends BaseCollector
 
         // Track duplicate queries
         $duplicates = $this->findDuplicateQueries($queries);
-        $duplicateCount = array_sum(array_map(function($item) { return $item['count'] - 1; }, $duplicates));
+        $duplicateCount = array_sum(array_map(function ($item) {
+            return $item['count'] - 1;
+        }, $duplicates));
 
         // Toggle button for duplicates only
         $toggleButton = $this->buildToggleButton($duplicateCount);
-        
+
         $tableHeader = $this->buildTableHeader();
         $tableRows = $this->buildTableRows($queries, $duplicates);
 
@@ -103,10 +105,10 @@ class EloquentCollector extends BaseCollector
     {
         $normalized = [];
         $duplicates = [];
-        
+
         foreach ($queries as $index => $query) {
             $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
-            
+
             if (!isset($normalized[$formattedSql])) {
                 $normalized[$formattedSql] = [
                     'indices' => [$index],
@@ -119,13 +121,13 @@ class EloquentCollector extends BaseCollector
                 $normalized[$formattedSql]['total_time'] += $this->calculateDuration($query);
             }
         }
-        
+
         foreach ($normalized as $sql => $info) {
             if ($info['count'] > 1) {
                 $duplicates[$sql] = $info;
             }
         }
-        
+
         return $duplicates;
     }
 
@@ -136,7 +138,7 @@ class EloquentCollector extends BaseCollector
         $currentState = $this->showOnlyDuplicates ? '1' : '0';
         $buttonColor = $duplicateCount > 0 ? '#ffc107' : '#6c757d';
         $textColor = $duplicateCount > 0 ? '#000' : '#fff';
-        
+
         $div = '<div style="margin-bottom: 15px;">';
         $div .= '<span style="display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;">' . $duplicateCount . ' Duplicate Queries</span>';
         $div .= '<button style="padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background-color: ' . $buttonColor . '; color: ' . $textColor . '; border: none;" ';
@@ -150,7 +152,7 @@ class EloquentCollector extends BaseCollector
         $div .= '}';
         $div .= '</script>';
         $div .= '</div>';
-        
+
         return $div;
     }
 
@@ -160,10 +162,10 @@ class EloquentCollector extends BaseCollector
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
                 <tr style="background-color: #f8f9fa;">
-                    <th style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">#</th>
-                    <th style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: right;">Time</th>
-                    <th style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: left;">Query</th>
-                    <th style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: center;">Count</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: left;">#</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: right;">Time</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: left;">Query</th>
+                    <th style="padding: 8px; border-bottom: 1px solid #000000; text-align: center;">Count</th>
                 </tr>
             </thead>
             <tbody>
@@ -174,17 +176,17 @@ class EloquentCollector extends BaseCollector
     {
         // Check URL parameter to toggle display mode
         $this->showOnlyDuplicates = isset($_GET['show_duplicates']) && $_GET['show_duplicates'] === '1';
-        
+
         $output = '';
         $index = 0;
-        
+
         if ($this->showOnlyDuplicates) {
             // Show only duplicate queries
             foreach ($duplicates as $sql => $info) {
                 $time = sprintf('%.2f ms', $info['total_time']);
-                
+
                 $output .= sprintf(
-                    '<tr style="background-color: #fff8e1;"><td style="padding: 8px; border-bottom: 1px solid #dee2e6;">%d</td><td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #dee2e6;">%s</td><td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: center;"><span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span></td></tr>',
+                    '<tr style="background-color: #fff8e1;"><td style="padding: 8px; border-bottom: 1px solid #000000;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: center;"><span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span></td></tr>',
                     ++$index,
                     $time,
                     htmlspecialchars($sql),
@@ -197,16 +199,16 @@ class EloquentCollector extends BaseCollector
                 $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
                 $duration = $this->calculateDuration($query);
                 $time = sprintf('%.2f ms', $duration);
-                
+
                 $isDuplicate = isset($duplicates[$formattedSql]);
                 $count = $isDuplicate ? $duplicates[$formattedSql]['count'] : 1;
                 $rowStyle = $isDuplicate ? 'background-color: #fff8e1;' : ($i % 2 === 0 ? 'background-color: #f8f9fa;' : 'background-color: #ffffff;');
-                $countDisplay = $isDuplicate 
+                $countDisplay = $isDuplicate
                     ? sprintf('<span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span>', $count)
                     : '1';
-                
+
                 $output .= sprintf(
-                    '<tr style="%s"><td style="padding: 8px; border-bottom: 1px solid #dee2e6;">%d</td><td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #dee2e6;">%s</td><td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: center;">%s</td></tr>',
+                    '<tr style="%s"><td style="padding: 8px; border-bottom: 1px solid #000000;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; text-align: center;">%s</td></tr>',
                     $rowStyle,
                     ++$index,
                     $time,
@@ -215,7 +217,7 @@ class EloquentCollector extends BaseCollector
                 );
             }
         }
-        
+
         return $output;
     }
 
