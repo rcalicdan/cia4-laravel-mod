@@ -35,12 +35,41 @@ class EloquentCollector extends BaseCollector
     protected function getQueryLog(): array
     {
         try {
-            // We can't call getInstance() because it doesn't exist
-            // Instead, access the connection directly through the global manager
             return Capsule::connection()->getQueryLog();
         } catch (\Exception $e) {
             return [];
         }
+    }
+
+    /**
+     * Format SQL with bindings for display
+     */
+    protected function formatSql(string $sql, array $bindings): string
+    {
+        if (empty($bindings)) {
+            return $sql;
+        }
+
+        // For each binding, replace the placeholder with the actual value
+        $index = 0;
+        return preg_replace_callback('/\?/', function () use ($bindings, &$index) {
+            $value = $bindings[$index] ?? '?';
+            $index++;
+
+            // Format the value based on its type
+            if (is_null($value)) {
+                return 'NULL';
+            }
+            if (is_numeric($value)) {
+                return $value;
+            }
+            if (is_bool($value)) {
+                return $value ? 'TRUE' : 'FALSE';
+            }
+
+            // Escape strings
+            return "'" . addslashes($value) . "'";
+        }, $sql);
     }
 
     /**
@@ -51,28 +80,31 @@ class EloquentCollector extends BaseCollector
     protected function formatTimelineData(): array
     {
         $data = [];
-
         $queries = $this->getQueryLog();
-        
+
+        // Use a fixed start time if we don't have real timing info
+        $startTime = 0;
+
         foreach ($queries as $index => $query) {
-            // Calculate query time in ms
-            $time = isset($query['time']) ? $query['time'] : 0;
-            
-            // Create a simplified SQL with bindings for display
-            $sql = $query['query'];
-            if (!empty($query['bindings'])) {
-                foreach ($query['bindings'] as $binding) {
-                    $value = is_numeric($binding) ? $binding : "'{$binding}'";
-                    $sql = preg_replace('/\?/', $value, $sql, 1);
-                }
-            }
-            
+            // Use time in ms if available, or a default of 0
+            $duration = isset($query['time']) ? (float) $query['time'] : 0;
+
+            // Create a summarized query name
+            $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches)
+                ? strtoupper($matches[1])
+                : 'QUERY';
+
+            $name = "#{$index} {$queryType}";
+
             $data[] = [
-                'name'      => 'Query ' . ($index + 1),
+                'name'      => $name,
                 'component' => 'Eloquent',
-                'start'     => 0, // We don't have exact start time
-                'duration'  => $time,
+                'start'     => $startTime,
+                'duration'  => $duration,
             ];
+
+            // Increment the start time for the next query for better visualization
+            $startTime += $duration;
         }
 
         return $data;
@@ -84,20 +116,29 @@ class EloquentCollector extends BaseCollector
     public function display(): string
     {
         $queries = $this->getQueryLog();
-        
+
         if (empty($queries)) {
             return '<p>No Eloquent queries were recorded.</p>';
         }
 
-        $output = '<table><thead><tr>';
-        $output .= '<th>Query</th><th>Bindings</th><th>Time (ms)</th>';
+        $output = '<table class="table table-striped">';
+        $output .= '<thead><tr>';
+        $output .= '<th style="width: 6%;">Time</th>';
+        $output .= '<th style="width: 10%;">Connection</th>';
+        $output .= '<th style="width: 84%;">Query</th>';
         $output .= '</tr></thead><tbody>';
 
-        foreach ($queries as $query) {
+        foreach ($queries as $index => $query) {
+            $time = isset($query['time']) ? sprintf('%.2f ms', $query['time']) : 'N/A';
+            $connection = 'default'; // Or get the actual connection name if you have multiple
+
+            // Format the SQL query with bindings
+            $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
+
             $output .= '<tr>';
-            $output .= '<td>' . htmlspecialchars($query['query']) . '</td>';
-            $output .= '<td>' . htmlspecialchars(json_encode($query['bindings'])) . '</td>';
-            $output .= '<td>' . ($query['time'] ?? 'N/A') . '</td>';
+            $output .= '<td class="text-right">' . $time . '</td>';
+            $output .= '<td>' . htmlspecialchars($connection) . '</td>';
+            $output .= '<td>' . htmlspecialchars($formattedSql) . '</td>';
             $output .= '</tr>';
         }
 
