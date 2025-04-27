@@ -12,13 +12,13 @@ class AuthHandler extends SetupHandler
     public function copyAuthServiceProvider(): void
     {
         // Create directory if it doesn't exist
-        $authDir = $this->distPath.'Libraries/Authorization';
+        $authDir = $this->distPath . 'Libraries/Authorization';
         if (! is_dir($authDir)) {
             mkdir($authDir, 0777, true);
-            $this->write(CLI::color('  Created: ', 'green').clean_path($authDir));
+            $this->write(CLI::color('  Created: ', 'green') . clean_path($authDir));
         }
 
-        $destPath = $authDir.'/AuthServiceProvider.php';
+        $destPath = $authDir . '/AuthServiceProvider.php';
         $cleanDestPath = clean_path($destPath);
 
         // Prepare content with updated namespace
@@ -105,7 +105,7 @@ EOD;
 
         // Write the file
         if (write_file($destPath, $content)) {
-            $this->write(CLI::color('  Created: ', 'green').$cleanDestPath);
+            $this->write(CLI::color('  Created: ', 'green') . $cleanDestPath);
         } else {
             $this->error("  Error creating AuthServiceProvider at {$cleanDestPath}.");
         }
@@ -117,19 +117,19 @@ EOD;
     public function copyUserModel(): void
     {
         // Create models directory if it doesn't exist
-        $modelsDir = $this->distPath.'Models';
+        $modelsDir = $this->distPath . 'Models';
         if (! is_dir($modelsDir)) {
             mkdir($modelsDir, 0777, true);
-            $this->write(CLI::color('  Created: ', 'green').clean_path($modelsDir));
+            $this->write(CLI::color('  Created: ', 'green') . clean_path($modelsDir));
         }
 
-        $sourcePath = $this->sourcePath.'Models/User.php';
-        $destPath = $this->distPath.'Models/User.php';
+        $sourcePath = $this->sourcePath . 'Models/User.php';
+        $destPath = $this->distPath . 'Models/User.php';
         $cleanDestPath = clean_path($destPath);
 
         // Check if source file exists
         if (! file_exists($sourcePath)) {
-            $this->error('  Source User model not found: '.clean_path($sourcePath));
+            $this->error('  Source User model not found: ' . clean_path($sourcePath));
 
             return;
         }
@@ -137,8 +137,9 @@ EOD;
         // Read content and update namespace
         $content = file_get_contents($sourcePath);
         $content = str_replace(
-            'namespace Rcalicdan\Ci4Larabridge\Models',
-            'namespace App\Models',
+            'namespace Rcalicdan\Ci4Larabridge\Models;',
+            'namespace App\Models;
+use Rcalicdan\Ci4Larabridge\Models;',
             $content
         );
 
@@ -158,7 +159,7 @@ EOD;
 
         // Write the file
         if (write_file($destPath, $content)) {
-            $this->write(CLI::color('  Created: ', 'green').$cleanDestPath);
+            $this->write(CLI::color('  Created: ', 'green') . $cleanDestPath);
         } else {
             $this->error("  Error creating User model at {$cleanDestPath}.");
         }
