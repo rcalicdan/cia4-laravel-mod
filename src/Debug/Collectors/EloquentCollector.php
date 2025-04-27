@@ -86,11 +86,9 @@ class EloquentCollector extends BaseCollector
         $queries = $this->getQueryLog();
         
         foreach ($queries as $index => $query) {
-            // Get execution time - Laravel might store this in different ways depending on the version
-            // Try common keys where execution time might be stored
+            // Get execution time - same extraction logic as in display()
             $duration = 0;
             if (isset($query['time'])) {
-                // If time is already in milliseconds
                 $duration = (float) $query['time'];
             } elseif (isset($query['duration'])) {
                 $duration = (float) $query['duration'];
@@ -98,9 +96,9 @@ class EloquentCollector extends BaseCollector
                 $duration = (float) $query['elapsed'];
             }
             
-            // Convert to microseconds if the values are too small (sometimes Laravel stores times in seconds)
+            // Convert to milliseconds if needed - use the same condition as in display()
             if ($duration > 0 && $duration < 0.1) {
-                $duration = $duration * 1000; // Convert seconds to milliseconds
+                $duration = $duration * 1000;
             }
             
             // Extract query type for display
@@ -167,6 +165,14 @@ class EloquentCollector extends BaseCollector
 
         $output .= '</tbody></table>';
         return $output;
+    }
+
+    /**
+     * Gets the "badge" value for the button.
+     */
+    public function getBadgeValue(): int
+    {
+        return count($this->getQueryLog());
     }
 
     /**
