@@ -110,12 +110,12 @@ class EloquentCollector extends BaseCollector
             if (!isset($normalized[$formattedSql])) {
                 $normalized[$formattedSql] = [
                     'indices' => [$index],
-                    'count' => 1,
+                    'count' => (int) 1,
                     'total_time' => $this->calculateDuration($query)
                 ];
             } else {
                 $normalized[$formattedSql]['indices'][] = $index;
-                $normalized[$formattedSql]['count']++;
+                $normalized[$formattedSql]['count'] = (int) ($normalized[$formattedSql]['count'] + 1);
                 $normalized[$formattedSql]['total_time'] += $this->calculateDuration($query);
             }
         }
@@ -133,23 +133,25 @@ class EloquentCollector extends BaseCollector
     {
         $showDuplicatesText = $this->showOnlyDuplicates ? 'Show All Queries' : 'Show Only Duplicates';
         $buttonDisabled = $duplicateCount > 0 ? '' : 'disabled';
+        $currentState = $this->showOnlyDuplicates ? '1' : '0';
+        $buttonColor = $duplicateCount > 0 ? '#ffc107' : '#6c757d';
+        $textColor = $duplicateCount > 0 ? '#000' : '#fff';
         
-        return <<<HTML
-            <div style="margin-bottom: 15px;">
-                <span style="display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;">{$duplicateCount} Duplicate Queries</span>
-                <button style="padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background-color: {$duplicateCount > 0 ? '#ffc107' : '#6c757d'}; color: {$duplicateCount > 0 ? '#000' : '#fff'}; border: none;" 
-                    id="toggle-duplicates" 
-                    onclick="toggleDuplicateQueries()" 
-                    {$buttonDisabled}>{$showDuplicatesText}</button>
-                <script>
-                function toggleDuplicateQueries() {
-                    var url = new URL(window.location.href);
-                    url.searchParams.set('show_duplicates', '{$this->showOnlyDuplicates ? '0' : '1'}');
-                    window.location.href = url.toString();
-                }
-                </script>
-            </div>
-        HTML;
+        $div = '<div style="margin-bottom: 15px;">';
+        $div .= '<span style="display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;">' . $duplicateCount . ' Duplicate Queries</span>';
+        $div .= '<button style="padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background-color: ' . $buttonColor . '; color: ' . $textColor . '; border: none;" ';
+        $div .= 'id="toggle-duplicates" onclick="toggleDuplicateQueries(' . $currentState . ')" ' . $buttonDisabled . '>' . $showDuplicatesText . '</button>';
+        $div .= '<script>';
+        $div .= 'function toggleDuplicateQueries(currentState) {';
+        $div .= '  var url = new URL(window.location.href);';
+        $div .= '  var newState = currentState === 1 ? "0" : "1";';
+        $div .= '  url.searchParams.set("show_duplicates", newState);';
+        $div .= '  window.location.href = url.toString();';
+        $div .= '}';
+        $div .= '</script>';
+        $div .= '</div>';
+        
+        return $div;
     }
 
     private function buildTableHeader(): string
