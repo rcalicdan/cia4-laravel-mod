@@ -78,7 +78,6 @@ class BladeService
             $this->config['componentPath']
         );
 
-        Paginator::useBootstrap();
         $this->applyExtensions();
     }
 
