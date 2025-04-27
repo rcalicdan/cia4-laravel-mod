@@ -53,8 +53,12 @@ class EloquentDatabase
         $this->capsule->addConnection($this->getDatabaseInformation());
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
-        $this->capsule->getConnection()->enableQueryLog();
-       
+        // Enable query logging with timing
+        $connection = $this->capsule->connection();
+        $connection->enableQueryLog();
+
+        // Optional: Configure PDO to include microsecond precision if needed
+        $connection->getPdo()->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
     }
 
     public function getDatabaseInformation(): array

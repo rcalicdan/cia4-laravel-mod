@@ -35,7 +35,13 @@ class EloquentCollector extends BaseCollector
     protected function getQueryLog(): array
     {
         try {
-            return Capsule::connection()->getQueryLog();
+            $log = Capsule::connection()->getQueryLog();
+            
+            // Debug the actual structure returned
+            // Uncomment this if you need to see the raw data structure:
+            log_message('debug', 'Eloquent Query Log: ' . print_r($log, true));
+            
+            return $log;
         } catch (\Exception $e) {
             return [];
         }
@@ -50,13 +56,11 @@ class EloquentCollector extends BaseCollector
             return $sql;
         }
 
-        // For each binding, replace the placeholder with the actual value
         $index = 0;
-        return preg_replace_callback('/\?/', function () use ($bindings, &$index) {
+        return preg_replace_callback('/\?/', function() use ($bindings, &$index) {
             $value = $bindings[$index] ?? '?';
             $index++;
-
-            // Format the value based on its type
+            
             if (is_null($value)) {
                 return 'NULL';
             }
@@ -66,8 +70,7 @@ class EloquentCollector extends BaseCollector
             if (is_bool($value)) {
                 return $value ? 'TRUE' : 'FALSE';
             }
-
-            // Escape strings
+            
             return "'" . addslashes($value) . "'";
         }, $sql);
     }
@@ -81,30 +84,36 @@ class EloquentCollector extends BaseCollector
     {
         $data = [];
         $queries = $this->getQueryLog();
-
-        // Use a fixed start time if we don't have real timing info
-        $startTime = 0;
-
+        
         foreach ($queries as $index => $query) {
-            // Use time in ms if available, or a default of 0
-            $duration = isset($query['time']) ? (float) $query['time'] : 0;
-
-            // Create a summarized query name
-            $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches)
-                ? strtoupper($matches[1])
+            // Get execution time - Laravel might store this in different ways depending on the version
+            // Try common keys where execution time might be stored
+            $duration = 0;
+            if (isset($query['time'])) {
+                // If time is already in milliseconds
+                $duration = (float) $query['time'];
+            } elseif (isset($query['duration'])) {
+                $duration = (float) $query['duration'];
+            } elseif (isset($query['elapsed'])) {
+                $duration = (float) $query['elapsed'];
+            }
+            
+            // Convert to microseconds if the values are too small (sometimes Laravel stores times in seconds)
+            if ($duration > 0 && $duration < 0.1) {
+                $duration = $duration * 1000; // Convert seconds to milliseconds
+            }
+            
+            // Extract query type for display
+            $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches) 
+                ? strtoupper($matches[1]) 
                 : 'QUERY';
-
-            $name = "#{$index} {$queryType}";
-
+            
             $data[] = [
-                'name'      => $name,
+                'name'      => "#{$index} {$queryType}",
                 'component' => 'Eloquent',
-                'start'     => $startTime,
+                'start'     => 0, // We don't have start time info
                 'duration'  => $duration,
             ];
-
-            // Increment the start time for the next query for better visualization
-            $startTime += $duration;
         }
 
         return $data;
@@ -116,28 +125,42 @@ class EloquentCollector extends BaseCollector
     public function display(): string
     {
         $queries = $this->getQueryLog();
-
+        
         if (empty($queries)) {
             return '<p>No Eloquent queries were recorded.</p>';
         }
 
         $output = '<table class="table table-striped">';
         $output .= '<thead><tr>';
-        $output .= '<th style="width: 6%;">Time</th>';
-        $output .= '<th style="width: 10%;">Connection</th>';
-        $output .= '<th style="width: 84%;">Query</th>';
+        $output .= '<th>#</th>';
+        $output .= '<th>Time</th>';
+        $output .= '<th>Query</th>';
         $output .= '</tr></thead><tbody>';
 
         foreach ($queries as $index => $query) {
-            $time = isset($query['time']) ? sprintf('%.2f ms', $query['time']) : 'N/A';
-            $connection = 'default'; // Or get the actual connection name if you have multiple
-
+            // Get execution time
+            $duration = 0;
+            if (isset($query['time'])) {
+                $duration = (float) $query['time'];
+            } elseif (isset($query['duration'])) {
+                $duration = (float) $query['duration'];
+            } elseif (isset($query['elapsed'])) {
+                $duration = (float) $query['elapsed'];
+            }
+            
+            // Convert to milliseconds if needed
+            if ($duration > 0 && $duration < 0.1) {
+                $duration = $duration * 1000;
+            }
+            
+            $time = sprintf('%.2f ms', $duration);
+            
             // Format the SQL query with bindings
             $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
-
+            
             $output .= '<tr>';
+            $output .= '<td>' . ($index + 1) . '</td>';
             $output .= '<td class="text-right">' . $time . '</td>';
-            $output .= '<td>' . htmlspecialchars($connection) . '</td>';
             $output .= '<td>' . htmlspecialchars($formattedSql) . '</td>';
             $output .= '</tr>';
         }
