@@ -41,9 +41,11 @@ class EloquentCollector extends BaseCollector
     protected function getQueryLog(): array
     {
         try {
-            $log = Capsule::connection()->getQueryLog();
-
-            return $log;
+            if (ENVIRONMENT === 'development') {
+                $log = Capsule::connection()->getQueryLog();
+                return $log;
+            }
+            return [];
         } catch (\Exception $e) {
             return [];
         }
@@ -83,15 +85,12 @@ class EloquentCollector extends BaseCollector
             return '<p>No Eloquent queries were recorded.</p>';
         }
 
-        // Track duplicate queries
         $duplicates = $this->findDuplicateQueries($queries);
         $duplicateCount = array_sum(array_map(function ($item) {
             return $item['count'] - 1;
         }, $duplicates));
 
-        // Toggle button for duplicates only
         $toggleButton = $this->buildToggleButton($duplicateCount);
-
         $tableHeader = $this->buildTableHeader();
         $tableRows = $this->buildTableRows($queries, $duplicates);
 
