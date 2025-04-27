@@ -170,14 +170,6 @@ class EloquentCollector extends BaseCollector
     }
 
     /**
-     * Gets the "badge" value for the button.
-     */
-    public function getBadgeValue(): int
-    {
-        return count($this->getQueryLog());
-    }
-
-    /**
      * Display the icon.
      *
      * Icon from https://icons.getbootstrap.com
