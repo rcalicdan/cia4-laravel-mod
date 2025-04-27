@@ -37,7 +37,10 @@ class PaginationRenderer
     public function __construct()
     {
         $this->viewBridge = service('blade');
-        $this->viewBridge->getBlade()->addNamespace('pagination', APPPATH . 'Views/pagination');
+        $paginationPath = is_dir(APPPATH . 'Views/pagination')
+            ? APPPATH . 'Views/pagination'
+            : __DIR__ . '/../Views/pagination';
+        $this->viewBridge->getBlade()->addNamespace('pagination', $paginationPath);
     }
 
     /**
