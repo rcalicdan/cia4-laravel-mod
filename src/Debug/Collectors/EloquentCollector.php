@@ -12,7 +12,7 @@ class EloquentCollector extends BaseCollector
      *
      * @var boolean
      */
-    protected $hasTimeline = true;
+    protected $hasTimeline = false;
 
     /**
      * Whether this collector needs to display content in a tab or not.
@@ -71,68 +71,6 @@ class EloquentCollector extends BaseCollector
         }, $sql);
     }
 
-    protected function normalizeTime($time): float
-    {
-        $time = (float) $time;
-
-        // If time is already in seconds, convert to milliseconds
-        if ($time > 0 && $time < 0.1) {
-            $time = $time * 1000;
-        }
-
-        return $time;
-    }
-
-    /**
-     * Returns timeline data formatted for the toolbar.
-     *
-     * @return array The formatted data or an empty array.
-     */
-    protected function formatTimelineData(): array
-    {
-        $data = [];
-        $queries = $this->getQueryLog();
-        
-        // Get request start time from CI4's performance metrics if possible
-        $startTime = 0;
-        $lastEndTime = $startTime;
-        
-        foreach ($queries as $index => $query) {
-            // Get raw time value first
-            $rawTime = 0;
-            if (isset($query['time'])) {
-                $rawTime = (float) $query['time'];
-            } elseif (isset($query['duration'])) {
-                $rawTime = (float) $query['duration'];
-            } elseif (isset($query['elapsed'])) {
-                $rawTime = (float) $query['elapsed'];
-            }
-            
-            // Convert to milliseconds if needed
-            if ($rawTime > 0 && $rawTime < 0.1) {
-                $rawTime *= 1000;
-            }
-            
-            $queryType = preg_match('/^(SELECT|INSERT|UPDATE|DELETE|SHOW|ALTER|CREATE|DROP)/i', $query['query'], $matches) 
-                ? strtoupper($matches[1]) 
-                : 'QUERY';
-            
-            // Calculate a reasonable start time 
-            // This is an approximation since we don't know exact query start times
-            $start = $lastEndTime - $startTime;
-            $lastEndTime += $rawTime / 1000; // Convert ms back to seconds for next calculation
-            
-            $data[] = [
-                'name'      => "#{$index} {$queryType}",
-                'component' => 'Eloquent',
-                'start'     => $start * 1000, // Convert to milliseconds 
-                'duration'  => $rawTime,
-            ];
-        }
-    
-        return $data;
-    }
-
     /**
      * Returns the data of this collector to be formatted in the toolbar
      */
@@ -144,39 +82,54 @@ class EloquentCollector extends BaseCollector
             return '<p>No Eloquent queries were recorded.</p>';
         }
 
-        $output = '<table class="table table-striped">';
-        $output .= '<thead><tr>';
-        $output .= '<th>#</th>';
-        $output .= '<th>Time</th>';
-        $output .= '<th>Query</th>';
-        $output .= '</tr></thead><tbody>';
+        $tableHeader = $this->buildTableHeader();
+        $tableRows = $this->buildTableRows($queries);
 
-        foreach ($queries as $index => $query) {
-            // Get execution time
-            $duration = 0;
-            if (isset($query['time'])) {
-                $duration = $this->normalizeTime($query['time']);
-            } elseif (isset($query['duration'])) {
-                $duration = $this->normalizeTime($query['duration']);
-            } elseif (isset($query['elapsed'])) {
-                $duration = $this->normalizeTime($query['elapsed']);
-            }
+        return $tableHeader . $tableRows . '</tbody></table>';
+    }
 
-            // No need for additional conversion here
+    private function buildTableHeader(): string
+    {
+        return <<<HTML
+            <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Time</th>
+                    <th>Query</th>
+                </tr>
+            </thead>
+            <tbody>
+        HTML;
+    }
+
+    private function buildTableRows(array $queries): string
+    {
+        $index = 0;
+        return array_reduce($queries, function ($output, $query) use (&$index) {
+            $duration = $this->calculateDuration($query);
             $time = sprintf('%.2f ms', $duration);
-
-            // Format the SQL query with bindings
             $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
 
-            $output .= '<tr>';
-            $output .= '<td>' . ($index + 1) . '</td>';
-            $output .= '<td class="text-right">' . $time . '</td>';
-            $output .= '<td>' . htmlspecialchars($formattedSql) . '</td>';
-            $output .= '</tr>';
-        }
+            return $output . sprintf(
+                '<tr><td>%d</td><td class="text-right">%s</td><td>%s</td></tr>',
+                ++$index,
+                $time,
+                htmlspecialchars($formattedSql)
+            );
+        }, '');
+    }
 
-        $output .= '</tbody></table>';
-        return $output;
+    private function calculateDuration(array $query): float
+    {
+        $duration = match (true) {
+            isset($query['time']) => (float)$query['time'],
+            isset($query['duration']) => (float)$query['duration'],
+            isset($query['elapsed']) => (float)$query['elapsed'],
+            default => 0
+        };
+
+        return ($duration > 0 && $duration < 0.1) ? $duration * 1000 : $duration;
     }
 
     /**
