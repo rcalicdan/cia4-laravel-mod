@@ -57,17 +57,12 @@ class EloquentCollector extends BaseCollector
             $value = $bindings[$index] ?? '?';
             $index++;
 
-            if (is_null($value)) {
-                return 'NULL';
-            }
-            if (is_numeric($value)) {
-                return $value;
-            }
-            if (is_bool($value)) {
-                return $value ? 'TRUE' : 'FALSE';
-            }
-
-            return "'" . addslashes($value) . "'";
+            return match (true) {
+                is_null($value) => 'NULL',
+                is_numeric($value) => $value,
+                is_bool($value) => $value ? 'TRUE' : 'FALSE',
+                default => "'" . addslashes($value) . "'"
+            };
         }, $sql);
     }
 
