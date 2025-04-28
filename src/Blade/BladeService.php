@@ -12,7 +12,7 @@ class BladeService
     /**
      * @var Blade Instance of the Blade engine
      */
-    protected ?Blade $blade = null;
+    protected Blade $blade;
 
     /**
      * @var array Configuration for Blade
@@ -228,9 +228,6 @@ class BladeService
      */
     public function getBlade(): Blade
     {
-        if ($this->blade === null) {
-            $this->initialize();
-        }
         return $this->blade;
     }
 
