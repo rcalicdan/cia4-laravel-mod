@@ -36,31 +36,30 @@ class LaravelMigrate extends BaseCommand
             $this->dbHandler = new DatabaseHandler;
             $this->migrationHandler = new LaravelMigrateMigrationHandler;
             $this->outputHandler = new OutputHandler;
-    
+
             // Load database configuration
             $this->loadDatabaseConfig();
-    
+
             // Check if database exists before proceeding
             if (! $this->dbHandler->checkDatabaseExists($this->dbConfig)) {
                 $this->promptAndCreateDatabase();
             }
-            
+
             // Setup migration environment
             $this->migrationHandler->setupEnvironment($this->dbConfig);
-    
+
             // Execute the requested action
             $action = $params[0] ?? 'up';
             $this->executeAction($action);
-    
         } catch (\PDOException $e) {
             // Special handling for database connection errors
             if (strpos($e->getMessage(), 'Unknown database') !== false) {
                 $this->promptAndCreateDatabase();
             } else {
-                CLI::error('Database connection error: '.$e->getMessage());
+                CLI::error('Database connection error: ' . $e->getMessage());
             }
         } catch (\Exception $e) {
-            CLI::error('Error executing migration command: '.$e->getMessage());
+            CLI::error('Error executing migration command: ' . $e->getMessage());
         }
     }
 
@@ -70,6 +69,32 @@ class LaravelMigrate extends BaseCommand
     private function loadDatabaseConfig()
     {
         $this->dbConfig = service('eloquent')->getDatabaseInformation();
+
+        // Debug the configuration if it's missing critical keys
+        if (!isset($this->dbConfig['database'])) {
+            CLI::write('Database configuration incomplete. Here\'s what was loaded:', 'yellow');
+            print_r($this->dbConfig);
+
+            // Try loading from environment directly as fallback
+            $this->dbConfig = [
+                'host' => env('database.default.hostname', 'localhost'),
+                'driver' => env('database.default.DBDriver', 'mysql'),
+                'database' => env('database.default.database', ''),
+                'username' => env('database.default.username', 'root'),
+                'password' => env('database.default.password', ''),
+                'charset' => env('database.default.DBCharset', 'utf8'),
+                'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
+                'prefix' => env('database.default.DBPrefix', ''),
+                'port' => env('database.default.port', '3306'),
+            ];
+
+            // Verify if we now have a database name
+            if (empty($this->dbConfig['database'])) {
+                CLI::error('Could not determine database name from environment. Please check your .env file.');
+                CLI::write('Ensure you have set database.default.database in your .env file.', 'yellow');
+                exit(1);
+            }
+        }
     }
 
     /**
@@ -77,7 +102,16 @@ class LaravelMigrate extends BaseCommand
      */
     private function promptAndCreateDatabase()
     {
-        CLI::write("Database '{$this->dbConfig['database']}' does not exist.", 'yellow');
+        // Check if database key exists and display appropriate message
+        $dbName = $this->dbConfig['database'] ?? '(undefined)';
+        CLI::write("Database '{$dbName}' does not exist.", 'yellow');
+
+        // Make sure we have a database name before proceeding
+        if (!isset($this->dbConfig['database']) || empty($this->dbConfig['database'])) {
+            CLI::error('Database name is not defined in your configuration. Please check your .env file or database configuration.');
+            exit(1);
+        }
+
         $confirm = CLI::prompt('Would you like to create it?', ['y', 'n']);
 
         if ($confirm === 'y') {
