@@ -39,6 +39,7 @@ class EloquentDatabase
     public function __construct()
     {
         $this->paginationConfig = config('Pagination');
+        $this->eloquentConfig = config('Eloquent');
         $this->setupDatabaseConnection();
         $this->setupContainer();
         $this->registerServices();
