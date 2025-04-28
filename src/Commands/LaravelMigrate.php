@@ -4,6 +4,7 @@ namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
+use Config\Eloquent;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\DatabaseHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\MigrationHandler as LaravelMigrateMigrationHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\OutputHandler;
@@ -25,6 +26,11 @@ class LaravelMigrate extends BaseCommand
     protected $outputHandler;
 
     protected $dbConfig = [];
+
+    /**
+     * @var Eloquent Configuration values for Eloquent
+     */
+    protected $eloquentConfig;
 
     /**
      * Execute the command
@@ -52,7 +58,6 @@ class LaravelMigrate extends BaseCommand
             $action = $params[0] ?? 'up';
             $this->executeAction($action);
         } catch (\PDOException $e) {
-            // Special handling for database connection errors
             if (strpos($e->getMessage(), 'Unknown database') !== false) {
                 $this->promptAndCreateDatabase();
             } else {
@@ -71,26 +76,19 @@ class LaravelMigrate extends BaseCommand
      */
     private function loadDatabaseConfig()
     {
-        // Try loading directly from environment variables first
+        $this->eloquentConfig = config('Eloquent');
         $this->dbConfig = [
-            'host' => env('database.default.hostname', 'localhost'),
-            'driver' => env('database.default.DBDriver', 'mysql'),
-            'database' => env('database.default.database', ''),
-            'username' => env('database.default.username', 'root'),
-            'password' => env('database.default.password', ''),
-            'charset' => env('database.default.DBCharset', 'utf8'),
-            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix' => env('database.default.DBPrefix', ''),
-            'port' => env('database.default.port', '3306'),
+            'host' => env('database.default.hostname', $this->eloquentConfig->databaseHost),
+            'driver' => env('database.default.DBDriver', $this->eloquentConfig->databaseDriver),
+            'database' => env('database.default.database', $this->eloquentConfig->databaseName),
+            'username' => env('database.default.username', $this->eloquentConfig->databaseUsername),
+            'password' => env('database.default.password', $this->eloquentConfig->databasePassword),
+            'charset' => env('database.default.DBCharset', $this->eloquentConfig->databaseCharset),
+            'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
+            'prefix' => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
+            'port' => env('database.default.port', $this->eloquentConfig->databasePort),
         ];
 
-        // Debug the loaded configuration
-        CLI::write('Loaded database configuration:', 'green');
-        CLI::write("Host: {$this->dbConfig['host']}");
-        CLI::write("Driver: {$this->dbConfig['driver']}");
-        CLI::write("Database: {$this->dbConfig['database']}");
-
-        // Verify if we have a database name
         if (empty($this->dbConfig['database'])) {
             CLI::error('Could not determine database name from environment. Please check your .env file.');
             CLI::write('Ensure you have set database.default.database in your .env file.', 'yellow');
