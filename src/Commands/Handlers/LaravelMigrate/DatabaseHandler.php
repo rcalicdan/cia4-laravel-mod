@@ -58,11 +58,16 @@ class DatabaseHandler
      */
     private function checkMysqlDatabaseExists(array $dbConfig): bool
     {
-        $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']}";
-        $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password']);
-        $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$dbConfig['database']}'");
+        try {
+            $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']}";
+            $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password']);
+            $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$dbConfig['database']}'");
 
-        return $stmt->rowCount() > 0;
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            // If we can't connect at all, return false instead of letting the exception bubble up
+            return false;
+        }
     }
 
     /**

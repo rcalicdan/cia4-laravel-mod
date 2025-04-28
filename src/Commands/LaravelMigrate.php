@@ -36,22 +36,29 @@ class LaravelMigrate extends BaseCommand
             $this->dbHandler = new DatabaseHandler;
             $this->migrationHandler = new LaravelMigrateMigrationHandler;
             $this->outputHandler = new OutputHandler;
-
+    
             // Load database configuration
             $this->loadDatabaseConfig();
-
+    
             // Check if database exists before proceeding
             if (! $this->dbHandler->checkDatabaseExists($this->dbConfig)) {
                 $this->promptAndCreateDatabase();
             }
-
+            
             // Setup migration environment
             $this->migrationHandler->setupEnvironment($this->dbConfig);
-
+    
             // Execute the requested action
             $action = $params[0] ?? 'up';
             $this->executeAction($action);
-
+    
+        } catch (\PDOException $e) {
+            // Special handling for database connection errors
+            if (strpos($e->getMessage(), 'Unknown database') !== false) {
+                $this->promptAndCreateDatabase();
+            } else {
+                CLI::error('Database connection error: '.$e->getMessage());
+            }
         } catch (\Exception $e) {
             CLI::error('Error executing migration command: '.$e->getMessage());
         }
