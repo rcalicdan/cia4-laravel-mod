@@ -56,7 +56,7 @@ class ToolbarHandler extends SetupHandler
         $collectorCode = <<<'EOD'
 $1$2
         \Rcalicdan\Ci4Larabridge\Debug\Collectors\EloquentCollector::class,
-$2
+$3
 EOD;
 
         return preg_replace($pattern, $collectorCode, $content);
