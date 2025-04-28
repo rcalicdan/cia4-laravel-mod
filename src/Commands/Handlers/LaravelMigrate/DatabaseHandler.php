@@ -24,15 +24,6 @@ class DatabaseHandler
                 default => $this->handleUnsupportedDriver($driver, 'checking')
             };
         } catch (PDOException $e) {
-            // Check if error is about unknown database
-            if (
-                strpos($e->getMessage(), 'Unknown database') !== false ||
-                strpos($e->getMessage(), '1049') !== false
-            ) {
-                return false; // Database doesn't exist
-            }
-
-            // For other connection errors, show error and exit
             CLI::error('Database connection error: ' . $e->getMessage());
             exit(1);
         }
