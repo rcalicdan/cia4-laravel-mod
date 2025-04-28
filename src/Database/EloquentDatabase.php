@@ -81,7 +81,7 @@ class EloquentDatabase
         $this->capsule->addConnection($this->getDatabaseInformation());
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
-        $this->getDatabaseLog();
+        // $this->getDatabaseLog();
     }
 
     /**
@@ -92,14 +92,14 @@ class EloquentDatabase
      *
      * @return void
      */
-    public function getDatabaseLog(): void
-    {
-        if (ENVIRONMENT === 'development') {
-            $connection = $this->capsule->connection();
-            $connection->enableQueryLog();
-            $connection->getPdo()->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
-        }
-    }
+    // public function getDatabaseLog(): void
+    // {
+    //     if (ENVIRONMENT === 'development') {
+    //         $connection = $this->capsule->connection();
+    //         $connection->enableQueryLog();
+    //         $connection->getPdo()->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
+    //     }
+    // }
 
     /**
      * Retrieves database connection information.
