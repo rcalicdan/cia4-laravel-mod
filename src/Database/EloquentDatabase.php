@@ -32,7 +32,7 @@ class EloquentDatabase
     protected $paginationConfig;
 
     /**
-     * @var \Eloquent Configuration values for Eloquent
+     * @var Eloquent Configuration values for Eloquent
      */
     protected $eloquentConfig;
 
@@ -72,15 +72,15 @@ class EloquentDatabase
     public function getDatabaseInformation(): array
     {
         return [
-            'host' => env('database.default.hostname'),
-            'driver' => env('database.default.DBDriver'),
-            'database' => env('database.default.database'),
-            'username' => env('database.default.username'),
-            'password' => env('database.default.password'),
-            'charset' => env('database.default.DBCharset', 'utf8'),
-            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix' => env('database.default.DBPrefix', ''),
-            'port' => env('database.default.port'),
+            'host' => $this->eloquentConfig->databaseHost ?? env('database.default.hostname', 'localhost'),
+            'driver' => $this->eloquentConfig->databaseDriver ?? env('database.default.DBDriver', 'sqlite'),
+            'database' => $this->eloquentConfig->databaseName ?? env('database.default.database', ''),
+            'username' => $this->eloquentConfig->databaseUsername ?? env('database.default.username', 'root'),
+            'password' => $this->eloquentConfig->databasePassword ?? env('database.default.password', ''),
+            'charset' => $this->eloquentConfig->databaseCharset ?? env('database.default.DBCharset', 'utf8'),
+            'collation' => $this->eloquentConfig->databaseCollation ?? env('database.default.DBCollat', 'utf8_general_ci'),
+            'prefix' => $this->eloquentConfig->databasePrefix ?? env('database.default.DBPrefix', ''),
+            'port' => $this->eloquentConfig->databasePort ?? env('database.default.port', ''),
         ];
     }
 
