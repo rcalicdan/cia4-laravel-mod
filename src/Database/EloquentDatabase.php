@@ -32,7 +32,7 @@ class EloquentDatabase
     protected $paginationConfig;
 
     /**
-     * @var Eloquent Configuration values for Eloquent
+     * @var \Eloquent Configuration values for Eloquent
      */
     protected $eloquentConfig;
 

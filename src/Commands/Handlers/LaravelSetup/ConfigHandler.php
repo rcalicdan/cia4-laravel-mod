@@ -25,8 +25,7 @@ class ConfigHandler extends SetupHandler
         $file = 'Config/Eloquent.php';
         $replaces = [
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
-            'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
-use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;',
+            'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;',
             'class Eloquent extends BaseConfig' => 'class Eloquent extends BaseConfig',
         ];
 

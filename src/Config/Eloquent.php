@@ -3,7 +3,6 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
-use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;
 
 /**
  * Default Eloquent Configuration
