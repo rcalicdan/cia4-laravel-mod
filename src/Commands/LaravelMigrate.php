@@ -7,7 +7,6 @@ use CodeIgniter\CLI\CLI;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\DatabaseHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\MigrationHandler as LaravelMigrateMigrationHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\OutputHandler;
-use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 
 class LaravelMigrate extends BaseCommand
 {
@@ -63,8 +62,7 @@ class LaravelMigrate extends BaseCommand
      */
     private function loadDatabaseConfig()
     {
-        $eloqentManager = new EloquentDatabase();
-        $this->dbConfig = $eloqentManager->getDatabaseInformation();
+        $this->dbConfig = service('eloquent')->getDatabaseInformation();
     }
 
     /**
