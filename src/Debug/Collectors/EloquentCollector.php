@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Debug\Collectors;
 
 use CodeIgniter\Debug\Toolbar\Collectors\BaseCollector;
-use Config\Services;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
 class EloquentCollector extends BaseCollector
@@ -41,23 +40,15 @@ class EloquentCollector extends BaseCollector
      */
     protected function getQueryLog(): array
     {
-        // Check if collector is enabled in config
-        $config = config('Larabridge');
-        if (!empty($config) && isset($config->enableEloquentCollector) && !$config->enableEloquentCollector) {
-            return [];
-        }
-        
-        // Get the log from the Eloquent service
         try {
             if (ENVIRONMENT === 'development') {
-                $eloquent = Services::eloquent(true);
-                return $eloquent->getQueryLog();
+                $log = Capsule::connection()->getQueryLog();
+                return $log;
             }
+            return [];
         } catch (\Exception $e) {
-            // Silently fail
+            return [];
         }
-        
-        return [];
     }
 
     /**

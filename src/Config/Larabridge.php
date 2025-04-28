@@ -23,7 +23,7 @@ class Larabridge extends BaseConfig
      * 
      * @var bool
      */
-    public $enableFacades = false;
+    public $enableFacades = true;
     
     /**
      * Enable Eloquent debug collector

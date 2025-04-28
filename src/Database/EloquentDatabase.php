@@ -15,16 +15,21 @@ use Rcalicdan\Ci4Larabridge\Config\Eloquent;
 use Rcalicdan\Ci4Larabridge\Config\Pagination;
 
 /**
- * Optimized Eloquent Database Manager
+ * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 application.
+ *
+ * This class initializes the Eloquent database connection, configures pagination, and registers
+ * necessary services such as configuration and hashing. It integrates Laravel's features like
+ * Eloquent, pagination, and facades with CodeIgniter's environment, supporting development
+ * query logging and flexible configuration through environment variables or config files.
  */
 class EloquentDatabase
 {
     /**
      * The IoC container instance.
      *
-     * @var Container|null
+     * @var Container
      */
-    protected $container = null;
+    protected $container;
 
     /**
      * The Eloquent database capsule instance.
@@ -36,9 +41,9 @@ class EloquentDatabase
     /**
      * Pagination configuration values.
      *
-     * @var Pagination|null
+     * @var Pagination
      */
-    protected $paginationConfig = null;
+    protected $paginationConfig;
 
     /**
      * Eloquent configuration values.
@@ -48,55 +53,27 @@ class EloquentDatabase
     protected $eloquentConfig;
 
     /**
-     * Track if services have been initialized
-     * 
-     * @var array
-     */
-    protected $initialized = [
-        'container' => false,
-        'config' => false,
-        'hash' => false,
-        'pagination' => false
-    ];
-
-    /**
-     * Initializes only the essential Eloquent database connection.
+     * Initializes the Eloquent database setup.
+     *
+     * Loads configuration, sets up the database connection, initializes the container,
+     * and registers required services.
      */
     public function __construct()
     {
+        $this->paginationConfig = config('Pagination');
         $this->eloquentConfig = config('Eloquent');
         $this->setupDatabaseConnection();
-        
-        // Only initialize facade system if needed by the app
-        if ($this->shouldInitializeFacades()) {
-            $this->setupContainer();
-        }
-    }
-
-    /**
-     * Check if the application needs facades
-     * This can be controlled via config or detected dynamically
-     */
-    protected function shouldInitializeFacades(): bool
-    {
-        // Check if any code in the stack trace is using Facades
-        // This is a simple way to detect if Facades are needed
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
-        foreach ($trace as $call) {
-            if (isset($call['class']) && strpos($call['class'], 'Illuminate\\Support\\Facades\\') === 0) {
-                return true;
-            }
-        }
-        
-        // Or check a config value
-        return config('Larabridge')->enableFacades ?? false;
+        $this->setupContainer();
+        $this->registerServices();
     }
 
     /**
      * Configures and initializes the Eloquent database connection.
      *
-     * Sets up the database connection using Capsule and boots Eloquent.
-     * Only enables query logging if explicitly configured.
+     * Sets up the database connection using Capsule, makes it globally available,
+     * and boots Eloquent. Enables query logging in development mode.
+     *
+     * @return void
      */
     protected function setupDatabaseConnection(): void
     {
@@ -104,40 +81,33 @@ class EloquentDatabase
         $this->capsule->addConnection($this->getDatabaseInformation());
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
-        
-        // Only enable query logging when explicitly requested
-        if ($this->shouldEnableQueryLogging()) {
-            $this->enableQueryLog();
-        }
+        $this->getDatabaseLog();
     }
 
     /**
-     * Determines if query logging should be enabled
+     * Enables query logging in development mode.
+     *
+     * Configures the database connection to log queries and sets PDO attributes for
+     * emulated prepares when in development environment.
+     *
+     * @return void
      */
-    protected function shouldEnableQueryLogging(): bool
+    public function getDatabaseLog(): void
     {
-        // Check config first, then fall back to environment
-        $config = config('Larabridge');
-        if (isset($config->enableQueryLog)) {
-            return $config->enableQueryLog;
+        if (ENVIRONMENT === 'development') {
+            $connection = $this->capsule->connection();
+            $connection->enableQueryLog();
+            $connection->getPdo()->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
         }
-        
-        // Default to only enabling in development
-        return ENVIRONMENT === 'development';
-    }
-
-    /**
-     * Enables query logging
-     */
-    protected function enableQueryLog(): void
-    {
-        $connection = $this->capsule->connection();
-        $connection->enableQueryLog();
-        $connection->getPdo()->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
     }
 
     /**
      * Retrieves database connection information.
+     *
+     * Gathers database configuration from environment variables or Eloquent config,
+     * including host, driver, database name, credentials, and other settings.
+     *
+     * @return array Database configuration array.
      */
     public function getDatabaseInformation(): array
     {
@@ -151,31 +121,22 @@ class EloquentDatabase
             'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
             'prefix' => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
             'port' => env('database.default.port', $this->eloquentConfig->databasePort),
-            // Add performance options
-            'options' => [
-                \PDO::ATTR_PERSISTENT => true, // Use persistent connections
-                \PDO::ATTR_EMULATE_PREPARES => false, // Use real prepared statements
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC, // Fetch as associative array by default
-            ],
         ];
     }
 
     /**
-     * Configures pagination settings only when needed.
+     * Configures pagination settings for the application.
+     *
+     * Sets up pagination resolvers for current page, path, query string, and cursor,
+     * and configures the view factory and default views for pagination rendering.
+     *
+     * @return void
      */
-    public function configurePagination(): void
+    protected function configurePagination(): void
     {
-        if ($this->initialized['pagination']) {
-            return;
-        }
-        
-        $this->paginationConfig = config('Pagination');
         $request = service('request');
         $uri = service('uri');
         $currentUrl = current_url();
-
-        // Make sure container is initialized
-        $this->setupContainer();
 
         $this->container->singleton('paginator.currentPage', function () {
             return $_GET['page'] ?? 1;
@@ -212,37 +173,45 @@ class EloquentDatabase
         CursorPaginator::currentCursorResolver(function ($cursorName = 'cursor') use ($request) {
             return Cursor::fromEncoded($request->getVar($cursorName));
         });
-        
-        $this->initialized['pagination'] = true;
     }
 
     /**
      * Initializes the IoC container and sets it as the Facade application root.
+     *
+     * Creates a new Container instance and configures it for use with Laravel's Facade system.
+     *
+     * @return void
      */
-    public function setupContainer(): void
+    protected function setupContainer(): void
     {
-        if ($this->initialized['container']) {
-            return;
-        }
-        
         $this->container = new Container;
         Facade::setFacadeApplication($this->container);
-        
-        $this->initialized['container'] = true;
+    }
+
+    /**
+     * Registers required services in the container.
+     *
+     * Registers configuration and hash services, and configures pagination settings.
+     *
+     * @return void
+     */
+    protected function registerServices(): void
+    {
+        $this->registerConfigService();
+        $this->registerHashService();
+        $this->configurePagination();
     }
 
     /**
      * Registers the configuration repository service.
+     *
+     * Sets up a singleton instance of the configuration repository with default
+     * hashing settings for bcrypt.
+     *
+     * @return void
      */
-    public function registerConfigService(): void
+    protected function registerConfigService(): void
     {
-        if ($this->initialized['config']) {
-            return;
-        }
-        
-        // Make sure container is initialized
-        $this->setupContainer();
-        
         $this->container->singleton('config', function () {
             return new Repository([
                 'hashing' => [
@@ -253,59 +222,19 @@ class EloquentDatabase
                 ],
             ]);
         });
-        
-        $this->initialized['config'] = true;
     }
 
     /**
-     * Registers the hash manager service only when needed.
+     * Registers the hash manager service.
+     *
+     * Sets up a singleton instance of the HashManager for use in the application.
+     *
+     * @return void
      */
-    public function registerHashService(): void
+    protected function registerHashService(): void
     {
-        if ($this->initialized['hash']) {
-            return;
-        }
-        
-        // Make sure container and config are initialized
-        $this->setupContainer();
-        $this->registerConfigService();
-        
         $this->container->singleton('hash', function ($app) {
             return new HashManager($app);
         });
-        
-        $this->initialized['hash'] = true;
-    }
-    
-    /**
-     * Get the Capsule instance
-     */
-    public function getCapsule(): Capsule
-    {
-        return $this->capsule;
-    }
-    
-    /**
-     * Get the Container instance
-     */
-    public function getContainer(): ?Container
-    {
-        return $this->container;
-    }
-    
-    /**
-     * Get query logs if enabled
-     */
-    public function getQueryLog(): array
-    {
-        if ($this->shouldEnableQueryLogging()) {
-            try {
-                return $this->capsule->connection()->getQueryLog();
-            } catch (\Exception $e) {
-                // Silently fail
-            }
-        }
-        
-        return [];
     }
 }
