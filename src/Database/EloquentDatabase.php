@@ -11,16 +11,9 @@ use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Facade;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
-use Rcalicdan\Ci4Larabridge\Config\Eloquent;
-use Rcalicdan\Ci4Larabridge\Config\Pagination;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 application.
- *
- * This class initializes the Eloquent database connection, configures pagination, and registers
- * necessary services such as configuration and hashing. It integrates Laravel's features like
- * Eloquent, pagination, and facades with CodeIgniter's environment, supporting development
- * query logging and flexible configuration through environment variables or config files.
  */
 class EloquentDatabase
 {
@@ -39,104 +32,147 @@ class EloquentDatabase
     protected $capsule;
 
     /**
-     * Pagination configuration values.
-     *
-     * @var Pagination
+     * Tracks whether services have been registered
+     * 
+     * @var bool
      */
-    protected $paginationConfig;
+    protected $servicesRegistered = false;
 
     /**
-     * Eloquent configuration values.
-     *
-     * @var Eloquent
+     * Tracks if database connection is initialized
+     * 
+     * @var bool
      */
-    protected $eloquentConfig;
+    protected $connectionInitialized = false;
 
     /**
-     * Initializes the Eloquent database setup.
-     *
-     * Loads configuration, sets up the database connection, initializes the container,
-     * and registers required services.
+     * Configuration cache
+     * 
+     * @var array
+     */
+    protected $databaseConfig = null;
+
+    /**
+     * Initialize basic container setup but defer heavy operations
      */
     public function __construct()
     {
-        $this->paginationConfig = config('Pagination');
-        $this->eloquentConfig = config('Eloquent');
-        $this->setupDatabaseConnection();
+        // Only set up the container, defer the rest until needed
         $this->setupContainer();
-        $this->registerServices();
+    }
+
+    /**
+     * Initializes the IoC container and sets it as the Facade application root.
+     */
+    protected function setupContainer(): void
+    {
+        // Check if container exists in a static/shared property to avoid duplicate containers
+        static $sharedContainer = null;
+
+        if ($sharedContainer === null) {
+            $sharedContainer = new Container;
+            Facade::setFacadeApplication($sharedContainer);
+        }
+
+        $this->container = $sharedContainer;
+    }
+
+    /**
+     * Get the database capsule instance, initializing if necessary
+     */
+    public function getCapsule(): Capsule
+    {
+        if ($this->capsule === null) {
+            $this->setupDatabaseConnection();
+        }
+
+        return $this->capsule;
     }
 
     /**
      * Configures and initializes the Eloquent database connection.
-     *
-     * Sets up the database connection using Capsule, makes it globally available,
-     * and boots Eloquent. Enables query logging in development mode.
-     *
-     * @return void
      */
     protected function setupDatabaseConnection(): void
     {
+        if ($this->connectionInitialized) {
+            return;
+        }
+
         $this->capsule = new Capsule;
         $this->capsule->addConnection($this->getDatabaseInformation());
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
-        $this->getDatabaseLog();
-    }
 
-    /**
-     * Enables query logging in development mode.
-     *
-     * Configures the database connection to log queries and sets PDO attributes for
-     * emulated prepares when in development environment.
-     *
-     * @return void
-     */
-    public function getDatabaseLog(): void
-    {
-        if (ENVIRONMENT === 'development') {
+        // Only enable query logging in development when needed
+        if (ENVIRONMENT === 'development' && config('Toolbar.enabled', false)) {
             $connection = $this->capsule->connection();
             $connection->enableQueryLog();
             $connection->getPdo()->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
         }
+
+        $this->connectionInitialized = true;
     }
 
     /**
-     * Retrieves database connection information.
-     *
-     * Gathers database configuration from environment variables or Eloquent config,
-     * including host, driver, database name, credentials, and other settings.
-     *
-     * @return array Database configuration array.
+     * Retrieves database connection information with lazy loading.
      */
     public function getDatabaseInformation(): array
     {
-        return [
-            'host' => env('database.default.hostname', $this->eloquentConfig->databaseHost),
-            'driver' => env('database.default.DBDriver', $this->eloquentConfig->databaseDriver),
-            'database' => env('database.default.database', $this->eloquentConfig->databaseName),
-            'username' => env('database.default.username', $this->eloquentConfig->databaseUsername),
-            'password' => env('database.default.password', $this->eloquentConfig->databasePassword),
-            'charset' => env('database.default.DBCharset', $this->eloquentConfig->databaseCharset),
-            'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
-            'prefix' => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
-            'port' => env('database.default.port', $this->eloquentConfig->databasePort),
+        if ($this->databaseConfig !== null) {
+            return $this->databaseConfig;
+        }
+
+        // Lazy load the config
+        $eloquentConfig = config('Eloquent');
+
+        $this->databaseConfig = [
+            'host' => env('database.default.hostname', $eloquentConfig->databaseHost),
+            'driver' => env('database.default.DBDriver', $eloquentConfig->databaseDriver),
+            'database' => env('database.default.database', $eloquentConfig->databaseName),
+            'username' => env('database.default.username', $eloquentConfig->databaseUsername),
+            'password' => env('database.default.password', $eloquentConfig->databasePassword),
+            'charset' => env('database.default.DBCharset', $eloquentConfig->databaseCharset),
+            'collation' => env('database.default.DBCollat', $eloquentConfig->databaseCollation),
+            'prefix' => env('database.default.DBPrefix', $eloquentConfig->databasePrefix),
+            'port' => env('database.default.port', $eloquentConfig->databasePort),
         ];
+
+        return $this->databaseConfig;
+    }
+
+    /**
+     * Registers required services in the container, only when needed.
+     */
+    public function registerServices(): void
+    {
+        if ($this->servicesRegistered) {
+            return;
+        }
+
+        $this->registerConfigService();
+        $this->registerHashService();
+
+        $this->servicesRegistered = true;
     }
 
     /**
      * Configures pagination settings for the application.
-     *
-     * Sets up pagination resolvers for current page, path, query string, and cursor,
-     * and configures the view factory and default views for pagination rendering.
-     *
-     * @return void
      */
-    protected function configurePagination(): void
+    public function configurePagination(): void
     {
+        // Ensure services are registered first
+        $this->registerServices();
+
+        // Don't run this more than once
+        static $paginationConfigured = false;
+        if ($paginationConfigured) {
+            return;
+        }
+
         $request = service('request');
         $uri = service('uri');
         $currentUrl = current_url();
+        $paginationConfig = config('Pagination');
 
         $this->container->singleton('paginator.currentPage', function () {
             return $_GET['page'] ?? 1;
@@ -150,8 +186,8 @@ class EloquentDatabase
             return new PaginationRenderer;
         });
 
-        Paginator::$defaultView = $this->paginationConfig->defaultView;
-        Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
+        Paginator::$defaultView = $paginationConfig->defaultView;
+        Paginator::$defaultSimpleView = $paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(function () {
             return $this->container->get('paginator.renderer');
@@ -173,68 +209,40 @@ class EloquentDatabase
         CursorPaginator::currentCursorResolver(function ($cursorName = 'cursor') use ($request) {
             return Cursor::fromEncoded($request->getVar($cursorName));
         });
-    }
 
-    /**
-     * Initializes the IoC container and sets it as the Facade application root.
-     *
-     * Creates a new Container instance and configures it for use with Laravel's Facade system.
-     *
-     * @return void
-     */
-    protected function setupContainer(): void
-    {
-        $this->container = new Container;
-        Facade::setFacadeApplication($this->container);
-    }
-
-    /**
-     * Registers required services in the container.
-     *
-     * Registers configuration and hash services, and configures pagination settings.
-     *
-     * @return void
-     */
-    protected function registerServices(): void
-    {
-        $this->registerConfigService();
-        $this->registerHashService();
-        $this->configurePagination();
+        $paginationConfigured = true;
     }
 
     /**
      * Registers the configuration repository service.
-     *
-     * Sets up a singleton instance of the configuration repository with default
-     * hashing settings for bcrypt.
-     *
-     * @return void
      */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', function () {
-            return new Repository([
-                'hashing' => [
-                    'driver' => 'bcrypt',
-                    'bcrypt' => [
-                        'rounds' => 10,
+        // Only register if not already defined
+        if (!$this->container->bound('config')) {
+            $this->container->singleton('config', function () {
+                return new Repository([
+                    'hashing' => [
+                        'driver' => 'bcrypt',
+                        'bcrypt' => [
+                            'rounds' => 10,
+                        ],
                     ],
-                ],
-            ]);
-        });
+                ]);
+            });
+        }
     }
 
     /**
      * Registers the hash manager service.
-     *
-     * Sets up a singleton instance of the HashManager for use in the application.
-     *
-     * @return void
      */
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', function ($app) {
-            return new HashManager($app);
-        });
+        // Only register if not already defined
+        if (!$this->container->bound('hash')) {
+            $this->container->singleton('hash', function ($app) {
+                return new HashManager($app);
+            });
+        }
     }
 }

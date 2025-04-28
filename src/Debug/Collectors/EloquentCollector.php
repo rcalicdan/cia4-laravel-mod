@@ -38,12 +38,20 @@ class EloquentCollector extends BaseCollector
     /**
      * Get database query log
      */
+    // In EloquentCollector.php, modify getQueryLog()
     protected function getQueryLog(): array
     {
+        // Only collect logs if we need to display them
+        if (ENVIRONMENT !== 'development') {
+            return [];
+        }
+
         try {
-            if (ENVIRONMENT === 'development') {
-                $log = Capsule::connection()->getQueryLog();
-                return $log;
+            // Check if connection is initialized to avoid triggering database setup
+            $capsule = service('eloquent')->getCapsule();
+            if (method_exists($capsule, 'getConnection')) {
+                $connection = $capsule->connection();
+                return $connection->getQueryLog() ?? [];
             }
             return [];
         } catch (\Exception $e) {
