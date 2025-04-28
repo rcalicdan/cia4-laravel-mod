@@ -72,15 +72,15 @@ class EloquentDatabase
     public function getDatabaseInformation(): array
     {
         return [
-            'host' => env('database.default.hostname', $this->eloquentConfig->databaseHost),
-            'driver' => env('database.default.DBDriver', $this->eloquentConfig->databaseDriver),
-            'database' => env('database.default.database', $this->eloquentConfig->databaseName),
-            'username' => env('database.default.username', $this->eloquentConfig->databaseUsername),
-            'password' => env('database.default.password', $this->eloquentConfig->databasePassword),
-            'charset' => env('database.default.DBCharset', $this->eloquentConfig->databaseCharset),
-            'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
-            'prefix' => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
-            'port' => env('database.default.port', $this->eloquentConfig->databasePort),
+            'host' => env('database.default.hostname'),
+            'driver' => env('database.default.DBDriver'),
+            'database' => env('database.default.database'),
+            'username' => env('database.default.username'),
+            'password' => env('database.default.password'),
+            'charset' => env('database.default.DBCharset', 'utf8'),
+            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
+            'prefix' => env('database.default.DBPrefix', ''),
+            'port' => env('database.default.port'),
         ];
     }
 
