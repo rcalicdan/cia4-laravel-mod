@@ -24,7 +24,16 @@ class DatabaseHandler
                 default => $this->handleUnsupportedDriver($driver, 'checking')
             };
         } catch (PDOException $e) {
-            CLI::error('Database connection error: '.$e->getMessage());
+            // Check if error is about unknown database
+            if (
+                strpos($e->getMessage(), 'Unknown database') !== false ||
+                strpos($e->getMessage(), '1049') !== false
+            ) {
+                return false; // Database doesn't exist
+            }
+
+            // For other connection errors, show error and exit
+            CLI::error('Database connection error: ' . $e->getMessage());
             exit(1);
         }
     }
@@ -47,8 +56,8 @@ class DatabaseHandler
             };
 
             CLI::write("Database '$database' created successfully.", 'green');
-        } catch (PDOException|\Exception $e) {
-            CLI::error('Failed to create database: '.$e->getMessage());
+        } catch (PDOException | \Exception $e) {
+            CLI::error('Failed to create database: ' . $e->getMessage());
             exit(1);
         }
     }
