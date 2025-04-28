@@ -8,6 +8,7 @@ use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\ConfigHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\HelpersHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\MigrationHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\SystemHandler;
+use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\ToolbarHandler;
 
 /**
  * Command to perform the initial setup for the CodeIgniter 4 Laravel Module.
@@ -96,6 +97,8 @@ class LaravelSetup extends BaseCommand
         $migrationHandler = new MigrationHandler($this->sourcePath, $this->distPath);
         $systemHandler = new SystemHandler($this->sourcePath, $this->distPath);
         $authHandler = new AuthHandler($this->sourcePath, $this->distPath);
+        $toolbarHandler = new ToolbarHandler($this->sourcePath, $this->distPath);
+
 
         $configHandler->publishConfig();
         $helpersHandler->setupHelpers();
@@ -104,5 +107,6 @@ class LaravelSetup extends BaseCommand
         $systemHandler->setupFilters();
         $authHandler->copyUserModel();
         $authHandler->copyAuthServiceProvider();
+        $toolbarHandler->setupToolbar();
     }
 }
