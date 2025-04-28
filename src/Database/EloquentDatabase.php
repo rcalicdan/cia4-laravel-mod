@@ -74,7 +74,7 @@ class EloquentDatabase
         return [
             'host' => $this->eloquentConfig->databaseHost ?? env('database.default.hostname', 'localhost'),
             'driver' => $this->eloquentConfig->databaseDriver ?? env('database.default.DBDriver', 'sqlite'),
-            'database' => $this->eloquentConfig->databaseName ?? env('database.default.database', ''),
+            'database' => $this->eloquentConfig->databaseName ?? env('database.default.database', 'hello'),
             'username' => $this->eloquentConfig->databaseUsername ?? env('database.default.username', 'root'),
             'password' => $this->eloquentConfig->databasePassword ?? env('database.default.password', ''),
             'charset' => $this->eloquentConfig->databaseCharset ?? env('database.default.DBCharset', 'utf8'),
