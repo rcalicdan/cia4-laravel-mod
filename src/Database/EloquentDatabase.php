@@ -14,28 +14,50 @@ use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Config\Eloquent;
 use Rcalicdan\Ci4Larabridge\Config\Pagination;
 
+/**
+ * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 application.
+ *
+ * This class initializes the Eloquent database connection, configures pagination, and registers
+ * necessary services such as configuration and hashing. It integrates Laravel's features like
+ * Eloquent, pagination, and facades with CodeIgniter's environment, supporting development
+ * query logging and flexible configuration through environment variables or config files.
+ */
 class EloquentDatabase
 {
     /**
+     * The IoC container instance.
+     *
      * @var Container
      */
     protected $container;
 
     /**
+     * The Eloquent database capsule instance.
+     *
      * @var Capsule
      */
     protected $capsule;
 
     /**
-     * @var Pagination Configuration values for Eloquent Pagination
+     * Pagination configuration values.
+     *
+     * @var Pagination
      */
     protected $paginationConfig;
 
     /**
-     * @var \Eloquent Configuration values for Eloquent
+     * Eloquent configuration values.
+     *
+     * @var Eloquent
      */
     protected $eloquentConfig;
 
+    /**
+     * Initializes the Eloquent database setup.
+     *
+     * Loads configuration, sets up the database connection, initializes the container,
+     * and registers required services.
+     */
     public function __construct()
     {
         $this->paginationConfig = config('Pagination');
@@ -46,7 +68,12 @@ class EloquentDatabase
     }
 
     /**
-     * Configure and initialize the database connection
+     * Configures and initializes the Eloquent database connection.
+     *
+     * Sets up the database connection using Capsule, makes it globally available,
+     * and boots Eloquent. Enables query logging in development mode.
+     *
+     * @return void
      */
     protected function setupDatabaseConnection(): void
     {
@@ -58,7 +85,12 @@ class EloquentDatabase
     }
 
     /**
-     * Get the database log
+     * Enables query logging in development mode.
+     *
+     * Configures the database connection to log queries and sets PDO attributes for
+     * emulated prepares when in development environment.
+     *
+     * @return void
      */
     public function getDatabaseLog(): void
     {
@@ -69,6 +101,14 @@ class EloquentDatabase
         }
     }
 
+    /**
+     * Retrieves database connection information.
+     *
+     * Gathers database configuration from environment variables or Eloquent config,
+     * including host, driver, database name, credentials, and other settings.
+     *
+     * @return array Database configuration array.
+     */
     public function getDatabaseInformation(): array
     {
         return [
@@ -85,7 +125,12 @@ class EloquentDatabase
     }
 
     /**
-     * Configure pagination once for the entire application
+     * Configures pagination settings for the application.
+     *
+     * Sets up pagination resolvers for current page, path, query string, and cursor,
+     * and configures the view factory and default views for pagination rendering.
+     *
+     * @return void
      */
     protected function configurePagination(): void
     {
@@ -118,7 +163,6 @@ class EloquentDatabase
 
         Paginator::currentPageResolver(function ($pageName = 'page') use ($request) {
             $page = $request->getVar($pageName);
-
             return (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) ? (int) $page : 1;
         });
 
@@ -132,7 +176,11 @@ class EloquentDatabase
     }
 
     /**
-     * Initialize the container and set it as the Facade application root
+     * Initializes the IoC container and sets it as the Facade application root.
+     *
+     * Creates a new Container instance and configures it for use with Laravel's Facade system.
+     *
+     * @return void
      */
     protected function setupContainer(): void
     {
@@ -141,7 +189,11 @@ class EloquentDatabase
     }
 
     /**
-     * Register required services in the container
+     * Registers required services in the container.
+     *
+     * Registers configuration and hash services, and configures pagination settings.
+     *
+     * @return void
      */
     protected function registerServices(): void
     {
@@ -151,7 +203,12 @@ class EloquentDatabase
     }
 
     /**
-     * Register the configuration repository
+     * Registers the configuration repository service.
+     *
+     * Sets up a singleton instance of the configuration repository with default
+     * hashing settings for bcrypt.
+     *
+     * @return void
      */
     protected function registerConfigService(): void
     {
@@ -168,7 +225,11 @@ class EloquentDatabase
     }
 
     /**
-     * Register the hash manager service
+     * Registers the hash manager service.
+     *
+     * Sets up a singleton instance of the HashManager for use in the application.
+     *
+     * @return void
      */
     protected function registerHashService(): void
     {

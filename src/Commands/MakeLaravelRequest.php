@@ -5,38 +5,47 @@ namespace Rcalicdan\Ci4Larabridge\Commands;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 
+/**
+ * Command to generate a Laravel-style Form Request class in a CodeIgniter 4 application.
+ *
+ * This command creates a new Form Request class for handling validation, supporting
+ * nested namespaces (e.g., Admin/UserRequest). It generates a class file with a predefined
+ * template, including methods for validation rules, custom messages, and attributes.
+ * The command ensures the necessary directory structure is created and checks for
+ * existing files to prevent overwrites.
+ */
 class MakeLaravelRequest extends BaseCommand
 {
     /**
-     * The group the command is lumped under when listing commands.
+     * The group this command belongs to.
      *
      * @var string
      */
     protected $group = 'Generators';
 
     /**
-     * The command's name.
+     * The name of the command.
      *
      * @var string
      */
     protected $name = 'make:request';
 
     /**
-     * The command's short description.
+     * A brief description of the command's purpose.
      *
      * @var string
      */
     protected $description = 'Creates a new Laravel-style Form Request class file.';
 
     /**
-     * The command's usage.
+     * The command's usage instructions.
      *
      * @var string
      */
     protected $usage = 'make:request [class_name]';
 
     /**
-     * The command's arguments.
+     * Available arguments for the command.
      *
      * @var array<string, string>
      */
@@ -45,12 +54,16 @@ class MakeLaravelRequest extends BaseCommand
     ];
 
     /**
-     * Execute the command.
+     * Executes the command to create a Form Request class.
      *
-     * @param  array  $params  Command parameters
+     * Retrieves or prompts for the class name, parses it into namespace and file path,
+     * checks for existing files, generates the class template, and writes the file to
+     * the appropriate directory. Provides feedback on success or failure.
+     *
+     * @param array $params Command parameters, including the class name.
      * @return void
      */
-    public function run(array $params)
+    public function run(array $params): void
     {
         $className = $this->getClassName($params);
 
@@ -69,10 +82,12 @@ class MakeLaravelRequest extends BaseCommand
     }
 
     /**
-     * Get the class name from parameters or prompt for it.
+     * Retrieves the class name from parameters or prompts the user.
      *
-     * @param  array  $params  Command parameters
-     * @return string The class name or empty string if invalid
+     * Ensures a valid class name is provided, displaying an error if the input is empty.
+     *
+     * @param array $params Command parameters containing the class name.
+     * @return string The class name, or empty string if invalid.
      */
     protected function getClassName(array $params): string
     {
@@ -83,7 +98,6 @@ class MakeLaravelRequest extends BaseCommand
 
             if (empty($className)) {
                 CLI::error('Request class name cannot be empty.');
-
                 return '';
             }
         }
@@ -92,44 +106,50 @@ class MakeLaravelRequest extends BaseCommand
     }
 
     /**
-     * Parse the input class name into namespace, class name, and file path.
+     * Parses the class name into namespace, class name, and file path.
      *
-     * @param  string  $input  The raw class name input
-     * @return array Array containing [namespace, className, filePath]
+     * Processes the input to determine the namespace, appends 'Request' to the class
+     * name if needed, and constructs the file path based on the namespace structure.
+     *
+     * @param string $input The raw class name input (e.g., Admin/UserRequest).
+     * @return array Array containing [namespace, className, filePath].
      */
     protected function parseClassDetails(string $input): array
     {
         $segments = explode('/', $input);
         $className = array_pop($segments);
 
-        if (! str_ends_with($className, 'Request')) {
+        if (!str_ends_with($className, 'Request')) {
             $className .= 'Request';
         }
 
         $namespace = 'App\Requests';
-        if (! empty($segments)) {
-            $namespace .= '\\'.implode('\\', $segments);
+        if (!empty($segments)) {
+            $namespace .= '\\' . implode('\\', $segments);
         }
 
         $directory = $this->createDirectoryStructure($segments);
-        $path = $directory.'/'.$className.'.php';
+        $path = $directory . '/' . $className . '.php';
 
         return [$namespace, $className, $path];
     }
 
     /**
-     * Create directory structure for the request class.
+     * Creates the directory structure for the request class.
      *
-     * @param  array  $segments  Directory segments
-     * @return string The final directory path
+     * Builds the directory path based on the provided segments, creating any missing
+     * directories with appropriate permissions.
+     *
+     * @param array $segments Directory segments from the class name.
+     * @return string The final directory path.
      */
     protected function createDirectoryStructure(array $segments): string
     {
-        $directory = APPPATH.'Requests';
+        $directory = APPPATH . 'Requests';
 
         foreach ($segments as $segment) {
-            $directory .= '/'.$segment;
-            if (! is_dir($directory)) {
+            $directory .= '/' . $segment;
+            if (!is_dir($directory)) {
                 mkdir($directory, 0777, true);
             }
         }
@@ -138,16 +158,18 @@ class MakeLaravelRequest extends BaseCommand
     }
 
     /**
-     * Check if the file already exists.
+     * Checks if the target file already exists.
      *
-     * @param  string  $path  File path to check
-     * @return bool True if file exists, false otherwise
+     * Prevents overwriting by checking for an existing file and displaying an error
+     * if found.
+     *
+     * @param string $path The file path to check.
+     * @return bool True if the file exists, false otherwise.
      */
     protected function fileExists(string $path): bool
     {
         if (file_exists($path)) {
-            CLI::error(basename($path, '.php').' already exists!');
-
+            CLI::error(basename($path, '.php') . ' already exists!');
             return true;
         }
 
@@ -155,11 +177,15 @@ class MakeLaravelRequest extends BaseCommand
     }
 
     /**
-     * Build the request class template.
+     * Generates the Form Request class template.
      *
-     * @param  string  $namespace  The namespace for the class
-     * @param  string  $className  The class name
-     * @return string The complete class template
+     * Constructs a PHP class template with the specified namespace and class name,
+     * extending the base FormRequest class and including methods for validation rules,
+     * messages, and attributes.
+     *
+     * @param string $namespace The namespace for the class.
+     * @param string $className The class name.
+     * @return string The complete class template.
      */
     protected function buildTemplate(string $namespace, string $className): string
     {
@@ -212,17 +238,21 @@ EOD;
     }
 
     /**
-     * Create the file with the given content.
+     * Writes the generated content to a file.
      *
-     * @param  string  $path  The file path
-     * @param  string  $content  The file content
+     * Creates the file at the specified path with the provided content, displaying
+     * success or error messages based on the outcome.
+     *
+     * @param string $path The file path.
+     * @param string $content The file content.
+     * @return void
      */
     protected function createFile(string $path, string $content): void
     {
         if (write_file($path, $content)) {
-            CLI::write('Created: '.CLI::color($path, 'green'));
+            CLI::write('Created: ' . CLI::color($path, 'green'));
         } else {
-            CLI::error('Error creating file: '.$path);
+            CLI::error('Error creating file: ' . $path);
         }
     }
 }

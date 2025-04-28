@@ -65,7 +65,6 @@ class DatabaseHandler
 
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            // If we can't connect at all, return false instead of letting the exception bubble up
             return false;
         }
     }
@@ -167,30 +166,74 @@ class DatabaseHandler
     }
 
     /**
-     * Drop all database tables
+     * Drop all database tables after temporarily disabling foreign key constraints.
+     *
+     * Ensures constraints are re-enabled even if dropping fails.
+     * @return void
      */
     public function dropAllTables($connection): void
     {
         $schema = $connection->getSchemaBuilder();
+
+        $this->disableForeignKeyConstraints($connection);
+
+        try {
+            $schema->dropAllTables();
+            CLI::write('Dropped all tables successfully.', 'green');
+        } finally {
+            $this->enableForeignKeyConstraints($connection);
+        }
+    }
+
+    /**
+     * Disable foreign key constraints (or equivalent) for the given connection.
+     * 
+     * @return void
+     */
+    protected function disableForeignKeyConstraints($connection): void
+    {
         $driver = $connection->getDriverName();
 
-        // Disable foreign key checks
-        if ($driver === 'mysql') {
-            $connection->statement('SET FOREIGN_KEY_CHECKS=0;');
-        } elseif ($driver === 'sqlite') {
-            $connection->statement('PRAGMA foreign_keys = OFF;');
+        switch ($driver) {
+            case 'mysql':
+            case 'mariadb':
+                $connection->statement('SET FOREIGN_KEY_CHECKS=0;');
+                break;
+            case 'sqlite':
+                $connection->statement('PRAGMA foreign_keys = OFF;');
+                break;
+            case 'pgsql':
+                $connection->statement('SET session_replication_role = replica;');
+                break;
+            case 'sqlsrv':
+                $connection->statement('EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"');
+                break;
         }
+    }
 
-        // Drop all tables
-        $schema->dropAllTables();
+    /**
+     * Re-enable foreign key constraints (or equivalent) for the given connection.
+     *
+     * @return void
+     */
+    protected function enableForeignKeyConstraints($connection): void
+    {
+        $driver = $connection->getDriverName();
 
-        // Re-enable foreign key checks
-        if ($driver === 'mysql') {
-            $connection->statement('SET FOREIGN_KEY_CHECKS=1;');
-        } elseif ($driver === 'sqlite') {
-            $connection->statement('PRAGMA foreign_keys = ON;');
+        switch ($driver) {
+            case 'mysql':
+            case 'mariadb':
+                $connection->statement('SET FOREIGN_KEY_CHECKS=1;');
+                break;
+            case 'sqlite':
+                $connection->statement('PRAGMA foreign_keys = ON;');
+                break;
+            case 'pgsql':
+                $connection->statement('SET session_replication_role = default;');
+                break;
+            case 'sqlsrv':
+                $connection->statement('EXEC sp_msforeachtable "ALTER TABLE ? CHECK CONSTRAINT all"');
+                break;
         }
-
-        CLI::write('Dropped all tables successfully.', 'green');
     }
 }

@@ -9,39 +9,53 @@ use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\HelpersHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\MigrationHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\SystemHandler;
 
+/**
+ * Command to perform the initial setup for the CodeIgniter 4 Laravel Module.
+ *
+ * This command orchestrates the setup process by initializing handlers and
+ * executing steps to configure the Laravel module within a CodeIgniter 4
+ * application. It publishes configuration files, sets up helpers, copies migration
+ * files, configures system events and filters, and prepares authentication components.
+ */
 class LaravelSetup extends BaseCommand
 {
-    protected $group = 'Laravel Setup';
     /**
-     * The Command's name
+     * The group this command belongs to.
+     *
+     * @var string
+     */
+    protected $group = 'Laravel Setup';
+
+    /**
+     * The name of the command.
      *
      * @var string
      */
     protected $name = 'laravel:setup';
 
     /**
-     * The Command's short description
+     * A brief description of the command's purpose.
      *
      * @var string
      */
     protected $description = 'Initial setup for CodeIgniter 4 Laravel Module.';
 
     /**
-     * The Command's usage
+     * The command's usage instructions.
      *
      * @var string
      */
     protected $usage = 'laravel:setup';
 
     /**
-     * The Command's Arguments
+     * Available arguments for the command.
      *
      * @var array<string, string>
      */
     protected $arguments = [];
 
     /**
-     * The Command's Options
+     * Available options for the command.
      *
      * @var array<string, string>
      */
@@ -50,36 +64,39 @@ class LaravelSetup extends BaseCommand
     ];
 
     /**
-     * The path to `Rcalicdan\Ci4Larabridge\` src directory.
+     * The path to the source directory of the Ci4Larabridge module.
      *
      * @var string
      */
     protected $sourcePath;
 
     /**
-     * The path to the application directory
+     * The path to the application directory.
      *
      * @var string
      */
     protected $distPath = APPPATH;
 
     /**
-     * Execute the setup process
-     * Initialize handlers
-     * Execute setup steps
+     * Executes the setup process for the Laravel module.
+     *
+     * Initializes handlers for configuration, helpers, migrations, system components,
+     * and authentication, then executes their respective setup steps. Supports a force
+     * overwrite option for existing files.
+     *
+     * @param array $params Command parameters, including options.
+     * @return void
      */
     public function run(array $params): void
     {
-        $this->sourcePath = __DIR__.'/../';
+        $this->sourcePath = __DIR__ . '/../';
 
-        // Initialize handlers
         $configHandler = new ConfigHandler($this->sourcePath, $this->distPath);
         $helpersHandler = new HelpersHandler($this->sourcePath, $this->distPath);
         $migrationHandler = new MigrationHandler($this->sourcePath, $this->distPath);
         $systemHandler = new SystemHandler($this->sourcePath, $this->distPath);
         $authHandler = new AuthHandler($this->sourcePath, $this->distPath);
 
-        // Execute setup steps
         $configHandler->publishConfig();
         $helpersHandler->setupHelpers();
         $migrationHandler->copyMigrationFiles();

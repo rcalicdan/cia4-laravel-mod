@@ -5,49 +5,63 @@ namespace Rcalicdan\Ci4Larabridge\Config;
 use CodeIgniter\Config\BaseConfig;
 use Rcalicdan\Blade\Blade as BladeDirective;
 
+/**
+ * Configuration class for Blade templating in the Ci4Larabridge module.
+ *
+ * Defines settings for Blade view rendering, including paths for views, cache, and
+ * components, as well as compilation behavior in production. Provides a method to
+ * register custom Blade directives.
+ */
 class Blade extends BaseConfig
 {
     /**
-     * Path to the views directory
+     * Path to the directory containing Blade view templates.
      *
      * @var string
      */
-    public $viewsPath = APPPATH.'Views';
+    public $viewsPath = APPPATH . 'Views';
 
     /**
-     * Path to the cache directory for compiled templates
+     * Path to the directory for storing compiled Blade template cache.
      *
      * @var string
      */
-    public $cachePath = WRITEPATH.'cache/blade';
+    public $cachePath = WRITEPATH . 'cache/blade';
 
     /**
-     * Component namespace for Blade components
+     * Namespace for Blade components.
      *
      * @var string
      */
     public $componentNamespace = 'components';
 
     /**
-     * Path to the components directory
+     * Path to the directory containing Blade component templates.
      *
      * @var string
      */
-    public $componentPath = APPPATH.'Views/components';
+    public $componentPath = APPPATH . 'Views/components';
 
     /**
-     * Disable compilation checks in production for performance
-     * When false, templates will not be recompiled when they change and cache will not expired
+     * Determines whether to check for template recompilation in production.
+     *
+     * When set to false, templates are not recompiled on change, and the cache does
+     * not expire, improving performance in production environments.
      *
      * @var bool
      */
     public $checksCompilationInProduction = false;
 
     /**
-     * Register Custom Directives
+     * Registers custom Blade directives.
+     *
+     * Allows developers to define custom directives for the Blade templating engine.
+     *
+     * @param BladeDirective $blade The Blade instance to register directives with.
+     * @return void
      */
     public function registerCustomDirectives(BladeDirective $blade): void
     {
-        // Put your custom directives here
+        //
     }
 }

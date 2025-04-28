@@ -6,38 +6,46 @@ use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\MakeLaravelModel\ModelGeneratorHandler;
 
+/**
+ * Command to generate a Laravel-style Eloquent model with an optional migration file.
+ *
+ * This command creates a new Eloquent model class in a CodeIgniter 4 application,
+ * supporting nested namespaces (e.g., Common/User). It can also generate a corresponding
+ * migration file if requested. The command includes options to force overwrite existing
+ * files and provides user prompts for missing inputs.
+ */
 class MakeLaravelModel extends BaseCommand
 {
     /**
-     * The command group under which this command appears in the CLI.
+     * The group this command belongs to.
      *
      * @var string
      */
     protected $group = 'Generators';
 
     /**
-     * The command name that will be used to call this command.
+     * The name of the command.
      *
      * @var string
      */
     protected $name = 'make:eloquent-model';
 
     /**
-     * The command description shown in the CLI help.
+     * A brief description of the command's purpose.
      *
      * @var string
      */
     protected $description = 'Create a new Laravel-style Eloquent model with optional migration.';
 
     /**
-     * The command usage syntax shown in the CLI help.
+     * The command's usage instructions.
      *
      * @var string
      */
     protected $usage = 'make:eloquent-model [<name>] [options]';
 
     /**
-     * The command arguments with their descriptions.
+     * Available arguments for the command.
      *
      * @var array<string, string>
      */
@@ -46,7 +54,7 @@ class MakeLaravelModel extends BaseCommand
     ];
 
     /**
-     * The command options with their descriptions.
+     * Available options for the command.
      *
      * @var array<string, string>
      */
@@ -55,24 +63,32 @@ class MakeLaravelModel extends BaseCommand
         '--force' => 'Force overwrite existing model file.',
     ];
 
-    /** Standard exit codes */
+    /**
+     * Standard exit code for successful execution.
+     *
+     * @var int
+     */
     private const EXIT_SUCCESS = 0;
+
+    /**
+     * Standard exit code for error conditions.
+     *
+     * @var int
+     */
     private const EXIT_ERROR = 1;
 
     /**
-     * Executes the command to create a Laravel-style Eloquent model with optional migration.
+     * Executes the command to create a Laravel-style Eloquent model.
      *
-     * The method performs the following operations:
-     * 1. Prompts for or retrieves the model name from parameters
-     * 2. Initializes the model generator handler
-     * 3. Resolves model details including namespace and file paths
-     * 4. Creates the model file with optional force overwrite
-     * 5. Optionally creates a migration file if requested
+     * Prompts for or retrieves the model name, resolves model details (namespace and paths),
+     * creates the model file with optional force overwrite, and generates a migration file
+     * if requested. Returns an exit code indicating success or failure.
      *
-     * @param  array  $params  Command parameters including:
-     *                         - 'name' (string): The model class name
-     *                         - 'force' (bool): Force overwrite existing file
-     * @return int Exit code (0 for success, 1 for error)
+     * @param array $params Command parameters, including:
+     *                      - 'name' (string): The model class name (optional).
+     *                      - 'force' (bool): Force overwrite existing file (optional).
+     *                      - '-m' (bool): Create a migration file (optional).
+     * @return int Exit code (0 for success, 1 for error).
      */
     public function run(array $params): int
     {
@@ -81,14 +97,13 @@ class MakeLaravelModel extends BaseCommand
         $fullModelName = $params[0] ?? CLI::prompt('Model class name (e.g., User or Common/User)');
         if (empty($fullModelName)) {
             CLI::error('Model name cannot be empty.');
-
             return self::EXIT_ERROR;
         }
 
         $handler = new ModelGeneratorHandler;
         $details = $handler->resolveModelDetails($fullModelName);
 
-        if (! $details) {
+        if (!$details) {
             return self::EXIT_ERROR;
         }
 
