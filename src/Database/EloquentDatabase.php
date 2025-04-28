@@ -72,15 +72,15 @@ class EloquentDatabase
     public function getDatabaseInformation(): array
     {
         return [
-            'host' => $this->eloquentConfig->databaseHost ?? env('database.default.hostname', 'localhost'),
-            'driver' => $this->eloquentConfig->databaseDriver ?? env('database.default.DBDriver', 'sqlite'),
-            'database' => $this->eloquentConfig->databaseName ?? env('database.default.database', ''),
-            'username' => $this->eloquentConfig->databaseUsername ?? env('database.default.username', 'root'),
-            'password' => $this->eloquentConfig->databasePassword ?? env('database.default.password', ''),
-            'charset' => $this->eloquentConfig->databaseCharset ?? env('database.default.DBCharset', 'utf8'),
-            'collation' => $this->eloquentConfig->databaseCollation ?? env('database.default.DBCollat', 'utf8_general_ci'),
-            'prefix' => $this->eloquentConfig->databasePrefix ?? env('database.default.DBPrefix', ''),
-            'port' => $this->eloquentConfig->databasePort ?? env('database.default.port', ''),
+            'host' => env('database.default.hostname', $this->eloquentConfig->databaseHost),
+            'driver' => env('database.default.DBDriver', $this->eloquentConfig->databaseDriver),
+            'database' => env('database.default.database', $this->eloquentConfig->databaseName),
+            'username' => env('database.default.username', $this->eloquentConfig->databaseUsername),
+            'password' => env('database.default.password', $this->eloquentConfig->databasePassword),
+            'charset' => env('database.default.DBCharset', $this->eloquentConfig->databaseCharset),
+            'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
+            'prefix' => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
+            'port' => env('database.default.port', $this->eloquentConfig->databasePort),
         ];
     }
 

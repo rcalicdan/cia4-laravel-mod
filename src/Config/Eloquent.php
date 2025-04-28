@@ -1,70 +1,79 @@
 <?php
 
-namespace Rcalicdan\Ci4Larabridge\Config;
+namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
+use Rcalicdan\Ci4Larabridge\Config\Eloquent as BaseEloquent;
 
 /**
- * Eloquent Configuration
+ * Default Eloquent Configuration
  *
- * Contains database connection settings for integrating Eloquent ORM
+ * Contains default database connection settings for integrating Eloquent ORM
  * with CodeIgniter 4. These settings map to the default database configuration
  * in CodeIgniter.
  */
 class Eloquent extends BaseConfig
 {
     /**
-     * Database hostname or IP address
+     * Default Database hostname or IP address
      *
      * @var string
      */
-    public $databaseHost = env('database.default.hostname', 'localhost');
+    public $databaseHost = 'localhost';
+
     /**
-     * Database driver to use
+     * Default Database driver to use
      *
      * @var string
      */
-    public $databaseDriver = env('database.default.DBDriver', 'sqlite');
+    public $databaseDriver = 'mysql';
+
     /**
-     * Database name to connect to
+     * Default Database name to connect to
      *
      * @var string
      */
-    public $databaseName = env('database.default.database', '');
+    public $databaseName = '';
+
     /**
-     * Database username for authentication
+     * Default Database username for authentication
      *
      * @var string
      */
-    public $databaseUsername = env('database.default.username', 'root');
+    public $databaseUsername = 'root';
+
     /**
-     * Database password for authentication
+     * Default Database password for authentication
      *
      * @var string
      */
-    public $databasePassword = env('database.default.password', '');
+    public $databasePassword = '';
+
     /**
-     * Database connection character set
+     * Default Database connection character set
      *
      * @var string
      */
-    public $databaseCharset = env('database.default.DBCharset', 'utf8');
+    public $databaseCharset = 'utf8';
+
     /**
-     * Database collation setting
+     * Default Database collation setting
      *
      * @var string
      */
-    public $databaseCollation = env('database.default.DBCollat', 'utf8_general_ci');
+    public $databaseCollation = 'utf8_general_ci';
+
     /**
-     * Table prefix for database connections
+     * Default Table prefix for database connections
      *
      * @var string
      */
-    public $databasePrefix = env('database.default.DBPrefix', '');
+    public $databasePrefix = '';
+
     /**
-     * Database connection port
+     * Default Database connection port
      *
      * @var string
      */
-    public $databasePort = env('database.default.port', '');
+    public $databasePort = '3306';
 }
