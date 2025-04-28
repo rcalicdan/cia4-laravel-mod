@@ -66,34 +66,35 @@ class LaravelMigrate extends BaseCommand
     /**
      * Load database configuration from environment
      */
+    /**
+     * Load database configuration from environment
+     */
     private function loadDatabaseConfig()
     {
-        $this->dbConfig = service('eloquent')->getDatabaseInformation();
+        // Try loading directly from environment variables first
+        $this->dbConfig = [
+            'host' => env('database.default.hostname', 'localhost'),
+            'driver' => env('database.default.DBDriver', 'mysql'),
+            'database' => env('database.default.database', ''),
+            'username' => env('database.default.username', 'root'),
+            'password' => env('database.default.password', ''),
+            'charset' => env('database.default.DBCharset', 'utf8'),
+            'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
+            'prefix' => env('database.default.DBPrefix', ''),
+            'port' => env('database.default.port', '3306'),
+        ];
 
-        // Debug the configuration if it's missing critical keys
-        if (!isset($this->dbConfig['database'])) {
-            CLI::write('Database configuration incomplete. Here\'s what was loaded:', 'yellow');
-            print_r($this->dbConfig);
+        // Debug the loaded configuration
+        CLI::write('Loaded database configuration:', 'green');
+        CLI::write("Host: {$this->dbConfig['host']}");
+        CLI::write("Driver: {$this->dbConfig['driver']}");
+        CLI::write("Database: {$this->dbConfig['database']}");
 
-            // Try loading from environment directly as fallback
-            $this->dbConfig = [
-                'host' => env('database.default.hostname', 'localhost'),
-                'driver' => env('database.default.DBDriver', 'mysql'),
-                'database' => env('database.default.database', ''),
-                'username' => env('database.default.username', 'root'),
-                'password' => env('database.default.password', ''),
-                'charset' => env('database.default.DBCharset', 'utf8'),
-                'collation' => env('database.default.DBCollat', 'utf8_general_ci'),
-                'prefix' => env('database.default.DBPrefix', ''),
-                'port' => env('database.default.port', '3306'),
-            ];
-
-            // Verify if we now have a database name
-            if (empty($this->dbConfig['database'])) {
-                CLI::error('Could not determine database name from environment. Please check your .env file.');
-                CLI::write('Ensure you have set database.default.database in your .env file.', 'yellow');
-                exit(1);
-            }
+        // Verify if we have a database name
+        if (empty($this->dbConfig['database'])) {
+            CLI::error('Could not determine database name from environment. Please check your .env file.');
+            CLI::write('Ensure you have set database.default.database in your .env file.', 'yellow');
+            exit(1);
         }
     }
 
