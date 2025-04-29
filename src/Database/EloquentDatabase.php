@@ -2,6 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Database;
 
+use Config\Eloquent;
 use PDO;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
@@ -12,41 +13,39 @@ use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Facade;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
-use Rcalicdan\Ci4Larabridge\Config\Eloquent;
-use Rcalicdan\Ci4Larabridge\Config\Pagination;
+use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
  */
 class EloquentDatabase
 {
-    protected Container  $container;
-    protected Capsule    $capsule;
-    protected Pagination $paginationConfig;
+    protected Container         $container;
+    protected Capsule           $capsule;
+    protected PaginationConfig  $paginationConfig;
     protected  $eloquentConfig;
-
-    /** Have we wired up container/services yet? */
-    protected bool       $servicesInitialized = false;
+    protected bool              $servicesInitialized = false;
 
     public function __construct()
     {
-        $this->paginationConfig = config('Pagination');
-        $this->eloquentConfig   = config('Eloquent');
+        // Load *your* config classes by FQCN so CI4 doesn’t give you its own Pagination
+        $this->paginationConfig = config(PaginationConfig::class);
+        $this->eloquentConfig   = config(Eloquent::class);
 
-        // Only establish the DB connection at construction time
+        // Boot only the database connection here
         $this->setupDatabaseConnection();
     }
 
     /**
      * Boot Eloquent by manually creating a PDO from our Eloquent config
-     * (so we don't rely on CI4's DBDriver names).
+     * (avoiding CI4’s DBDriver name clashes).
      */
     protected function setupDatabaseConnection(): void
     {
         // 1) Grab & cache our Eloquent config array
         $config = $this->getDatabaseInformation();
 
-        // 2) Initialize Capsule with that config
+        // 2) Initialize Capsule
         $this->capsule = new Capsule;
         $this->capsule->addConnection($config);
 
@@ -74,7 +73,7 @@ class EloquentDatabase
         $conn->setPdo($pdo);
         $conn->setReadPdo($pdo);
 
-        // 5) Enable query logging only outside production
+        // 5) Query logging only outside production
         if (ENVIRONMENT !== 'production') {
             $conn->enableQueryLog();
         }
@@ -109,7 +108,7 @@ class EloquentDatabase
     }
 
     /**
-     * Delay all container/facade/pagination setup until we actually need it.
+     * Delay all container/facade/pagination setup until actually needed.
      */
     protected function lazyInitServices(): void
     {
@@ -124,7 +123,7 @@ class EloquentDatabase
     }
 
     /**
-     * Public accessor for Capsule—will wire up facades & pagination on first use.
+     * Public accessor for Capsule—wires up facades & pagination on first use.
      */
     public function getCapsule(): Capsule
     {
@@ -133,7 +132,7 @@ class EloquentDatabase
     }
 
     /**
-     * One-time pagination resolver registration.
+     * One‐time pagination resolver registration.
      */
     protected function configurePagination(): void
     {
@@ -150,12 +149,13 @@ class EloquentDatabase
         Paginator::$defaultView       = $this->paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
-        Paginator::viewFactoryResolver(fn() =>
+        Paginator::viewFactoryResolver(
+            fn() =>
             $this->container->get('paginator.renderer')
         );
 
-        Paginator::currentPageResolver(fn($pageName = 'page') =>
-            ($page = $request->getVar($pageName))
+        Paginator::currentPageResolver(
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int)$page >= 1
                 ? (int)$page
@@ -165,7 +165,8 @@ class EloquentDatabase
         Paginator::currentPathResolver(fn() => $currentUrl);
         Paginator::queryStringResolver(fn() => $uri->getQuery());
 
-        CursorPaginator::currentCursorResolver(fn($cursorName = 'cursor') =>
+        CursorPaginator::currentCursorResolver(
+            fn($cursorName = 'cursor') =>
             Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
