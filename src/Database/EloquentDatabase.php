@@ -2,7 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Database;
 
-use Config\Database as CIConfig;
+use PDO;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -12,59 +12,71 @@ use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Facade;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
-
+use Rcalicdan\Ci4Larabridge\Config\Eloquent;
+use Rcalicdan\Ci4Larabridge\Config\Pagination;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
  */
 class EloquentDatabase
 {
-    protected $container;
-    protected $capsule;
-    protected $paginationConfig;
+    protected Container  $container;
+    protected Capsule    $capsule;
+    protected Pagination $paginationConfig;
     protected  $eloquentConfig;
-    protected bool        $servicesInitialized = false;
+
+    /** Have we wired up container/services yet? */
+    protected bool       $servicesInitialized = false;
 
     public function __construct()
     {
         $this->paginationConfig = config('Pagination');
         $this->eloquentConfig   = config('Eloquent');
 
-        // Only set up the database connection at construction.
+        // Only establish the DB connection at construction time
         $this->setupDatabaseConnection();
     }
 
     /**
-     * Boot Eloquent using CI4's own PDO and persistent mode.
+     * Boot Eloquent by manually creating a PDO from our Eloquent config
+     * (so we don't rely on CI4's DBDriver names).
      */
     protected function setupDatabaseConnection(): void
     {
-        static $ciPdo = null;
+        // 1) Grab & cache our Eloquent config array
+        $config = $this->getDatabaseInformation();
 
-        if (! $ciPdo) {
-            // Grab CI4's connection (and its underlying PDO) once per process
-            $ciDb  = CIConfig::connect();
-            $ciPdo = $ciDb->getConnection();
-        }
+        // 2) Initialize Capsule with that config
+        $this->capsule = new Capsule;
+        $this->capsule->addConnection($config);
 
-        // Build—and cache—our DB config
-        $dbConfig = $this->getDatabaseInformation();
-        $dbConfig['options'] = [
-            \PDO::ATTR_PERSISTENT => true,
+        // 3) Build a native PDO
+        $dsn = sprintf(
+            '%s:host=%s;port=%s;dbname=%s;charset=%s',
+            $config['driver'],
+            $config['host'],
+            $config['port'],
+            $config['database'],
+            $config['charset']
+        );
+
+        $options = [
+            PDO::ATTR_PERSISTENT         => true,
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => ENVIRONMENT !== 'production',
         ];
 
-        // Initialize Capsule
-        $this->capsule = new Capsule;
-        $this->capsule->addConnection($dbConfig);
+        $pdo = new PDO($dsn, $config['username'], $config['password'], $options);
 
-        // Swap in CI4's PDO
+        // 4) Swap that PDO into Eloquent’s connection
         $conn = $this->capsule->getConnection();
-        $conn->setPdo($ciPdo);
+        $conn->setPdo($pdo);
+        $conn->setReadPdo($pdo);
 
-        // Enable query‐logging & emulated prepares only outside production
+        // 5) Enable query logging only outside production
         if (ENVIRONMENT !== 'production') {
             $conn->enableQueryLog();
-            $ciPdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
         }
 
         $this->capsule->setAsGlobal();
@@ -72,8 +84,32 @@ class EloquentDatabase
     }
 
     /**
-     * Lazy‐initialize container & services so that routes
-     * which never use facades/pagination incur zero cost.
+     * Build (once) and return the DB array Eloquent expects.
+     */
+    protected function getDatabaseInformation(): array
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $cached = [
+            'driver'    => env('database.default.DBDriver',    $this->eloquentConfig->databaseDriver),
+            'host'      => env('database.default.hostname',    $this->eloquentConfig->databaseHost),
+            'database'  => env('database.default.database',    $this->eloquentConfig->databaseName),
+            'username'  => env('database.default.username',    $this->eloquentConfig->databaseUsername),
+            'password'  => env('database.default.password',    $this->eloquentConfig->databasePassword),
+            'charset'   => env('database.default.DBCharset',   $this->eloquentConfig->databaseCharset),
+            'collation' => env('database.default.DBCollat',    $this->eloquentConfig->databaseCollation),
+            'prefix'    => env('database.default.DBPrefix',    $this->eloquentConfig->databasePrefix),
+            'port'      => env('database.default.port',        $this->eloquentConfig->databasePort),
+        ];
+
+        return $cached;
+    }
+
+    /**
+     * Delay all container/facade/pagination setup until we actually need it.
      */
     protected function lazyInitServices(): void
     {
@@ -88,8 +124,7 @@ class EloquentDatabase
     }
 
     /**
-     * Return the fully‐booted Capsule instance (initializing
-     * container/services on‐demand).
+     * Public accessor for Capsule—will wire up facades & pagination on first use.
      */
     public function getCapsule(): Capsule
     {
@@ -98,32 +133,7 @@ class EloquentDatabase
     }
 
     /**
-     * Only build this array once per request.
-     */
-    protected function getDatabaseInformation(): array
-    {
-        static $cached = null;
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $cached = [
-            'driver'    => env('database.default.DBDriver', $this->eloquentConfig->databaseDriver),
-            'host'      => env('database.default.hostname', $this->eloquentConfig->databaseHost),
-            'database'  => env('database.default.database', $this->eloquentConfig->databaseName),
-            'username'  => env('database.default.username', $this->eloquentConfig->databaseUsername),
-            'password'  => env('database.default.password', $this->eloquentConfig->databasePassword),
-            'charset'   => env('database.default.DBCharset', $this->eloquentConfig->databaseCharset),
-            'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
-            'prefix'    => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
-            'port'      => env('database.default.port',  $this->eloquentConfig->databasePort),
-        ];
-
-        return $cached;
-    }
-
-    /**
-     * One‐time registration of Blade pagination resolvers.
+     * One-time pagination resolver registration.
      */
     protected function configurePagination(): void
     {
@@ -140,13 +150,12 @@ class EloquentDatabase
         Paginator::$defaultView       = $this->paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
-        Paginator::viewFactoryResolver(
-            fn() =>
+        Paginator::viewFactoryResolver(fn() =>
             $this->container->get('paginator.renderer')
         );
 
-        Paginator::currentPageResolver(
-            fn($pageName = 'page') => ($page = $request->getVar($pageName))
+        Paginator::currentPageResolver(fn($pageName = 'page') =>
+            ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int)$page >= 1
                 ? (int)$page
@@ -156,8 +165,7 @@ class EloquentDatabase
         Paginator::currentPathResolver(fn() => $currentUrl);
         Paginator::queryStringResolver(fn() => $uri->getQuery());
 
-        CursorPaginator::currentCursorResolver(
-            fn($cursorName = 'cursor') =>
+        CursorPaginator::currentCursorResolver(fn($cursorName = 'cursor') =>
             Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
@@ -171,7 +179,7 @@ class EloquentDatabase
     protected function registerServices(): void
     {
         // 1) Config repository
-        $this->container->singleton('config', static fn() => new Repository([
+        $this->container->singleton('config', fn() => new Repository([
             'hashing' => [
                 'driver' => 'bcrypt',
                 'bcrypt' => ['rounds' => 10],
@@ -181,7 +189,7 @@ class EloquentDatabase
         // 2) Hash manager
         $this->container->singleton('hash', fn($app) => new HashManager($app));
 
-        // 3) Pagination renderer as a singleton
+        // 3) Blade pagination renderer as singleton
         $this->container->singleton(
             PaginationRenderer::class,
             fn() => new PaginationRenderer
@@ -191,7 +199,7 @@ class EloquentDatabase
             'paginator.renderer'
         );
 
-        // 4) Configure Blade‐based pagination resolvers
+        // 4) Register our pagination resolvers
         $this->configurePagination();
     }
 }
