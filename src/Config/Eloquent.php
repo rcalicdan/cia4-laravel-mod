@@ -75,11 +75,4 @@ class Eloquent extends BaseConfig
      * @var string
      */
     public $databasePort = '3306';
-
-    /**
-     * Custom PDO options to merge with the default options.
-     *
-     * @var array
-     */
-    public $pdoOptions = [];
 }

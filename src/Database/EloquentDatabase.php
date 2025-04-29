@@ -103,21 +103,16 @@ class EloquentDatabase
      */
     protected function getPdoOptions(): array
     {
-        $defaultOptions = [
-            PDO::ATTR_CASE               => PDO::CASE_NATURAL,
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_ORACLE_NULLS       => PDO::NULL_NATURAL,
-            PDO::ATTR_STRINGIFY_FETCHES  => false,
-            PDO::ATTR_EMULATE_PREPARES   => (ENVIRONMENT === 'development'),
+        return [
+            PDO::ATTR_CASE              => PDO::CASE_NATURAL,
+            PDO::ATTR_ERRMODE           => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ORACLE_NULLS      => PDO::NULL_NATURAL,
+            PDO::ATTR_STRINGIFY_FETCHES => false,
+            PDO::ATTR_EMULATE_PREPARES  => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_PERSISTENT         => true,
         ];
-
-        $customOptions = $this->eloquentConfig->pdoOptions ?? [];
-
-        return array_replace($defaultOptions, $customOptions);
     }
-
 
     /**
      * Swap our PDO into Eloquent's connection object.
