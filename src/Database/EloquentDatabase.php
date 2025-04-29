@@ -38,6 +38,31 @@ class EloquentDatabase
     }
 
     /**
+     * Build (once) and return the DB config array Eloquent expects.
+     */
+    public function getDatabaseInformation(): array
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $cached = [
+            'driver'    => env('database.default.DBDriver',    $this->eloquentConfig->databaseDriver),
+            'host'      => env('database.default.hostname',    $this->eloquentConfig->databaseHost),
+            'database'  => env('database.default.database',    $this->eloquentConfig->databaseName),
+            'username'  => env('database.default.username',    $this->eloquentConfig->databaseUsername),
+            'password'  => env('database.default.password',    $this->eloquentConfig->databasePassword),
+            'charset'   => env('database.default.DBCharset',   $this->eloquentConfig->databaseCharset),
+            'collation' => env('database.default.DBCollat',    $this->eloquentConfig->databaseCollation),
+            'prefix'    => env('database.default.DBPrefix',    $this->eloquentConfig->databasePrefix),
+            'port'      => env('database.default.port',        $this->eloquentConfig->databasePort),
+        ];
+
+        return $cached;
+    }
+
+    /**
      * Boot Eloquent by manually creating a PDO from our Eloquent config
      * (avoiding CI4’s DBDriver name conflicts).
      */
@@ -81,31 +106,6 @@ class EloquentDatabase
 
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
-    }
-
-    /**
-     * Build (once) and return the DB config array Eloquent expects.
-     */
-    protected function getDatabaseInformation(): array
-    {
-        static $cached = null;
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $cached = [
-            'driver'    => env('database.default.DBDriver',    $this->eloquentConfig->databaseDriver),
-            'host'      => env('database.default.hostname',    $this->eloquentConfig->databaseHost),
-            'database'  => env('database.default.database',    $this->eloquentConfig->databaseName),
-            'username'  => env('database.default.username',    $this->eloquentConfig->databaseUsername),
-            'password'  => env('database.default.password',    $this->eloquentConfig->databasePassword),
-            'charset'   => env('database.default.DBCharset',   $this->eloquentConfig->databaseCharset),
-            'collation' => env('database.default.DBCollat',    $this->eloquentConfig->databaseCollation),
-            'prefix'    => env('database.default.DBPrefix',    $this->eloquentConfig->databasePrefix),
-            'port'      => env('database.default.port',        $this->eloquentConfig->databasePort),
-        ];
-
-        return $cached;
     }
 
     /**
@@ -165,12 +165,13 @@ class EloquentDatabase
         Paginator::$defaultView       = $this->paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
-        Paginator::viewFactoryResolver(fn() =>
+        Paginator::viewFactoryResolver(
+            fn() =>
             $this->container->get('paginator.renderer')
         );
 
-        Paginator::currentPageResolver(fn($pageName = 'page') =>
-            ($page = $request->getVar($pageName))
+        Paginator::currentPageResolver(
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int)$page >= 1
                 ? (int)$page
@@ -180,7 +181,8 @@ class EloquentDatabase
         Paginator::currentPathResolver(fn() => $currentUrl);
         Paginator::queryStringResolver(fn() => $uri->getQuery());
 
-        CursorPaginator::currentCursorResolver(fn($cursorName = 'cursor') =>
+        CursorPaginator::currentCursorResolver(
+            fn($cursorName = 'cursor') =>
             Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
