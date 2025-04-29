@@ -24,6 +24,8 @@ use Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
  */
 class Services extends BaseService
 {
+    protected static $eloquentInstance = null;
+    
     /**
      * Returns an instance of the Eloquent class.
      *
@@ -31,11 +33,12 @@ class Services extends BaseService
      */
     public static function eloquent($getShared = true): EloquentDatabase
     {
-        if ($getShared) {
-            return static::getSharedInstance('eloquent');
+        if ($getShared && static::$eloquentInstance) {
+            return static::$eloquentInstance;
         }
 
-        return new EloquentDatabase;
+        static::$eloquentInstance = new EloquentDatabase;
+        return static::$eloquentInstance;
     }
 
     /**
