@@ -103,13 +103,21 @@ class EloquentDatabase
      */
     protected function getPdoOptions(): array
     {
-        return [
-            PDO::ATTR_PERSISTENT         => true,
+        $defaultOptions = [
+            PDO::ATTR_CASE               => PDO::CASE_NATURAL,
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ORACLE_NULLS       => PDO::NULL_NATURAL,
+            PDO::ATTR_STRINGIFY_FETCHES  => false,
+            PDO::ATTR_EMULATE_PREPARES   => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => ENVIRONMENT !== 'production',
+            PDO::ATTR_PERSISTENT         => true,
         ];
+
+        $customOptions = $this->eloquentConfig->pdoOptions ?? [];
+
+        return array_replace($defaultOptions, $customOptions);
     }
+
 
     /**
      * Swap our PDO into Eloquent's connection object.
@@ -128,8 +136,8 @@ class EloquentDatabase
     {
         if (ENVIRONMENT !== 'production') {
             $this->capsule
-                 ->getConnection()
-                 ->enableQueryLog();
+                ->getConnection()
+                ->enableQueryLog();
         }
     }
 
@@ -239,12 +247,13 @@ class EloquentDatabase
         Paginator::$defaultView       = $this->paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
-        Paginator::viewFactoryResolver(fn() =>
+        Paginator::viewFactoryResolver(
+            fn() =>
             $this->container->get('paginator.renderer')
         );
 
-        Paginator::currentPageResolver(fn($pageName = 'page') =>
-            ($page = $request->getVar($pageName))
+        Paginator::currentPageResolver(
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int)$page >= 1
                 ? (int)$page
@@ -254,7 +263,8 @@ class EloquentDatabase
         Paginator::currentPathResolver(fn() => $currentUrl);
         Paginator::queryStringResolver(fn() => $uri->getQuery());
 
-        CursorPaginator::currentCursorResolver(fn($cursorName = 'cursor') =>
+        CursorPaginator::currentCursorResolver(
+            fn($cursorName = 'cursor') =>
             Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
