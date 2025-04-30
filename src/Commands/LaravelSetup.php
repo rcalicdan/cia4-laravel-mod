@@ -93,7 +93,6 @@ class LaravelSetup extends BaseCommand
         $this->sourcePath = __DIR__ . '/../';
 
         $configHandler = new ConfigHandler($this->sourcePath, $this->distPath);
-        $helpersHandler = new HelpersHandler($this->sourcePath, $this->distPath);
         $migrationHandler = new MigrationHandler($this->sourcePath, $this->distPath);
         $systemHandler = new SystemHandler($this->sourcePath, $this->distPath);
         $authHandler = new AuthHandler($this->sourcePath, $this->distPath);
@@ -101,7 +100,6 @@ class LaravelSetup extends BaseCommand
 
 
         $configHandler->publishConfig();
-        $helpersHandler->setupHelpers();
         $migrationHandler->copyMigrationFiles();
         $systemHandler->setupEvents();
         $systemHandler->setupFilters();
