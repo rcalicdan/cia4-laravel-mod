@@ -7,8 +7,18 @@
         "psr-4": {
             "Rcalicdan\\Ci4Larabridge\\": "src/"
         },
+        "files": [
+            "src/Helpers/auth_helper.php",
+            "src/Helpers/authorization_helper.php",
+            "src/Helpers/blade_helper.php",
+            "src/Helpers/db_eloquent.php",
+            "src/Helpers/http_helper.php",
+            "src/Helpers/remember_cache_helper.php",
+            "src/Helpers/url_back_helper.php",
+            "src/Helpers/url_params.php"
+        ],
         "exclude-from-classmap": [
-            "**/Database/Laravel-Migrations/**"
+            "**/Database/Eloquent-Migrations/**"
         ]
     },
     "authors": [
