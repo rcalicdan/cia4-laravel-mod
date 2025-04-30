@@ -6,7 +6,7 @@ use CodeIgniter\CLI\CLI;
 
 class ToolbarHandler extends SetupHandler
 {
-    private const string COLLECTOR_CLASS = 'Rcalicdan\\Ci4Larabridge\\Debug\\Collectors\\EloquentCollector::class';
+    private const COLLECTOR_CLASS = 'Rcalicdan\\Ci4Larabridge\\Debug\\Collectors\\EloquentCollector::class';
 
     /**
      * Update Toolbar.php to add EloquentCollector
