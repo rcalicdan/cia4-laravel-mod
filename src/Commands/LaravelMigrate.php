@@ -149,16 +149,17 @@ class LaravelMigrate extends BaseCommand
     private function loadDatabaseConfig()
     {
         $this->eloquentConfig = config('Eloquent');
+        $cfg = $this->eloquentConfig;
         $this->dbConfig = [
-            'host' => env('database.default.hostname', $this->eloquentConfig->databaseHost),
-            'driver' => env('database.default.DBDriver', $this->eloquentConfig->databaseDriver),
-            'database' => env('database.default.database', $this->eloquentConfig->databaseName),
-            'username' => env('database.default.username', $this->eloquentConfig->databaseUsername),
-            'password' => env('database.default.password', $this->eloquentConfig->databasePassword),
-            'charset' => env('database.default.DBCharset', $this->eloquentConfig->databaseCharset),
-            'collation' => env('database.default.DBCollat', $this->eloquentConfig->databaseCollation),
-            'prefix' => env('database.default.DBPrefix', $this->eloquentConfig->databasePrefix),
-            'port' => env('database.default.port', $this->eloquentConfig->databasePort),
+            'driver'    => env('database.default.DBDriver',   env('DB_DRIVER',   $cfg->databaseDriver)),
+            'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
+            'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
+            'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
+            'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
+            'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
+            'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
+            'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
+            'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
         ];
 
         if (empty($this->dbConfig['database'])) {
