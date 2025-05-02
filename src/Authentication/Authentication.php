@@ -53,7 +53,7 @@ class Authentication
         }
 
         // use whichever User class we resolved in __construct
-        $this->user = ($this->userModel)::find($userId);
+        $this->user = $this->userModel::find($userId);
 
         return $this->user;
     }
