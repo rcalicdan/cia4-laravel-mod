@@ -16,37 +16,15 @@ use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
 
 /**
- * Integrates Laravel's Eloquent ORM into a CodeIgniter 4 application,
- * handling configuration, bootstrapping, and performance tuning.
- *
- * @package Rcalicdan\Ci4Larabridge\Database
+ * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
  */
 class EloquentDatabase
 {
-    /**
-     * @var Container IoC container for managing services and facades.
-     */
-    protected Container $container;
-
-    /**
-     * @var Capsule Manager for database connections and Eloquent bootstrapping.
-     */
-    protected Capsule $capsule;
-
-    /**
-     * @var PaginationConfig Application pagination view configurations.
-     */
+    protected Container        $container;
+    protected Capsule          $capsule;
     protected PaginationConfig $paginationConfig;
+    protected Eloquent   $eloquentConfig;
 
-    /**
-     * @var Eloquent Configuration settings for the Eloquent connection.
-     */
-    protected Eloquent $eloquentConfig;
-
-    /**
-     * EloquentDatabase constructor.
-     * Loads configuration, initializes the database, container, and required services.
-     */
     public function __construct()
     {
         $this->loadConfigs();
@@ -56,9 +34,7 @@ class EloquentDatabase
     }
 
     /**
-     * Retrieves Eloquent and pagination configurations from CodeIgniter.
-     *
-     * @return void
+     * Load our Eloquent and Pagination config instances.
      */
     protected function loadConfigs(): void
     {
@@ -67,26 +43,23 @@ class EloquentDatabase
     }
 
     /**
-     * Configures and boots the database connection via Eloquent,
-     * then applies PDO performance optimizations.
-     *
-     * @return void
+     * Boot Eloquent: set up Capsule, create and attach PDO, enable logging, then boot.
      */
     protected function initializeDatabase(): void
     {
         $config = $this->getDatabaseInformation();
 
         $this->initCapsule($config);
+
+        $pdo = $this->createPdo($config);
+        $this->attachPdo($pdo);
+
         $this->configureQueryLogging();
         $this->bootEloquent();
-        $this->optimizePdoConnection();
     }
 
     /**
-     * Instantiates the Capsule manager and adds the database connection.
-     *
-     * @param  array  $config  Connection settings for Eloquent.
-     * @return void
+     * Instantiate Capsule and add our connection config.
      */
     protected function initCapsule(array $config): void
     {
@@ -95,23 +68,76 @@ class EloquentDatabase
     }
 
     /**
-     * Enables query logging when not in production environment.
-     *
-     * @return void
+     * Build a native PDO instance according to our config.
+     */
+    protected function createPdo(array $config): PDO
+    {
+        $dsn     = $this->buildDsn($config);
+        $options = $this->getPdoOptions();
+
+        return new PDO(
+            $dsn,
+            $config['username'],
+            $config['password'],
+            $options
+        );
+    }
+
+    /**
+     * Assemble the DSN string for PDO.
+     */
+    protected function buildDsn(array $config): string
+    {
+        return sprintf(
+            '%s:host=%s;port=%s;dbname=%s;charset=%s',
+            $config['driver'],
+            $config['host'],
+            $config['port'],
+            $config['database'],
+            $config['charset']
+        );
+    }
+
+    /**
+     * Return PDO options array, toggling emulation per environment.
+     */
+    protected function getPdoOptions(): array
+    {
+        return [
+            PDO::ATTR_CASE              => PDO::CASE_NATURAL,
+            PDO::ATTR_ERRMODE           => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ORACLE_NULLS      => PDO::NULL_NATURAL,
+            PDO::ATTR_STRINGIFY_FETCHES => false,
+            PDO::ATTR_EMULATE_PREPARES  => (ENVIRONMENT === 'development'),
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_PERSISTENT         => true,
+        ];
+    }
+
+    /**
+     * Swap our PDO into Eloquent's connection object.
+     */
+    protected function attachPdo(PDO $pdo): void
+    {
+        $conn = $this->capsule->getConnection();
+        $conn->setPdo($pdo);
+        $conn->setReadPdo($pdo);
+    }
+
+    /**
+     * Enable query logging outside of production.
      */
     protected function configureQueryLogging(): void
     {
         if (ENVIRONMENT !== 'production') {
             $this->capsule
-                 ->getConnection()
-                 ->enableQueryLog();
+                ->getConnection()
+                ->enableQueryLog();
         }
     }
 
     /**
-     * Makes the Capsule instance globally available and boots Eloquent ORM.
-     *
-     * @return void
+     * Make Capsule globally available and boot Eloquent.
      */
     protected function bootEloquent(): void
     {
@@ -120,56 +146,34 @@ class EloquentDatabase
     }
 
     /**
-     * Applies PDO attributes for performance and reliability.
-     *
-     * @return void
+     * Build (once) and return the DB config array Eloquent expects.
      */
-    protected function optimizePdoConnection(): void
-    {
-        $pdo = $this->capsule->getConnection()->getPdo();
-
-        $pdo->setAttribute(PDO::ATTR_CASE, PDO::CASE_NATURAL);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_ORACLE_NULLS, PDO::NULL_NATURAL);
-        $pdo->setAttribute(PDO::ATTR_STRINGIFY_FETCHES, false);
-        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, ENVIRONMENT === 'development');
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->setAttribute(PDO::ATTR_PERSISTENT, true);
-    }
-
-    /**
-     * Builds and caches the database configuration array for Eloquent.
-     *
-     * @return array Database connection parameters.
-     */
-    public function getDatabaseInformation(): array
-    {
-        static $cached = null;
-
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $cfg = $this->eloquentConfig;
-        $cached = [
-            'driver'    => env('database.default.DBDriver',   env('DB_DRIVER',     $cfg->databaseDriver)),
-            'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
-            'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
-            'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
-            'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
-            'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
-            'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
-            'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
-            'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
-        ];
-
+  public function getDatabaseInformation(): array
+{
+    static $cached = null;
+    if ($cached !== null) {
         return $cached;
     }
 
+    $cfg = $this->eloquentConfig;
+    $cached = [
+        'driver'    => env('database.default.DBDriver',   env('DB_DBDRIVER',   $cfg->databaseDriver)),
+        'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
+        'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
+        'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
+        'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
+        'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
+        'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
+        'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
+        'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
+    ];
+
+    return $cached;
+}
+
+
     /**
-     * Sets up the IoC container and links it to Laravel facades.
-     *
-     * @return void
+     * Initialize the IoC container and set it for Facades.
      */
     protected function initializeContainer(): void
     {
@@ -178,9 +182,7 @@ class EloquentDatabase
     }
 
     /**
-     * Registers configuration, hashing, and pagination services.
-     *
-     * @return void
+     * Register config, hash, and pagination services.
      */
     protected function initializeServices(): void
     {
@@ -191,13 +193,11 @@ class EloquentDatabase
     }
 
     /**
-     * Binds the configuration repository into the container.
-     *
-     * @return void
+     * Register the configuration repository.
      */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', fn () => new Repository([
+        $this->container->singleton('config', fn() => new Repository([
             'hashing' => [
                 'driver' => 'bcrypt',
                 'bcrypt' => ['rounds' => 10],
@@ -206,30 +206,30 @@ class EloquentDatabase
     }
 
     /**
-     * Binds the HashManager into the container for password hashing.
-     *
-     * @return void
+     * Register the hash manager.
      */
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn ($app) => new HashManager($app));
+        $this->container->singleton('hash', fn($app) => new HashManager($app));
     }
 
     /**
-     * Registers the custom pagination renderer for Blade views.
-     *
-     * @return void
+     * Bind the PaginationRenderer into the container.
      */
     protected function registerPaginationRenderer(): void
     {
-        $this->container->singleton(PaginationRenderer::class, fn () => new PaginationRenderer);
-        $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
+        $this->container->singleton(
+            PaginationRenderer::class,
+            fn() => new PaginationRenderer
+        );
+        $this->container->alias(
+            PaginationRenderer::class,
+            'paginator.renderer'
+        );
     }
 
     /**
-     * Configures Laravel paginator resolvers and default views.
-     *
-     * @return void
+     * One-time registration of pagination resolvers.
      */
     protected function configurePagination(): void
     {
@@ -246,18 +246,24 @@ class EloquentDatabase
         Paginator::$defaultView       = $this->paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
-        Paginator::viewFactoryResolver(fn () => $this->container->get('paginator.renderer'));
-        Paginator::currentPageResolver(fn ($pageName = 'page') =>
-            ($page = $request->getVar($pageName))
-            && filter_var($page, FILTER_VALIDATE_INT)
-            && (int)$page >= 1
+        Paginator::viewFactoryResolver(
+            fn() =>
+            $this->container->get('paginator.renderer')
+        );
+
+        Paginator::currentPageResolver(
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
+                && filter_var($page, FILTER_VALIDATE_INT)
+                && (int)$page >= 1
                 ? (int)$page
                 : 1
         );
-        Paginator::currentPathResolver(fn () => $currentUrl);
-        Paginator::queryStringResolver(fn () => $uri->getQuery());
 
-        CursorPaginator::currentCursorResolver(fn ($cursorName = 'cursor') =>
+        Paginator::currentPathResolver(fn() => $currentUrl);
+        Paginator::queryStringResolver(fn() => $uri->getQuery());
+
+        CursorPaginator::currentCursorResolver(
+            fn($cursorName = 'cursor') =>
             Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
