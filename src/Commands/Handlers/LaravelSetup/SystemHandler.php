@@ -70,7 +70,7 @@ EOD;
         $content = file_get_contents($path);
 
         // Check if the code is already there
-        if (strpos($content, '\\Rcalicdan\\Ci4Larabridge\\Filter\\AuthFilter::class') !== false) {
+        if (strpos($content, '\\Rcalicdan\\Ci4Larabridge\\Filters\\AuthFilter::class') !== false) {
             $this->write(CLI::color('  Filters Setup: ', 'green').'Auth filters already added.');
 
             return;
@@ -80,8 +80,8 @@ EOD;
         $pattern = '/(public\s+array\s+\$aliases\s*=\s*\[)([^\]]*?)(\];)/s';
         $filterAliases = <<<'EOD'
 $1$2
-        'auth'     => \Rcalicdan\Ci4Larabridge\Filter\AuthFilter::class,
-        'guest'    => \Rcalicdan\Ci4Larabridge\Filter\GuestFilter::class,
+        'auth'     => \Rcalicdan\Ci4Larabridge\Filters\AuthFilter::class,
+        'guest'    => \Rcalicdan\Ci4Larabridge\Filters\GuestFilter::class,
 $3
 EOD;
 
