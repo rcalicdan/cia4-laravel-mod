@@ -110,7 +110,7 @@ class EloquentDatabase
             PDO::ATTR_STRINGIFY_FETCHES => false,
             PDO::ATTR_EMULATE_PREPARES  => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_PERSISTENT         => true,
+            PDO::ATTR_PERSISTENT         => env('DB_PERSISTENT', env('database.default.persistent', true)),
         ];
     }
 
@@ -148,28 +148,28 @@ class EloquentDatabase
     /**
      * Build (once) and return the DB config array Eloquent expects.
      */
-  public function getDatabaseInformation(): array
-{
-    static $cached = null;
-    if ($cached !== null) {
+    public function getDatabaseInformation(): array
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $cfg = $this->eloquentConfig;
+        $cached = [
+            'driver'    => env('database.default.DBDriver',   env('DB_DBDRIVER',   $cfg->databaseDriver)),
+            'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
+            'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
+            'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
+            'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
+            'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
+            'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
+            'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
+            'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
+        ];
+
         return $cached;
     }
-
-    $cfg = $this->eloquentConfig;
-    $cached = [
-        'driver'    => env('database.default.DBDriver',   env('DB_DBDRIVER',   $cfg->databaseDriver)),
-        'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
-        'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
-        'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
-        'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
-        'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
-        'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
-        'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
-        'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
-    ];
-
-    return $cached;
-}
 
 
     /**
