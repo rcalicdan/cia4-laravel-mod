@@ -94,7 +94,8 @@ class BladeService
 
         if (ENVIRONMENT === 'production') {
             try {
-                $this->blade->getCompiler()->setIsExpired(function (): bool {
+                // Fix: Use compiler() method instead of getCompiler()
+                $this->blade->compiler()->setIsExpired(function (): bool {
                     return false; // Never recompile in production for optimal performance
                 });
             } catch (\Exception $e) {
@@ -381,7 +382,7 @@ class BladeService
      */
     public function compileViews(bool $force = false): array
     {
-        $compiler = $this->blade->getCompiler();
+        $compiler = $this->blade->compiler();
         $viewsPath = $this->config['viewsPath'];
         $files = $this->getBladeFiles($viewsPath);
 
