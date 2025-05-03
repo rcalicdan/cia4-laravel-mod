@@ -113,7 +113,7 @@ class AnonymousComponentManager
      */
     public function registerDirectives(): void
     {
-        $compiler = $this->blade->getCompiler();
+        $compiler = $this->blade->compiler();
 
         // Register the @component directive
         $compiler->directive('component', function ($expression) {
@@ -136,7 +136,7 @@ class AnonymousComponentManager
      */
     protected function registerComponentTagCompiler(): void
     {
-        $compiler = $this->blade->getCompiler();
+        $compiler = $this->blade->compiler();
         
         // Add method to the compiler if it doesn't exist
         if (!method_exists($compiler, 'precompileComponentTags')) {
