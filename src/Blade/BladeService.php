@@ -230,141 +230,33 @@ class BladeService
     }
 
     /**
-     * Process and filter data before passing it to the view or cache key generation.
+     * Render a view with the given data
      *
-     * @param array $data Raw data passed to the render method.
-     * @return array Processed and filtered data suitable for the view.
+     * @param string $view The view to render
+     * @param array $data Data to be passed to the view
+     * @return string Rendered view content
      */
-    private function prepareViewData(array $data): array
-    {
-        $mergedData = array_merge($this->viewData ?? [], $data);
-        $processedData = $this->processData($mergedData);
-        return $this->filterInternalKeys($processedData);
-    }
-
-    /**
-     * Check if caching should be skipped for the current request.
-     * Currently skips if flash data exists in the session.
-     *
-     * @return bool True if caching should be skipped, false otherwise.
-     */
-    private function shouldSkipCache(): bool
-    {
-        $session = session();
-        return !empty($session->getFlashdata());
-    }
-
-    /**
-     * Generate a simplified cache key focusing on performance.
-     *
-     * @param string $view The view identifier.
-     * @param array $viewData The filtered data being passed to the view.
-     * @return string The generated cache key.
-     */
-    private function generateSimpleCacheKey(string $view, array $viewData): string
-    {
-        $session = session();
-
-        $prefix = $session->has('auth_user_id')
-            ? 'user_' . $session->get('auth_user_id')
-            : 'public';
-
-        $keyData = [];
-        foreach ($viewData as $key => $value) {
-            if (is_scalar($value) || is_null($value)) {
-                $keyData[$key] = $value;
-            } else {
-                $keyData[$key] = gettype($value) . (is_array($value) ? count($value) : '');
-            }
-        }
-
-        $contentHash = md5($view . json_encode($keyData));
-        return $prefix . '_' . $contentHash;
-    }
-
-    /**
-     * Invalidate all cached views for a specific user.
-     * Should be called on password changes, permission updates, etc.
-     *
-     * @param int|string $userId The user ID to invalidate caches for
-     * @return void
-     */
-    public function invalidateUserCache($userId): void
-    {
-        if (empty($userId)) {
-            return;
-        }
-
-        $userPrefix = 'user_' . $userId . '_';
-        foreach ($this->viewCache as $key => $value) {
-            if (strpos($key, $userPrefix) === 0) {
-                unset($this->viewCache[$key]);
-            }
-        }
-    }
-
-    /**
-     * Clear user-specific cached views on logout.
-     * Should be called from authentication controller's logout method.
-     *
-     * @return void
-     */
-    public function clearUserCacheOnLogout(): void
-    {
-        $session = session();
-        $userId = $session->get('auth_user_id');
-
-        if ($userId) {
-            $this->invalidateUserCache($userId);
-        }
-    }
-
-    /**
-     * Render a view with Blade, utilizing in-memory caching for improved performance.
-     *
-     * @param string $view The view identifier in dot notation.
-     * @param array $data Additional data to be passed to the view.
-     * @param bool $debug Whether to include debug comments in the output.
-     * @return string Rendered HTML string.
-     */
-    public function render(string $view, array $data = [], bool $debug = false): string
+    public function render(string $view, array $data = []): string
     {
         $this->applyExtensions();
-        $viewData = $this->prepareViewData($data);
 
-        if ($this->shouldSkipCache()) {
-            return $this->renderView($view, $viewData);
+        $mergedData = array_merge($this->viewData ?? [], $data);
+        $processedData = $this->processData($mergedData);
+        $filteredData = $this->filterInternalKeys($processedData);
+
+        $cacheKey = md5($view . serialize($filteredData));
+
+        if (ENVIRONMENT === 'production' && isset($this->viewCache[$cacheKey])) {
+            return $this->viewCache[$cacheKey];
         }
 
-        $cacheKey = $this->generateSimpleCacheKey($view, $viewData);
-
-        if (isset($this->viewCache[$cacheKey])) {
-            return $debug
-                ? $this->viewCache[$cacheKey] . '<!-- Cache hit: ' . $cacheKey . ' -->'
-                : $this->viewCache[$cacheKey];
-        }
-
-        $result = $this->renderView($view, $viewData);
-        $this->viewCache[$cacheKey] = $result;
-
-        return $debug
-            ? $result . '<!-- Cache miss: ' . $cacheKey . ' -->'
-            : $result;
-    }
-
-    /**
-     * Helper method for view rendering, handling potential errors.
-     * Resets instance view data after rendering.
-     *
-     * @param string $view The view identifier.
-     * @param array $data The data to pass to the view.
-     * @return string Rendered HTML string or an error placeholder.
-     * @throws \Throwable Re-throws rendering exceptions in non-production environments.
-     */
-    private function renderView(string $view, array $data): string
-    {
         try {
-            $result = $this->blade->make($view, $data)->render();
+            $result = $this->blade->make($view, $filteredData)->render();
+
+            if (ENVIRONMENT === 'production') {
+                $this->viewCache[$cacheKey] = $result;
+            }
+
             return $result;
         } catch (\Throwable $e) {
             if (ENVIRONMENT === 'production') {
@@ -373,6 +265,7 @@ class BladeService
                 log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}\n{$e->getTraceAsString()}");
                 throw $e;
             }
+
             return '<!-- View Rendering Error -->';
         } finally {
             $this->viewData = [];
