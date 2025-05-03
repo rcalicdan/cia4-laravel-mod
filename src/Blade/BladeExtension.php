@@ -54,6 +54,7 @@ class BladeExtension
         $this->_registerErrorDirectives($blade);
         $this->_registerBackDirectives($blade);
         $this->_registerAuthDirectives($blade);
+        $this->_registerComponentDirectives($blade);
 
         $componentProvider = new ComponentDirectiveProvider;
         $componentProvider->register($blade);
@@ -64,13 +65,33 @@ class BladeExtension
     // ======================================================================
 
     /**
-     * Adds a simple error handling object, mimicking Laravel's `$errors` variable.
-     * Retrieves validation errors from the session ('errors' key) and makes them
-     * accessible in the view via an object with methods for error handling.
+     * Registers directives for component handling.
      *
-     * @param  array  $data  The view data array.
-     * @return array The data array, potentially with an `$errors` object added.
+     * @param  Blade  $blade  The Blade compiler instance.
      */
+    private function _registerComponentDirectives(Blade $blade): void
+    {
+        // Register the @props directive for component property definition
+        $blade->directive('props', function ($expression) {
+            return "<?php \$attributes = \$attributes ?? new \\Illuminate\\View\\ComponentAttributeBag(); 
+            \$__componentOriginalProps = {$expression}; 
+            foreach(\$__componentOriginalProps as \$__prop) { 
+                \$\$__prop = \$attributes->get(\$__prop, isset(\$\$__prop) ? \$\$__prop : null); 
+            } 
+            \$attributes = \$attributes->exceptProps(\$__componentOriginalProps); ?>";
+        });
+
+        // Register the @slot directive for named slots
+        $blade->directive('slot', function ($expression) {
+            return "<?php \$__currentSlot = {$expression}; ob_start(); ?>";
+        });
+
+        // Register the @endslot directive
+        $blade->directive('endslot', function () {
+            return "<?php \$__slots[\$__currentSlot] = ob_get_clean(); ?>";
+        });
+    }
+
     /**
      * Adds a simple error handling object, mimicking Laravel's `$errors` variable.
      * Retrieves validation errors from the session ('errors' key) and makes them
@@ -108,7 +129,7 @@ class BladeExtension
         });
 
         foreach ($this->methodMap as $directive => $method) {
-            $blade->directive($directive, fn () => "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">");
+            $blade->directive($directive, fn() => "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">");
         }
     }
 
@@ -120,10 +141,10 @@ class BladeExtension
      */
     private function _registerPermissionDirectives(Blade $blade): void
     {
-        $blade->directive('can', fn ($expression) => "<?php if(can($expression)): ?>");
-        $blade->directive('endcan', fn () => '<?php endif; ?>');
-        $blade->directive('cannot', fn ($expression) => "<?php if(cannot($expression)): ?>");
-        $blade->directive('endcannot', fn () => '<?php endif; ?>');
+        $blade->directive('can', fn($expression) => "<?php if(can($expression)): ?>");
+        $blade->directive('endcan', fn() => '<?php endif; ?>');
+        $blade->directive('cannot', fn($expression) => "<?php if(cannot($expression)): ?>");
+        $blade->directive('endcannot', fn() => '<?php endif; ?>');
     }
 
     /**
@@ -133,10 +154,10 @@ class BladeExtension
      */
     private function _registerAuthDirectives(Blade $blade): void
     {
-        $blade->directive('auth', fn () => '<?php if(auth()->check()):?>');
-        $blade->directive('endauth', fn () => '<?php endif;?>');
-        $blade->directive('guest', fn () => '<?php if(auth()->guest()):?>');
-        $blade->directive('endguest', fn () => '<?php endif;?>');
+        $blade->directive('auth', fn() => '<?php if(auth()->check()):?>');
+        $blade->directive('endauth', fn() => '<?php endif;?>');
+        $blade->directive('guest', fn() => '<?php if(auth()->guest()):?>');
+        $blade->directive('endguest', fn() => '<?php endif;?>');
     }
 
     /**
@@ -155,7 +176,7 @@ class BladeExtension
                 \$message = \$__bladeErrors->first(\$__fieldName);
             ?>";
         });
-        $blade->directive('enderror', fn () => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
+        $blade->directive('enderror', fn() => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
     }
 
     /**

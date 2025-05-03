@@ -55,6 +55,11 @@ class BladeService
     protected bool $extensionsLoaded = false;
 
     /**
+     * @var AnonymousComponentManager Component manager for anonymous components
+     */
+    protected AnonymousComponentManager $componentManager;
+
+    /**
      * Initialize the BladeService with configuration
      */
     public function __construct()
@@ -93,7 +98,7 @@ class BladeService
                     return false; // Never recompile in production for optimal performance
                 });
             } catch (\Exception $e) {
-                log_message('warning', 'Unable to set compiler expiration check: '.$e->getMessage());
+                log_message('warning', 'Unable to set compiler expiration check: ' . $e->getMessage());
             }
         }
 
@@ -101,6 +106,100 @@ class BladeService
             $this->config['componentNamespace'],
             $this->config['componentPath']
         );
+
+        // Initialize the anonymous component manager
+        $this->initializeComponentManager();
+    }
+
+    /**
+     * Initialize the anonymous component manager
+     */
+    protected function initializeComponentManager(): void
+    {
+        $componentPaths = [
+            $this->config['componentPath'],
+        ];
+
+        // Add additional component paths from config
+        if (isset($this->bladeConfigValues->anonymousComponentPaths) && is_array($this->bladeConfigValues->anonymousComponentPaths)) {
+            $componentPaths = array_merge($componentPaths, $this->bladeConfigValues->anonymousComponentPaths);
+        }
+
+        // Filter out non-existent paths
+        $validPaths = array_filter($componentPaths, function ($path) {
+            if (!is_dir($path)) {
+                log_message('warning', "Blade component path does not exist: {$path}");
+                return false;
+            }
+            return true;
+        });
+
+        $this->componentManager = new AnonymousComponentManager($this->blade, $validPaths);
+
+        // Register explicitly defined components from config if provided
+        if (isset($this->bladeConfigValues->anonymousComponents) && is_array($this->bladeConfigValues->anonymousComponents)) {
+            $this->componentManager->components($this->bladeConfigValues->anonymousComponents);
+        }
+
+        // Register the directives
+        $this->componentManager->registerDirectives();
+    }
+
+    /**
+     * Register an anonymous component
+     *
+     * @param string $alias The component alias
+     * @param string $view The component view name
+     * @return self Returns the current instance for method chaining
+     */
+    public function component(string $alias, string $view): self
+    {
+        $this->componentManager->component($alias, $view);
+        return $this;
+    }
+
+    /**
+     * Register multiple anonymous components
+     *
+     * @param array $components An array of alias => view mappings
+     * @return self Returns the current instance for method chaining
+     */
+    public function components(array $components): self
+    {
+        $this->componentManager->components($components);
+        return $this;
+    }
+
+    /**
+     * Add a path where component views are located
+     *
+     * @param string $path Path to component views
+     * @return self Returns the current instance for method chaining
+     */
+    public function addComponentPath(string $path): self
+    {
+        $this->componentManager->addComponentPath($path);
+        return $this;
+    }
+
+    /**
+     * Get the anonymous component manager
+     *
+     * @return AnonymousComponentManager The component manager instance
+     */
+    public function getComponentManager(): AnonymousComponentManager
+    {
+        return $this->componentManager;
+    }
+
+    /**
+     * Get all discovered components
+     *
+     * @return array Array of component name => view mappings
+     */
+    public function getDiscoveredComponents(): array
+    {
+        return $this->componentManager->getDiscoveredComponents();
     }
 
     /**
@@ -214,7 +313,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -288,7 +387,7 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath.'/', '', $file);
+            $relativePath = str_replace($viewsPath . '/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 

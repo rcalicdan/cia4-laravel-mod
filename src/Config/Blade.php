@@ -19,14 +19,14 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $viewsPath = APPPATH.'Views';
+    public $viewsPath = APPPATH . 'Views';
 
     /**
      * Path to the directory for storing compiled Blade template cache.
      *
      * @var string
      */
-    public $cachePath = WRITEPATH.'cache/blade';
+    public $cachePath = WRITEPATH . 'cache/blade';
 
     /**
      * Namespace for Blade components.
@@ -40,7 +40,7 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $componentPath = APPPATH.'Views/components';
+    public $componentPath = APPPATH . 'Views/components';
 
     /**
      * Determines whether to check for template recompilation in production.
@@ -51,6 +51,24 @@ class Blade extends BaseConfig
      * @var bool
      */
     public $checksCompilationInProduction = false;
+
+    /**
+     * Paths where anonymous components are located.
+     * Components will be auto-discovered from these paths.
+     */
+    public $anonymousComponentPaths = [
+        APPPATH . 'Views/components',
+    ];
+
+    /**
+     * Explicitly registered anonymous components.
+     * These will override auto-discovered components with the same name.
+     * Format: 'alias' => 'view-name'
+     */
+    public $anonymousComponents = [
+        // 'alert' => 'components.alert',
+        // Only specify components that need custom aliases or aren't in standard locations
+    ];
 
     /**
      * Registers custom Blade directives.
