@@ -78,6 +78,30 @@ class BladeService
         $this->initialize();
     }
 
+    protected function replaceComponentTagCompiler(): void
+    {
+        $compiler = $this->blade->compiler();
+
+        // Get the view factory from the compiler
+        $reflectionCompiler = new \ReflectionClass($compiler);
+        $factoryProperty = $reflectionCompiler->getProperty('factory');
+        $factoryProperty->setAccessible(true);
+        $factory = $factoryProperty->getValue($compiler);
+
+        // Create a custom component tag compiler
+        $componentTagCompiler = new CustomComponentTagCompiler(
+            $compiler->getClassComponentAliases(),
+            $compiler->getClassComponentNamespaces(),
+            $compiler
+        );
+
+        // Set the custom compiler
+        $reflectionCompiler = new \ReflectionClass($compiler);
+        $componentTagCompilerProperty = $reflectionCompiler->getProperty('componentTagCompiler');
+        $componentTagCompilerProperty->setAccessible(true);
+        $componentTagCompilerProperty->setValue($compiler, $componentTagCompiler);
+    }
+
     /**
      * Initialize the Blade engine with performance optimizations
      */
@@ -96,6 +120,9 @@ class BladeService
             $this->config['cachePath'],
             $container
         );
+
+        // Replace the component tag compiler with our custom one
+        $this->replaceComponentTagCompiler();
 
         if (ENVIRONMENT === 'production') {
             try {
