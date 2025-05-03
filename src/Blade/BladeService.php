@@ -60,7 +60,7 @@ class BladeService
     protected AnonymousComponentManager $componentManager;
 
     /**
-     * Initialize the BladeService with configuration
+     * Initialize the Blade engine with configuration
      */
     public function __construct()
     {
@@ -84,7 +84,13 @@ class BladeService
     {
         $this->ensureCacheDirectory();
 
+        // Create a container instance
         $container = new BladeContainer;
+
+        // Important: Bind the view factory interface to itself
+        $container->bind('Illuminate\Contracts\View\Factory', function ($container) {
+            return $container->get('view');
+        });
 
         $this->blade = new Blade(
             $this->config['viewsPath'],
@@ -94,7 +100,6 @@ class BladeService
 
         if (ENVIRONMENT === 'production') {
             try {
-                // Fix: Use compiler() method instead of getCompiler()
                 $this->blade->compiler()->setIsExpired(function (): bool {
                     return false; // Never recompile in production for optimal performance
                 });
