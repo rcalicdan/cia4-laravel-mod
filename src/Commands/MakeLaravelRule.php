@@ -83,7 +83,7 @@ class MakeLaravelRule extends BaseCommand
      * directory exists, checks for existing files, generates the class template, and writes
      * the file. Returns an exit code indicating success or failure.
      *
-     * @param array $params Command parameters and options.
+     * @param  array  $params  Command parameters and options.
      * @return int Exit code (0 for success, 1 for error).
      */
     public function run(array $params): int
@@ -98,24 +98,27 @@ class MakeLaravelRule extends BaseCommand
         $details = $this->resolveTargetDetails($name);
         ['className' => $className, 'fullNamespace' => $fullNamespace, 'targetDir' => $targetDir, 'targetFile' => $targetFile] = $details;
 
-        if (!$this->ensureDirectoryExists($targetDir)) {
+        if (! $this->ensureDirectoryExists($targetDir)) {
             return self::EXIT_ERROR;
         }
 
         $force = $params['force'] ?? CLI::getOption('force') ?? false;
-        if (!$force && file_exists($targetFile)) {
+        if (! $force && file_exists($targetFile)) {
             $this->showFileExistsError($targetFile);
+
             return self::EXIT_ERROR;
         }
 
         $content = $this->generateContent($fullNamespace, $className);
 
         if ($this->writeFileContent($targetFile, $content)) {
-            CLI::write('Rule created successfully: ' . CLI::color(str_replace(APPPATH, 'app/', $targetFile), 'green'));
+            CLI::write('Rule created successfully: '.CLI::color(str_replace(APPPATH, 'app/', $targetFile), 'green'));
+
             return self::EXIT_SUCCESS;
         }
 
-        CLI::error('Error writing file: ' . str_replace(APPPATH, 'app/', $targetFile));
+        CLI::error('Error writing file: '.str_replace(APPPATH, 'app/', $targetFile));
+
         return self::EXIT_ERROR;
     }
 
@@ -124,7 +127,7 @@ class MakeLaravelRule extends BaseCommand
      *
      * Ensures a valid rule name is provided, displaying an error if the input is empty.
      *
-     * @param array $params Command parameters containing the rule name.
+     * @param  array  $params  Command parameters containing the rule name.
      * @return string|null The rule name, or null if invalid.
      */
     private function getRuleName(array $params): ?string
@@ -133,6 +136,7 @@ class MakeLaravelRule extends BaseCommand
 
         if (empty($name)) {
             CLI::error('You must provide a rule class name.');
+
             return null;
         }
 
@@ -145,7 +149,7 @@ class MakeLaravelRule extends BaseCommand
      * Processes the input to determine the class name, full namespace, and file paths,
      * supporting nested directories and ensuring cross-platform compatibility.
      *
-     * @param string $name The raw rule name (e.g., Common/NoObsceneWord).
+     * @param  string  $name  The raw rule name (e.g., Common/NoObsceneWord).
      * @return array Associative array with className, fullNamespace, targetDir, targetFile.
      */
     private function resolveTargetDetails(string $name): array
@@ -156,15 +160,15 @@ class MakeLaravelRule extends BaseCommand
 
         $fullNamespace = 'App\\Rules';
         if ($subNamespacePart !== '.' && $subNamespacePart !== '') {
-            $fullNamespace .= '\\' . str_replace('/', '\\', $subNamespacePart);
+            $fullNamespace .= '\\'.str_replace('/', '\\', $subNamespacePart);
         }
 
-        $basePath = APPPATH . 'Rules';
+        $basePath = APPPATH.'Rules';
         $targetDir = $basePath;
         if ($subNamespacePart !== '.' && $subNamespacePart !== '') {
-            $targetDir .= DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $subNamespacePart);
+            $targetDir .= DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $subNamespacePart);
         }
-        $targetFile = $targetDir . DIRECTORY_SEPARATOR . $className . '.php';
+        $targetFile = $targetDir.DIRECTORY_SEPARATOR.$className.'.php';
 
         return compact('className', 'fullNamespace', 'targetDir', 'targetFile');
     }
@@ -175,7 +179,7 @@ class MakeLaravelRule extends BaseCommand
      * Creates the directory with appropriate permissions, handling errors and providing
      * feedback on success or failure.
      *
-     * @param string $directory The absolute path to the directory.
+     * @param  string  $directory  The absolute path to the directory.
      * @return bool True if the directory exists or was created, false on failure.
      */
     private function ensureDirectoryExists(string $directory): bool
@@ -185,14 +189,17 @@ class MakeLaravelRule extends BaseCommand
         }
 
         try {
-            if (!mkdir($directory, 0755, true)) {
+            if (! mkdir($directory, 0755, true)) {
                 CLI::error("Error: Could not create directory: {$directory}");
+
                 return false;
             }
-            CLI::write('Directory created: ' . str_replace(APPPATH, 'app/', $directory), 'dark_gray');
+            CLI::write('Directory created: '.str_replace(APPPATH, 'app/', $directory), 'dark_gray');
+
             return true;
         } catch (Exception $e) {
-            CLI::error("Error creating directory: {$directory}. Reason: " . $e->getMessage());
+            CLI::error("Error creating directory: {$directory}. Reason: ".$e->getMessage());
+
             return false;
         }
     }
@@ -202,12 +209,11 @@ class MakeLaravelRule extends BaseCommand
      *
      * Informs the user about the existing file and suggests using the --force option.
      *
-     * @param string $targetFile The absolute path to the file.
-     * @return void
+     * @param  string  $targetFile  The absolute path to the file.
      */
     private function showFileExistsError(string $targetFile): void
     {
-        CLI::error('File already exists: ' . CLI::color(str_replace(APPPATH, 'app/', $targetFile), 'light_cyan'));
+        CLI::error('File already exists: '.CLI::color(str_replace(APPPATH, 'app/', $targetFile), 'light_cyan'));
         CLI::write('Use the --force option to overwrite.', 'yellow');
     }
 
@@ -217,13 +223,14 @@ class MakeLaravelRule extends BaseCommand
      * Creates a class template with the specified namespace and class name, implementing
      * the ValidationRule interface and including a validate method.
      *
-     * @param string $namespace The full namespace for the class.
-     * @param string $className The class name.
+     * @param  string  $namespace  The full namespace for the class.
+     * @param  string  $className  The class name.
      * @return string The generated PHP code.
      */
     private function generateContent(string $namespace, string $className): string
     {
         $template = $this->getTemplate();
+
         return str_replace(
             ['{namespace}', '{className}'],
             [$namespace, $className],
@@ -236,8 +243,8 @@ class MakeLaravelRule extends BaseCommand
      *
      * Attempts to write the content to the specified file, returning the result of the operation.
      *
-     * @param string $targetFile The absolute path to the file.
-     * @param string $content The content to write.
+     * @param  string  $targetFile  The absolute path to the file.
+     * @param  string  $content  The content to write.
      * @return bool True on success, false on failure.
      */
     private function writeFileContent(string $targetFile, string $content): bool

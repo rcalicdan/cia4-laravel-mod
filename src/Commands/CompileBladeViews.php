@@ -44,7 +44,7 @@ class CompileBladeViews extends BaseCommand
      * Blade compiler, and reports the results. Tracks and displays the number of
      * successful and failed compilations.
      *
-     * @param array $params Command parameters (not used in this command).
+     * @param  array  $params  Command parameters (not used in this command).
      * @return void
      */
     public function run(array $params)
@@ -54,7 +54,7 @@ class CompileBladeViews extends BaseCommand
         $bladeService = service('blade');
         $blade = $bladeService->getBlade();
         $compiler = $blade->compiler();
-        $viewsPath = APPPATH . 'Views';
+        $viewsPath = APPPATH.'Views';
         $filesystem = new Filesystem;
 
         $files = $this->findBladeTemplates($viewsPath);
@@ -63,7 +63,7 @@ class CompileBladeViews extends BaseCommand
         $failed = 0;
 
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
@@ -86,7 +86,7 @@ class CompileBladeViews extends BaseCommand
      * Recursively scans the provided directory and returns an array of file paths
      * for all files ending with '.blade.php'.
      *
-     * @param string $directory The directory to search for Blade templates.
+     * @param  string  $directory  The directory to search for Blade templates.
      * @return array List of file paths for Blade templates.
      */
     protected function findBladeTemplates($directory)

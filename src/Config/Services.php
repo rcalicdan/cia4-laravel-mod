@@ -25,7 +25,7 @@ use Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
 class Services extends BaseService
 {
     protected static $eloquentInstance = null;
-    
+
     /**
      * Returns an instance of the Eloquent class.
      *
@@ -38,6 +38,7 @@ class Services extends BaseService
         }
 
         static::$eloquentInstance = new EloquentDatabase;
+
         return static::$eloquentInstance;
     }
 

@@ -5,7 +5,6 @@ namespace Rcalicdan\Ci4Larabridge\Commands;
 use CodeIgniter\CLI\BaseCommand;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\AuthHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\ConfigHandler;
-use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\HelpersHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\MigrationHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\SystemHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup\ToolbarHandler;
@@ -85,19 +84,17 @@ class LaravelSetup extends BaseCommand
      * and authentication, then executes their respective setup steps. Supports a force
      * overwrite option for existing files.
      *
-     * @param array $params Command parameters, including options.
-     * @return void
+     * @param  array  $params  Command parameters, including options.
      */
     public function run(array $params): void
     {
-        $this->sourcePath = __DIR__ . '/../';
+        $this->sourcePath = __DIR__.'/../';
 
         $configHandler = new ConfigHandler($this->sourcePath, $this->distPath);
         $migrationHandler = new MigrationHandler($this->sourcePath, $this->distPath);
         $systemHandler = new SystemHandler($this->sourcePath, $this->distPath);
         $authHandler = new AuthHandler($this->sourcePath, $this->distPath);
         $toolbarHandler = new ToolbarHandler($this->sourcePath, $this->distPath);
-
 
         $configHandler->publishConfig();
         $migrationHandler->copyMigrationFiles();

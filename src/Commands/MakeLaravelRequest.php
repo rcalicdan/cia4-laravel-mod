@@ -60,8 +60,7 @@ class MakeLaravelRequest extends BaseCommand
      * checks for existing files, generates the class template, and writes the file to
      * the appropriate directory. Provides feedback on success or failure.
      *
-     * @param array $params Command parameters, including the class name.
-     * @return void
+     * @param  array  $params  Command parameters, including the class name.
      */
     public function run(array $params): void
     {
@@ -86,7 +85,7 @@ class MakeLaravelRequest extends BaseCommand
      *
      * Ensures a valid class name is provided, displaying an error if the input is empty.
      *
-     * @param array $params Command parameters containing the class name.
+     * @param  array  $params  Command parameters containing the class name.
      * @return string The class name, or empty string if invalid.
      */
     protected function getClassName(array $params): string
@@ -98,6 +97,7 @@ class MakeLaravelRequest extends BaseCommand
 
             if (empty($className)) {
                 CLI::error('Request class name cannot be empty.');
+
                 return '';
             }
         }
@@ -111,7 +111,7 @@ class MakeLaravelRequest extends BaseCommand
      * Processes the input to determine the namespace, appends 'Request' to the class
      * name if needed, and constructs the file path based on the namespace structure.
      *
-     * @param string $input The raw class name input (e.g., Admin/UserRequest).
+     * @param  string  $input  The raw class name input (e.g., Admin/UserRequest).
      * @return array Array containing [namespace, className, filePath].
      */
     protected function parseClassDetails(string $input): array
@@ -119,17 +119,17 @@ class MakeLaravelRequest extends BaseCommand
         $segments = explode('/', $input);
         $className = array_pop($segments);
 
-        if (!str_ends_with($className, 'Request')) {
+        if (! str_ends_with($className, 'Request')) {
             $className .= 'Request';
         }
 
         $namespace = 'App\Requests';
-        if (!empty($segments)) {
-            $namespace .= '\\' . implode('\\', $segments);
+        if (! empty($segments)) {
+            $namespace .= '\\'.implode('\\', $segments);
         }
 
         $directory = $this->createDirectoryStructure($segments);
-        $path = $directory . '/' . $className . '.php';
+        $path = $directory.'/'.$className.'.php';
 
         return [$namespace, $className, $path];
     }
@@ -140,16 +140,16 @@ class MakeLaravelRequest extends BaseCommand
      * Builds the directory path based on the provided segments, creating any missing
      * directories with appropriate permissions.
      *
-     * @param array $segments Directory segments from the class name.
+     * @param  array  $segments  Directory segments from the class name.
      * @return string The final directory path.
      */
     protected function createDirectoryStructure(array $segments): string
     {
-        $directory = APPPATH . 'Requests';
+        $directory = APPPATH.'Requests';
 
         foreach ($segments as $segment) {
-            $directory .= '/' . $segment;
-            if (!is_dir($directory)) {
+            $directory .= '/'.$segment;
+            if (! is_dir($directory)) {
                 mkdir($directory, 0777, true);
             }
         }
@@ -163,13 +163,14 @@ class MakeLaravelRequest extends BaseCommand
      * Prevents overwriting by checking for an existing file and displaying an error
      * if found.
      *
-     * @param string $path The file path to check.
+     * @param  string  $path  The file path to check.
      * @return bool True if the file exists, false otherwise.
      */
     protected function fileExists(string $path): bool
     {
         if (file_exists($path)) {
-            CLI::error(basename($path, '.php') . ' already exists!');
+            CLI::error(basename($path, '.php').' already exists!');
+
             return true;
         }
 
@@ -183,8 +184,8 @@ class MakeLaravelRequest extends BaseCommand
      * extending the base FormRequest class and including methods for validation rules,
      * messages, and attributes.
      *
-     * @param string $namespace The namespace for the class.
-     * @param string $className The class name.
+     * @param  string  $namespace  The namespace for the class.
+     * @param  string  $className  The class name.
      * @return string The complete class template.
      */
     protected function buildTemplate(string $namespace, string $className): string
@@ -243,16 +244,15 @@ EOD;
      * Creates the file at the specified path with the provided content, displaying
      * success or error messages based on the outcome.
      *
-     * @param string $path The file path.
-     * @param string $content The file content.
-     * @return void
+     * @param  string  $path  The file path.
+     * @param  string  $content  The file content.
      */
     protected function createFile(string $path, string $content): void
     {
         if (write_file($path, $content)) {
-            CLI::write('Created: ' . CLI::color($path, 'green'));
+            CLI::write('Created: '.CLI::color($path, 'green'));
         } else {
-            CLI::error('Error creating file: ' . $path);
+            CLI::error('Error creating file: '.$path);
         }
     }
 }

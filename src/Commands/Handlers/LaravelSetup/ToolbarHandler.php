@@ -14,7 +14,7 @@ class ToolbarHandler extends SetupHandler
     public function setupToolbar(): void
     {
         $file = 'Config/Toolbar.php';
-        $path = $this->distPath . $file;
+        $path = $this->distPath.$file;
         $cleanPath = clean_path($path);
 
         if (! $this->validateToolbarFile($path)) {
@@ -36,17 +36,21 @@ class ToolbarHandler extends SetupHandler
     {
         if (! file_exists($path)) {
             $this->error('  Toolbar file not found. Make sure you have a Config/Toolbar.php file.');
+
             return false;
         }
+
         return true;
     }
 
     private function isCollectorAlreadyAdded(string $content): bool
     {
         if (strpos($content, self::COLLECTOR_CLASS) !== false) {
-            $this->write(CLI::color('  Toolbar Setup: ', 'green') . 'EloquentCollector already added.');
+            $this->write(CLI::color('  Toolbar Setup: ', 'green').'EloquentCollector already added.');
+
             return true;
         }
+
         return false;
     }
 
@@ -65,7 +69,7 @@ EOD;
     private function updateToolbarFile(string $path, string $content, string $newContent, string $cleanPath): void
     {
         if ($newContent !== $content && write_file($path, $newContent)) {
-            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
+            $this->write(CLI::color('  Updated: ', 'green').$cleanPath);
         } else {
             $this->error('  Error updating Toolbar file.');
         }

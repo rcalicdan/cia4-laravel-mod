@@ -24,7 +24,7 @@ class DatabaseHandler
                 default => $this->handleUnsupportedDriver($driver, 'checking')
             };
         } catch (PDOException $e) {
-            CLI::error('Database connection error: ' . $e->getMessage());
+            CLI::error('Database connection error: '.$e->getMessage());
             exit(1);
         }
     }
@@ -47,8 +47,8 @@ class DatabaseHandler
             };
 
             CLI::write("Database '$database' created successfully.", 'green');
-        } catch (PDOException | \Exception $e) {
-            CLI::error('Failed to create database: ' . $e->getMessage());
+        } catch (PDOException|\Exception $e) {
+            CLI::error('Failed to create database: '.$e->getMessage());
             exit(1);
         }
     }
@@ -169,7 +169,6 @@ class DatabaseHandler
      * Drop all database tables after temporarily disabling foreign key constraints.
      *
      * Ensures constraints are re-enabled even if dropping fails.
-     * @return void
      */
     public function dropAllTables($connection): void
     {
@@ -187,8 +186,6 @@ class DatabaseHandler
 
     /**
      * Disable foreign key constraints (or equivalent) for the given connection.
-     * 
-     * @return void
      */
     protected function disableForeignKeyConstraints($connection): void
     {
@@ -198,23 +195,25 @@ class DatabaseHandler
             case 'mysql':
             case 'mariadb':
                 $connection->statement('SET FOREIGN_KEY_CHECKS=0;');
+
                 break;
             case 'sqlite':
                 $connection->statement('PRAGMA foreign_keys = OFF;');
+
                 break;
             case 'pgsql':
                 $connection->statement('SET session_replication_role = replica;');
+
                 break;
             case 'sqlsrv':
                 $connection->statement('EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"');
+
                 break;
         }
     }
 
     /**
      * Re-enable foreign key constraints (or equivalent) for the given connection.
-     *
-     * @return void
      */
     protected function enableForeignKeyConstraints($connection): void
     {
@@ -224,15 +223,19 @@ class DatabaseHandler
             case 'mysql':
             case 'mariadb':
                 $connection->statement('SET FOREIGN_KEY_CHECKS=1;');
+
                 break;
             case 'sqlite':
                 $connection->statement('PRAGMA foreign_keys = ON;');
+
                 break;
             case 'pgsql':
                 $connection->statement('SET session_replication_role = default;');
+
                 break;
             case 'sqlsrv':
                 $connection->statement('EXEC sp_msforeachtable "ALTER TABLE ? CHECK CONSTRAINT all"');
+
                 break;
         }
     }

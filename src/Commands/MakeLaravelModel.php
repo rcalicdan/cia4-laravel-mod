@@ -84,10 +84,10 @@ class MakeLaravelModel extends BaseCommand
      * creates the model file with optional force overwrite, and generates a migration file
      * if requested. Returns an exit code indicating success or failure.
      *
-     * @param array $params Command parameters, including:
-     *                      - 'name' (string): The model class name (optional).
-     *                      - 'force' (bool): Force overwrite existing file (optional).
-     *                      - '-m' (bool): Create a migration file (optional).
+     * @param  array  $params  Command parameters, including:
+     *                         - 'name' (string): The model class name (optional).
+     *                         - 'force' (bool): Force overwrite existing file (optional).
+     *                         - '-m' (bool): Create a migration file (optional).
      * @return int Exit code (0 for success, 1 for error).
      */
     public function run(array $params): int
@@ -97,13 +97,14 @@ class MakeLaravelModel extends BaseCommand
         $fullModelName = $params[0] ?? CLI::prompt('Model class name (e.g., User or Common/User)');
         if (empty($fullModelName)) {
             CLI::error('Model name cannot be empty.');
+
             return self::EXIT_ERROR;
         }
 
         $handler = new ModelGeneratorHandler;
         $details = $handler->resolveModelDetails($fullModelName);
 
-        if (!$details) {
+        if (! $details) {
             return self::EXIT_ERROR;
         }
 

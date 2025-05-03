@@ -16,7 +16,7 @@ class ErrorBag implements \Serializable
     /**
      * Create a new ErrorBag instance.
      *
-     * @param array $errors The validation errors
+     * @param  array  $errors  The validation errors
      */
     public function __construct(array $errors = [])
     {
@@ -26,7 +26,7 @@ class ErrorBag implements \Serializable
     /**
      * Check if the given field has an error.
      *
-     * @param string $key The field name
+     * @param  string  $key  The field name
      * @return bool Whether the field has an error
      */
     public function has(string $key): bool
@@ -37,7 +37,7 @@ class ErrorBag implements \Serializable
     /**
      * Get the first error message for a field.
      *
-     * @param string $key The field name
+     * @param  string  $key  The field name
      * @return string|null The error message or null
      */
     public function first(string $key): ?string
@@ -48,7 +48,7 @@ class ErrorBag implements \Serializable
     /**
      * Get all errors as an error bag.
      *
-     * @param string $key The bag name (unused, for Laravel compatibility)
+     * @param  string  $key  The bag name (unused, for Laravel compatibility)
      * @return array The errors
      */
     public function getBag(string $key = 'default'): array
@@ -63,7 +63,7 @@ class ErrorBag implements \Serializable
      */
     public function any(): bool
     {
-        return !empty($this->errors);
+        return ! empty($this->errors);
     }
 
     /**
@@ -89,7 +89,7 @@ class ErrorBag implements \Serializable
     /**
      * Unserialize the error bag from cache.
      *
-     * @param string $data The serialized data
+     * @param  string  $data  The serialized data
      * @return void
      */
     public function unserialize($data)
@@ -99,8 +99,6 @@ class ErrorBag implements \Serializable
 
     /**
      * __serialize method for PHP 7.4+
-     * 
-     * @return array
      */
     public function __serialize(): array
     {
@@ -109,9 +107,6 @@ class ErrorBag implements \Serializable
 
     /**
      * __unserialize method for PHP 7.4+
-     * 
-     * @param array $data
-     * @return void
      */
     public function __unserialize(array $data): void
     {

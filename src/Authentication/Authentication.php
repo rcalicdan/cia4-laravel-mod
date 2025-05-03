@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use CodeIgniter\Session\Session;
-use Rcalicdan\Ci4Larabridge\Blade\BladeService;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 
 class Authentication
@@ -72,7 +71,7 @@ class Authentication
     public function attempt(array $credentials): bool
     {
         $model = $this->userModel;
-        $user  = $model::where('email', $credentials['email'])->first();
+        $user = $model::where('email', $credentials['email'])->first();
 
         if ($user && password_verify($credentials['password'], $user->password)) {
             return $this->login($user);
@@ -95,7 +94,7 @@ class Authentication
         $this->user = null;
         $this->session->remove('auth_user_id');
         $this->session->regenerate(true);
-        
+
         return true;
     }
 }

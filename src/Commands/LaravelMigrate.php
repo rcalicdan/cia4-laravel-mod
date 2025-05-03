@@ -105,8 +105,9 @@ class LaravelMigrate extends BaseCommand
      * existence, and performs the requested migration action. Handles exceptions
      * for database connection issues and general errors.
      *
-     * @param array $params Command parameters, with the first element being the action.
+     * @param  array  $params  Command parameters, with the first element being the action.
      * @return void
+     *
      * @throws \PDOException If a database connection error occurs.
      * @throws \Exception If a general error occurs during execution.
      */
@@ -119,7 +120,7 @@ class LaravelMigrate extends BaseCommand
 
             $this->loadDatabaseConfig();
 
-            if (!$this->dbHandler->checkDatabaseExists($this->dbConfig)) {
+            if (! $this->dbHandler->checkDatabaseExists($this->dbConfig)) {
                 $this->promptAndCreateDatabase();
             }
 
@@ -131,10 +132,10 @@ class LaravelMigrate extends BaseCommand
             if (strpos($e->getMessage(), 'Unknown database') !== false) {
                 $this->promptAndCreateDatabase();
             } else {
-                CLI::error('Database connection error: ' . $e->getMessage());
+                CLI::error('Database connection error: '.$e->getMessage());
             }
         } catch (\Exception $e) {
-            CLI::error('Error executing migration command: ' . $e->getMessage());
+            CLI::error('Error executing migration command: '.$e->getMessage());
         }
     }
 
@@ -151,15 +152,15 @@ class LaravelMigrate extends BaseCommand
         $this->eloquentConfig = config('Eloquent');
         $cfg = $this->eloquentConfig;
         $this->dbConfig = [
-            'driver'    => env('database.default.DBDriver',   env('DB_DRIVER',   $cfg->databaseDriver)),
-            'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
-            'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
-            'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
-            'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
-            'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
+            'driver' => env('database.default.DBDriver',   env('DB_DRIVER',   $cfg->databaseDriver)),
+            'host' => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
+            'database' => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
+            'username' => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
+            'password' => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
+            'charset' => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
             'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
-            'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
-            'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
+            'prefix' => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
+            'port' => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
         ];
 
         if (empty($this->dbConfig['database'])) {
@@ -182,7 +183,7 @@ class LaravelMigrate extends BaseCommand
         $dbName = $this->dbConfig['database'] ?? '(undefined)';
         CLI::write("Database '{$dbName}' does not exist.", 'yellow');
 
-        if (!isset($this->dbConfig['database']) || empty($this->dbConfig['database'])) {
+        if (! isset($this->dbConfig['database']) || empty($this->dbConfig['database'])) {
             CLI::error('Database name is not defined in your configuration. Please check your .env file or database configuration.');
             exit(1);
         }
@@ -203,7 +204,7 @@ class LaravelMigrate extends BaseCommand
      * Routes the command to the appropriate migration handler method based on the
      * action parameter and displays the results using the output handler.
      *
-     * @param string $action The migration action to perform (up, down, refresh, status, fresh).
+     * @param  string  $action  The migration action to perform (up, down, refresh, status, fresh).
      * @return void
      */
     private function executeAction(string $action)
@@ -212,29 +213,35 @@ class LaravelMigrate extends BaseCommand
             case 'up':
                 $migrations = $this->migrationHandler->runMigrations();
                 $this->outputHandler->showUpResult($migrations);
+
                 break;
 
             case 'down':
                 $migrations = $this->migrationHandler->rollbackMigrations();
                 $this->outputHandler->showDownResult($migrations);
+
                 break;
 
             case 'refresh':
                 $this->migrationHandler->refreshMigrations();
                 $this->outputHandler->showRefreshResult();
+
                 break;
 
             case 'status':
                 $status = $this->migrationHandler->getMigrationStatus();
                 $this->outputHandler->showStatusResult($status);
+
                 break;
 
             case 'fresh':
                 $this->handleFreshAction();
+
                 break;
 
             default:
                 $this->outputHandler->showUsage();
+
                 break;
         }
     }

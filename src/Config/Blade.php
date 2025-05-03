@@ -19,14 +19,14 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $viewsPath = APPPATH . 'Views';
+    public $viewsPath = APPPATH.'Views';
 
     /**
      * Path to the directory for storing compiled Blade template cache.
      *
      * @var string
      */
-    public $cachePath = WRITEPATH . 'cache/blade';
+    public $cachePath = WRITEPATH.'cache/blade';
 
     /**
      * Namespace for Blade components.
@@ -40,7 +40,7 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $componentPath = APPPATH . 'Views/components';
+    public $componentPath = APPPATH.'Views/components';
 
     /**
      * Determines whether to check for template recompilation in production.
@@ -51,14 +51,13 @@ class Blade extends BaseConfig
      * @var bool
      */
     public $checksCompilationInProduction = false;
-    
+
     /**
      * Registers custom Blade directives.
      *
      * Allows developers to define custom directives for the Blade templating engine.
      *
-     * @param BladeDirective $blade The Blade instance to register directives with.
-     * @return void
+     * @param  BladeDirective  $blade  The Blade instance to register directives with.
      */
     public function registerCustomDirectives(BladeDirective $blade): void
     {

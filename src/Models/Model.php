@@ -19,7 +19,7 @@ class Model extends EloquentModel
      * Overrides the default Eloquent query builder with a custom implementation
      * to support specialized query operations.
      *
-     * @param \Illuminate\Database\Query\Builder $query The underlying query builder instance.
+     * @param  \Illuminate\Database\Query\Builder  $query  The underlying query builder instance.
      * @return CustomBuilder The custom query builder instance.
      */
     public function newEloquentBuilder($query)

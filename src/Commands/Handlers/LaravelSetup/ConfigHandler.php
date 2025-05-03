@@ -2,8 +2,6 @@
 
 namespace Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelSetup;
 
-use CodeIgniter\CLI\CLI;
-
 class ConfigHandler extends SetupHandler
 {
     /**

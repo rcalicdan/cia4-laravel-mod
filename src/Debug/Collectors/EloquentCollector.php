@@ -10,14 +10,14 @@ class EloquentCollector extends BaseCollector
     /**
      * Whether this collector has data that can be displayed in the Timeline.
      *
-     * @var boolean
+     * @var bool
      */
     protected $hasTimeline = false;
 
     /**
      * Whether this collector needs to display content in a tab or not.
      *
-     * @var boolean
+     * @var bool
      */
     protected $hasTabContent = true;
 
@@ -30,8 +30,8 @@ class EloquentCollector extends BaseCollector
 
     /**
      * Toggle to display only duplicate queries
-     * 
-     * @var boolean
+     *
+     * @var bool
      */
     protected $showOnlyDuplicates = false;
 
@@ -43,8 +43,10 @@ class EloquentCollector extends BaseCollector
         try {
             if (ENVIRONMENT !== 'production') {
                 $log = Capsule::connection()->getQueryLog();
+
                 return $log;
             }
+
             return [];
         } catch (\Exception $e) {
             return [];
@@ -61,6 +63,7 @@ class EloquentCollector extends BaseCollector
         }
 
         $index = 0;
+
         return preg_replace_callback('/\?/', function () use ($bindings, &$index) {
             $value = $bindings[$index] ?? '?';
             $index++;
@@ -69,7 +72,7 @@ class EloquentCollector extends BaseCollector
                 is_null($value) => 'NULL',
                 is_numeric($value) => $value,
                 is_bool($value) => $value ? 'TRUE' : 'FALSE',
-                default => "'" . addslashes($value) . "'"
+                default => "'".addslashes($value)."'"
             };
         }, $sql);
     }
@@ -94,7 +97,7 @@ class EloquentCollector extends BaseCollector
         $tableHeader = $this->buildTableHeader();
         $tableRows = $this->buildTableRows($queries, $duplicates);
 
-        return $toggleButton . $tableHeader . $tableRows . '</tbody></table>';
+        return $toggleButton.$tableHeader.$tableRows.'</tbody></table>';
     }
 
     /**
@@ -108,11 +111,11 @@ class EloquentCollector extends BaseCollector
         foreach ($queries as $index => $query) {
             $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
 
-            if (!isset($normalized[$formattedSql])) {
+            if (! isset($normalized[$formattedSql])) {
                 $normalized[$formattedSql] = [
                     'indices' => [$index],
                     'count' => (int) 1,
-                    'total_time' => $this->calculateDuration($query)
+                    'total_time' => $this->calculateDuration($query),
                 ];
             } else {
                 $normalized[$formattedSql]['indices'][] = $index;
@@ -139,9 +142,9 @@ class EloquentCollector extends BaseCollector
         $textColor = $duplicateCount > 0 ? '#000' : '#fff';
 
         $div = '<div style="margin-bottom: 15px;">';
-        $div .= '<span style="display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;">' . $duplicateCount . ' Duplicate Queries</span>';
-        $div .= '<button style="padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background-color: ' . $buttonColor . '; color: ' . $textColor . '; border: none;" ';
-        $div .= 'id="toggle-duplicates" onclick="toggleDuplicateQueries(' . $currentState . ')" ' . $buttonDisabled . '>' . $showDuplicatesText . '</button>';
+        $div .= '<span style="display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;">'.$duplicateCount.' Duplicate Queries</span>';
+        $div .= '<button style="padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background-color: '.$buttonColor.'; color: '.$textColor.'; border: none;" ';
+        $div .= 'id="toggle-duplicates" onclick="toggleDuplicateQueries('.$currentState.')" '.$buttonDisabled.'>'.$showDuplicatesText.'</button>';
         $div .= '<script>';
         $div .= 'function toggleDuplicateQueries(currentState) {';
         $div .= '  var url = new URL(window.location.href);';
@@ -157,7 +160,7 @@ class EloquentCollector extends BaseCollector
 
     private function buildTableHeader(): string
     {
-        return <<<HTML
+        return <<<'HTML'
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
                 <tr style="background-color: #f8f9fa;">
@@ -223,9 +226,9 @@ class EloquentCollector extends BaseCollector
     private function calculateDuration(array $query): float
     {
         $duration = match (true) {
-            isset($query['time']) => (float)$query['time'],
-            isset($query['duration']) => (float)$query['duration'],
-            isset($query['elapsed']) => (float)$query['elapsed'],
+            isset($query['time']) => (float) $query['time'],
+            isset($query['duration']) => (float) $query['duration'],
+            isset($query['elapsed']) => (float) $query['elapsed'],
             default => 0
         };
 

@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Database;
 
 use Config\Eloquent;
-use PDO;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -12,6 +11,7 @@ use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Facade;
+use PDO;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
 
@@ -20,10 +20,10 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
  */
 class EloquentDatabase
 {
-    protected Container        $container;
-    protected Capsule          $capsule;
+    protected Container $container;
+    protected Capsule $capsule;
     protected PaginationConfig $paginationConfig;
-    protected Eloquent   $eloquentConfig;
+    protected Eloquent $eloquentConfig;
 
     public function __construct()
     {
@@ -39,7 +39,7 @@ class EloquentDatabase
     protected function loadConfigs(): void
     {
         $this->paginationConfig = config(PaginationConfig::class);
-        $this->eloquentConfig   = config(Eloquent::class);
+        $this->eloquentConfig = config(Eloquent::class);
     }
 
     /**
@@ -72,7 +72,7 @@ class EloquentDatabase
      */
     protected function createPdo(array $config): PDO
     {
-        $dsn     = $this->buildDsn($config);
+        $dsn = $this->buildDsn($config);
         $options = $this->getPdoOptions();
 
         return new PDO(
@@ -104,13 +104,13 @@ class EloquentDatabase
     protected function getPdoOptions(): array
     {
         return [
-            PDO::ATTR_CASE              => PDO::CASE_NATURAL,
-            PDO::ATTR_ERRMODE           => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_ORACLE_NULLS      => PDO::NULL_NATURAL,
+            PDO::ATTR_CASE => PDO::CASE_NATURAL,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ORACLE_NULLS => PDO::NULL_NATURAL,
             PDO::ATTR_STRINGIFY_FETCHES => false,
-            PDO::ATTR_EMULATE_PREPARES  => (ENVIRONMENT === 'development'),
+            PDO::ATTR_EMULATE_PREPARES => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_PERSISTENT         => env('DB_PERSISTENT', env('database.default.persistent', true)),
+            PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', env('database.default.persistent', true)),
         ];
     }
 
@@ -132,7 +132,8 @@ class EloquentDatabase
         if (ENVIRONMENT !== 'production') {
             $this->capsule
                 ->getConnection()
-                ->enableQueryLog();
+                ->enableQueryLog()
+            ;
         }
     }
 
@@ -157,20 +158,19 @@ class EloquentDatabase
 
         $cfg = $this->eloquentConfig;
         $cached = [
-            'driver'    => env('database.default.DBDriver',   env('DB_DBDRIVER',   $cfg->databaseDriver)),
-            'host'      => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
-            'database'  => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
-            'username'  => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
-            'password'  => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
-            'charset'   => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
+            'driver' => env('database.default.DBDriver',   env('DB_DBDRIVER',   $cfg->databaseDriver)),
+            'host' => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
+            'database' => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
+            'username' => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
+            'password' => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
+            'charset' => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
             'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
-            'prefix'    => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
-            'port'      => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
+            'prefix' => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
+            'port' => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
         ];
 
         return $cached;
     }
-
 
     /**
      * Initialize the IoC container and set it for Facades.
@@ -197,7 +197,7 @@ class EloquentDatabase
      */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', fn() => new Repository([
+        $this->container->singleton('config', fn () => new Repository([
             'hashing' => [
                 'driver' => 'bcrypt',
                 'bcrypt' => ['rounds' => 10],
@@ -210,7 +210,7 @@ class EloquentDatabase
      */
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn($app) => new HashManager($app));
+        $this->container->singleton('hash', fn ($app) => new HashManager($app));
     }
 
     /**
@@ -220,7 +220,7 @@ class EloquentDatabase
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn() => new PaginationRenderer
+            fn () => new PaginationRenderer
         );
         $this->container->alias(
             PaginationRenderer::class,
@@ -239,32 +239,30 @@ class EloquentDatabase
         }
         $configured = true;
 
-        $request    = service('request');
-        $uri        = service('uri');
+        $request = service('request');
+        $uri = service('uri');
         $currentUrl = current_url();
 
-        Paginator::$defaultView       = $this->paginationConfig->defaultView;
+        Paginator::$defaultView = $this->paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
-            fn() =>
-            $this->container->get('paginator.renderer')
+            fn () => $this->container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn($pageName = 'page') => ($page = $request->getVar($pageName))
+            fn ($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
-                && (int)$page >= 1
-                ? (int)$page
+                && (int) $page >= 1
+                ? (int) $page
                 : 1
         );
 
-        Paginator::currentPathResolver(fn() => $currentUrl);
-        Paginator::queryStringResolver(fn() => $uri->getQuery());
+        Paginator::currentPathResolver(fn () => $currentUrl);
+        Paginator::queryStringResolver(fn () => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn($cursorName = 'cursor') =>
-            Cursor::fromEncoded($request->getVar($cursorName))
+            fn ($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
 }

@@ -2,14 +2,13 @@
 
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
-use Illuminate\Pagination\Paginator;
 use Rcalicdan\Blade\Blade;
 use Rcalicdan\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
 
 /**
  * BladeService provides a high-performance implementation of the Blade templating engine for CodeIgniter 4.
- * 
+ *
  * This service handles view rendering, caching, and performance optimizations to ensure
  * minimal resource usage while providing the full power of Blade templates.
  */
@@ -61,7 +60,7 @@ class BladeService
     public function __construct()
     {
         $this->bladeConfigValues = config('Blade');
-        $this->bladeExtension = new BladeExtension();
+        $this->bladeExtension = new BladeExtension;
         $this->config = [
             'viewsPath' => $this->bladeConfigValues->viewsPath,
             'cachePath' => $this->bladeConfigValues->cachePath,
@@ -80,7 +79,7 @@ class BladeService
     {
         $this->ensureCacheDirectory();
 
-        $container = new BladeContainer();
+        $container = new BladeContainer;
 
         $this->blade = new Blade(
             $this->config['viewsPath'],
@@ -94,7 +93,7 @@ class BladeService
                     return false; // Never recompile in production for optimal performance
                 });
             } catch (\Exception $e) {
-                log_message('warning', 'Unable to set compiler expiration check: ' . $e->getMessage());
+                log_message('warning', 'Unable to set compiler expiration check: '.$e->getMessage());
             }
         }
 
@@ -111,31 +110,31 @@ class BladeService
     {
         $cachePath = $this->config['cachePath'];
 
-        if (!isset($this->fileExistsCache[$cachePath]) || !$this->fileExistsCache[$cachePath]) {
+        if (! isset($this->fileExistsCache[$cachePath]) || ! $this->fileExistsCache[$cachePath]) {
             $this->fileExistsCache[$cachePath] = is_dir($cachePath);
 
-            if (!$this->fileExistsCache[$cachePath]) {
+            if (! $this->fileExistsCache[$cachePath]) {
                 mkdir($cachePath, 0777, true);
                 $this->fileExistsCache[$cachePath] = true;
             }
         }
 
-        if (!$this->checkFileWritable($cachePath)) {
+        if (! $this->checkFileWritable($cachePath)) {
             log_message('error', "Blade cache path is not writable: {$cachePath}");
         }
     }
 
     /**
      * Check if a file or directory is writable with caching
-     * 
-     * @param string $path Path to check
+     *
+     * @param  string  $path  Path to check
      * @return bool Whether the path is writable
      */
     protected function checkFileWritable(string $path): bool
     {
         $cacheKey = "writable:{$path}";
 
-        if (!isset($this->fileExistsCache[$cacheKey])) {
+        if (! isset($this->fileExistsCache[$cacheKey])) {
             $this->fileExistsCache[$cacheKey] = is_writable($path);
         }
 
@@ -151,9 +150,10 @@ class BladeService
             return;
         }
 
-        if (!class_exists(BladeExtension::class)) {
+        if (! class_exists(BladeExtension::class)) {
             log_message('warning', 'BladeExtension class not found. Custom directives are disabled.');
             $this->extensionsLoaded = true;
+
             return;
         }
 
@@ -171,12 +171,12 @@ class BladeService
     /**
      * Process view data with extensions
      *
-     * @param array $data The view data to process
+     * @param  array  $data  The view data to process
      * @return array Processed view data
      */
     public function processData(array $data): array
     {
-        if (!class_exists(BladeExtension::class)) {
+        if (! class_exists(BladeExtension::class)) {
             return $data;
         }
 
@@ -190,7 +190,7 @@ class BladeService
     /**
      * Filter internal keys from view data
      *
-     * @param array $data The view data to filter
+     * @param  array  $data  The view data to filter
      * @return array Filtered view data
      */
     public function filterInternalKeys(array $data): array
@@ -214,26 +214,27 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn($key) => !in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
      * Set data to be passed to the view
-     * 
-     * @param array $data Data to be passed to the view
+     *
+     * @param  array  $data  Data to be passed to the view
      * @return self Returns the current instance for method chaining
      */
     public function setData(array $data = []): self
     {
         $this->viewData = $this->processData($data);
+
         return $this;
     }
 
     /**
      * Render a view with the given data
      *
-     * @param string $view The view to render
-     * @param array $data Data to be passed to the view
+     * @param  string  $view  The view to render
+     * @param  array  $data  Data to be passed to the view
      * @return string Rendered view content
      */
     public function render(string $view, array $data = []): string
@@ -244,18 +245,8 @@ class BladeService
         $processedData = $this->processData($mergedData);
         $filteredData = $this->filterInternalKeys($processedData);
 
-        // $cacheKey = md5($view . serialize($filteredData));
-
-        // if (ENVIRONMENT === 'production' && isset($this->viewCache[$cacheKey])) {
-        //     return $this->viewCache[$cacheKey];
-        // }
-
         try {
             $result = $this->blade->make($view, $filteredData)->render();
-
-            // if (ENVIRONMENT === 'production') {
-            //     $this->viewCache[$cacheKey] = $result;
-            // }
 
             return $result;
         } catch (\Throwable $e) {
@@ -263,6 +254,7 @@ class BladeService
                 log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}");
             } else {
                 log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}\n{$e->getTraceAsString()}");
+
                 throw $e;
             }
 
@@ -285,7 +277,7 @@ class BladeService
     /**
      * Compiles all blade views for improved application startup performance
      *
-     * @param bool $force Force recompilation
+     * @param  bool  $force  Force recompilation
      * @return array Compilation results
      */
     public function compileViews(bool $force = false): array
@@ -296,12 +288,12 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
             try {
-                if ($force || !$compiler->isExpired($file)) {
+                if ($force || ! $compiler->isExpired($file)) {
                     $compiler->compile($file);
                 }
                 $results[$viewName] = true;
@@ -333,8 +325,8 @@ class BladeService
 
     /**
      * Get all Blade template files recursively with caching
-     * 
-     * @param string $directory The directory to search
+     *
+     * @param  string  $directory  The directory to search
      * @return array List of Blade template files
      */
     protected function getBladeFiles(string $directory): array
