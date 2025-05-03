@@ -230,55 +230,150 @@ class BladeService
     }
 
     /**
-     * Render a view with Blade, utilizing caching for improved performance
+     * Process and filter data before passing it to the view or cache key generation.
      *
-     * @param string $view The view identifier in dot notation
-     * @param array $data Additional data to be passed to the view
-     * @return string Rendered HTML string
+     * @param array $data Raw data passed to the render method.
+     * @return array Processed and filtered data suitable for the view.
      */
-    public function render(string $view, array $data = []): string
+    private function prepareViewData(array $data): array
     {
-        $this->applyExtensions();
-
         $mergedData = array_merge($this->viewData ?? [], $data);
         $processedData = $this->processData($mergedData);
-        $filteredData = $this->filterInternalKeys($processedData);
+        return $this->filterInternalKeys($processedData);
+    }
 
-        // Generate cache key
-        $cacheKey = md5($view . serialize($filteredData));
-
-        // Check for any flash data in the session
+    /**
+     * Check if caching should be skipped for the current request.
+     * Currently skips if flash data exists in the session.
+     *
+     * @return bool True if caching should be skipped, false otherwise.
+     */
+    private function shouldSkipCache(): bool
+    {
         $session = session();
-        $hasFlashData = !empty($session->getFlashdata());
+        // Skip caching for views with flash data as it's transient
+        return !empty($session->getFlashdata());
+    }
 
-        // Only use cache if there are no flash messages
-        if (!$hasFlashData) {
-            // Check in-memory cache first (fastest)
-            if (isset($this->viewCache[$cacheKey])) {
-                return $this->viewCache[$cacheKey];
-            }
+    /**
+     * Generate a unique cache key for the view and its data.
+     * Includes user context if a user is logged in.
+     *
+     * @param string $view The view identifier.
+     * @param array $viewData The filtered data being passed to the view.
+     * @return string The generated cache key.
+     */
+    private function generateCacheKey(string $view, array $viewData): string
+    {
+        $session = session();
+        $hasUserContext = $session->has('user_id') || $session->has('logged_in');
+        $userSuffix = $hasUserContext ? '_user_' . ($session->get('user_id') ?? 'guest') : '';
+        return md5($view . $userSuffix . serialize($viewData));
+    }
 
-            // Then check persistent cache (still fast)
+    /**
+     * Attempt to retrieve the rendered view output from the cache.
+     * Checks in-memory cache first, then persistent cache if enabled.
+     *
+     * @param string $cacheKey The cache key to look up.
+     * @return string|null The cached HTML output, or null if not found.
+     */
+    private function getFromCache(string $cacheKey): ?string
+    {
+        $bladeConfig = $this->bladeConfigValues;
+
+        // Check in-memory cache first
+        if ($bladeConfig->useInMemoryCache && isset($this->viewCache[$cacheKey])) {
+            return $this->viewCache[$cacheKey];
+        }
+
+        // Check persistent cache if enabled and in production
+        if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
             $persistentCache = \Config\Services::cache();
-            if (ENVIRONMENT === 'production' && $cachedOutput = $persistentCache->get('view_' . $cacheKey)) {
-                // Also store in memory cache for future use in this request
-                $this->viewCache[$cacheKey] = $cachedOutput;
+            $cachedOutput = $persistentCache->get('view_' . $cacheKey);
+
+            if ($cachedOutput !== null) {
+                // Store in memory cache too if retrieved from persistent and in-memory is enabled
+                if ($bladeConfig->useInMemoryCache) {
+                    $this->viewCache[$cacheKey] = $cachedOutput;
+                }
                 return $cachedOutput;
             }
         }
 
-        // Render the view if not cached or has flash data
+        return null;
+    }
+
+    /**
+     * Store the rendered view output in the configured caches.
+     *
+     * @param string $cacheKey The cache key.
+     * @param string $output The rendered HTML output to store.
+     * @param array $viewData The data used, needed to determine user context for duration.
+     * @return void
+     */
+    private function storeInCache(string $cacheKey, string $output, array $viewData): void
+    {
+        $bladeConfig = $this->bladeConfigValues;
+
+        if ($bladeConfig->useInMemoryCache) {
+            $this->viewCache[$cacheKey] = $output;
+        }
+
+        if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
+            $session = session();
+            $hasUserContext = $session->has('user_id') || $session->has('logged_in');
+            $cacheDuration = $hasUserContext
+                ? $bladeConfig->userViewCacheDuration
+                : $bladeConfig->publicViewCacheDuration;
+
+            $persistentCache = \Config\Services::cache();
+            $persistentCache->save('view_' . $cacheKey, $output, $cacheDuration);
+        }
+    }
+
+    /**
+     * Render a view with Blade, utilizing caching for improved performance.
+     *
+     * @param string $view The view identifier in dot notation.
+     * @param array $data Additional data to be passed to the view.
+     * @return string Rendered HTML string.
+     */
+    public function render(string $view, array $data = []): string
+    {
+        $this->applyExtensions();
+        $viewData = $this->prepareViewData($data);
+
+        if ($this->shouldSkipCache()) {
+            return $this->renderView($view, $viewData);
+        }
+
+        $cacheKey = $this->generateCacheKey($view, $viewData);
+        $cachedOutput = $this->getFromCache($cacheKey);
+
+        if ($cachedOutput !== null) {
+            return $cachedOutput;
+        }
+
+        $result = $this->renderView($view, $viewData);
+        $this->storeInCache($cacheKey, $result, $viewData);
+
+        return $result;
+    }
+
+    /**
+     * Helper method for view rendering, handling potential errors.
+     * Resets instance view data after rendering.
+     *
+     * @param string $view The view identifier.
+     * @param array $data The data to pass to the view.
+     * @return string Rendered HTML string or an error placeholder.
+     * @throws \Throwable Re-throws rendering exceptions in non-production environments.
+     */
+    private function renderView(string $view, array $data): string
+    {
         try {
-            $result = $this->blade->make($view, $filteredData)->render();
-
-            // Only cache if there are no flash messages
-            if (!$hasFlashData) {
-                $this->viewCache[$cacheKey] = $result;
-                if (ENVIRONMENT === 'production') {
-                    $persistentCache->save('view_' . $cacheKey, $result, 3600); // Cache for 1 hour
-                }
-            }
-
+            $result = $this->blade->make($view, $data)->render();
             return $result;
         } catch (\Throwable $e) {
             if (ENVIRONMENT === 'production') {
@@ -287,7 +382,6 @@ class BladeService
                 log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}\n{$e->getTraceAsString()}");
                 throw $e;
             }
-
             return '<!-- View Rendering Error -->';
         } finally {
             $this->viewData = [];

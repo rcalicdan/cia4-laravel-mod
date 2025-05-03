@@ -53,6 +53,35 @@ class Blade extends BaseConfig
     public $checksCompilationInProduction = false;
 
     /**
+     * Enable in-memory view caching during a request
+     * 
+     * @var bool
+     */
+    public $useInMemoryCache = true;
+
+    /**
+     * Enable persistent view caching across requests
+     * 
+     * @var bool
+     */
+    public $usePersistentCache = true;
+
+    /**
+     * Cache duration for user-specific views in seconds
+     * 
+     * @var int
+     */
+    public $userViewCacheDuration = 1800; 
+
+    /**
+     * Cache duration for public views in seconds
+     * 
+     * @var int
+     */
+    public $publicViewCacheDuration = 3600; 
+
+
+    /**
      * Registers custom Blade directives.
      *
      * Allows developers to define custom directives for the Blade templating engine.
