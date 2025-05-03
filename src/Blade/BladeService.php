@@ -244,18 +244,18 @@ class BladeService
         $processedData = $this->processData($mergedData);
         $filteredData = $this->filterInternalKeys($processedData);
 
-        $cacheKey = md5($view . serialize($filteredData));
+        // $cacheKey = md5($view . serialize($filteredData));
 
-        if (ENVIRONMENT === 'production' && isset($this->viewCache[$cacheKey])) {
-            return $this->viewCache[$cacheKey];
-        }
+        // if (ENVIRONMENT === 'production' && isset($this->viewCache[$cacheKey])) {
+        //     return $this->viewCache[$cacheKey];
+        // }
 
         try {
             $result = $this->blade->make($view, $filteredData)->render();
 
-            if (ENVIRONMENT === 'production') {
-                $this->viewCache[$cacheKey] = $result;
-            }
+            // if (ENVIRONMENT === 'production') {
+            //     $this->viewCache[$cacheKey] = $result;
+            // }
 
             return $result;
         } catch (\Throwable $e) {
