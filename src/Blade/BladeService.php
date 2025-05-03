@@ -2,7 +2,6 @@
 
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
-use Illuminate\Contracts\Foundation\Application;
 use Rcalicdan\Blade\Blade;
 use Rcalicdan\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
@@ -56,12 +55,7 @@ class BladeService
     protected bool $extensionsLoaded = false;
 
     /**
-     * @var AnonymousComponentManager Component manager for anonymous components
-     */
-    protected AnonymousComponentManager $componentManager;
-
-    /**
-     * Initialize the Blade engine with configuration
+     * Initialize the BladeService with configuration
      */
     public function __construct()
     {
@@ -78,30 +72,6 @@ class BladeService
         $this->initialize();
     }
 
-    protected function replaceComponentTagCompiler(): void
-    {
-        $compiler = $this->blade->compiler();
-
-        // Get the view factory from the compiler
-        $reflectionCompiler = new \ReflectionClass($compiler);
-        $factoryProperty = $reflectionCompiler->getProperty('factory');
-        $factoryProperty->setAccessible(true);
-        $factory = $factoryProperty->getValue($compiler);
-
-        // Create a custom component tag compiler
-        $componentTagCompiler = new CustomComponentTagCompiler(
-            $compiler->getClassComponentAliases(),
-            $compiler->getClassComponentNamespaces(),
-            $compiler
-        );
-
-        // Set the custom compiler
-        $reflectionCompiler = new \ReflectionClass($compiler);
-        $componentTagCompilerProperty = $reflectionCompiler->getProperty('componentTagCompiler');
-        $componentTagCompilerProperty->setAccessible(true);
-        $componentTagCompilerProperty->setValue($compiler, $componentTagCompiler);
-    }
-
     /**
      * Initialize the Blade engine with performance optimizations
      */
@@ -110,11 +80,6 @@ class BladeService
         $this->ensureCacheDirectory();
 
         $container = new BladeContainer;
-        
-        // Set up basic container bindings
-        $container->bind('Illuminate\Contracts\Foundation\Application', function() use ($container) {
-            return $container;
-        });
 
         $this->blade = new Blade(
             $this->config['viewsPath'],
@@ -122,16 +87,13 @@ class BladeService
             $container
         );
 
-        // Override Blade compiler with our custom one that uses a safe ComponentTagCompiler
-        $this->registerCustomCompiler();
-
         if (ENVIRONMENT === 'production') {
             try {
-                $this->blade->compiler()->setIsExpired(function (): bool {
+                $this->blade->getCompiler()->setIsExpired(function (): bool {
                     return false; // Never recompile in production for optimal performance
                 });
             } catch (\Exception $e) {
-                log_message('warning', 'Unable to set compiler expiration check: ' . $e->getMessage());
+                log_message('warning', 'Unable to set compiler expiration check: '.$e->getMessage());
             }
         }
 
@@ -139,170 +101,6 @@ class BladeService
             $this->config['componentNamespace'],
             $this->config['componentPath']
         );
-
-        // Initialize the anonymous component manager
-        $this->initializeComponentManager();
-    }
-
-      /**
-     * Register a custom blade compiler that safely handles component tags
-     */
-    protected function registerCustomCompiler(): void
-    {
-        // Get the container from our Blade instance
-        $container = $this->blade->getContainer();
-        
-        // Create and register our custom compiler
-        $container->extend('blade.compiler', function ($originalCompiler, $container) {
-            // Create a new custom compiler
-            $customCompiler = new CustomBladeCompiler(
-                $container->make('files'),
-                $this->config['cachePath']
-            );
-            
-            // Copy over any directives or extensions from the original compiler
-            if (method_exists($originalCompiler, 'getCustomDirectives')) {
-                foreach ($originalCompiler->getCustomDirectives() as $name => $directive) {
-                    $customCompiler->directive($name, $directive);
-                }
-            }
-            
-            return $customCompiler;
-        });
-    }
-
-    /**
-     * Set up all necessary container bindings for Laravel's View system
-     * 
-     * @param BladeContainer $container
-     * @return void
-     */
-    protected function setupContainerBindings(BladeContainer $container): void
-    {
-        // Bind the Application interface to the container itself
-        $container->bind('Illuminate\Contracts\Foundation\Application', function () use ($container) {
-            return $container;
-        });
-
-        // Make sure the container itself implements Application interface methods
-        if (!$container instanceof Application) {
-            // We need to make sure the container itself fulfills the Application contract
-            // Add missing methods to the container if they don't exist
-            if (!method_exists($container, 'basePath')) {
-                $container->instance('path.base', APPPATH);
-                $container->bind('basePath', function () use ($container) {
-                    return $container->get('path.base');
-                });
-            }
-
-            if (!method_exists($container, 'environment')) {
-                $container->bind('environment', function () {
-                    return ENVIRONMENT;
-                });
-            }
-
-            // Other required Application methods if needed
-        }
-
-        // Make sure View Factory interface is bound
-        $container->bind('Illuminate\Contracts\View\Factory', function ($container) {
-            return $container->get('view');
-        });
-
-        // Ensure necessary paths are registered
-        $container->instance('path.resources', $this->config['viewsPath']);
-        $container->instance('path.view', $this->config['viewsPath']);
-    }
-
-    /**
-     * Initialize the anonymous component manager
-     */
-    protected function initializeComponentManager(): void
-    {
-        $componentPaths = [
-            $this->config['componentPath'],
-        ];
-
-        // Add additional component paths from config
-        if (isset($this->bladeConfigValues->anonymousComponentPaths) && is_array($this->bladeConfigValues->anonymousComponentPaths)) {
-            $componentPaths = array_merge($componentPaths, $this->bladeConfigValues->anonymousComponentPaths);
-        }
-
-        // Filter out non-existent paths
-        $validPaths = array_filter($componentPaths, function ($path) {
-            if (!is_dir($path)) {
-                log_message('warning', "Blade component path does not exist: {$path}");
-                return false;
-            }
-            return true;
-        });
-
-        $this->componentManager = new AnonymousComponentManager($this->blade, $validPaths);
-
-        // Register explicitly defined components from config if provided
-        if (isset($this->bladeConfigValues->anonymousComponents) && is_array($this->bladeConfigValues->anonymousComponents)) {
-            $this->componentManager->components($this->bladeConfigValues->anonymousComponents);
-        }
-
-        // Register the directives
-        $this->componentManager->registerDirectives();
-    }
-
-    /**
-     * Register an anonymous component
-     *
-     * @param string $alias The component alias
-     * @param string $view The component view name
-     * @return self Returns the current instance for method chaining
-     */
-    public function component(string $alias, string $view): self
-    {
-        $this->componentManager->component($alias, $view);
-        return $this;
-    }
-
-    /**
-     * Register multiple anonymous components
-     *
-     * @param array $components An array of alias => view mappings
-     * @return self Returns the current instance for method chaining
-     */
-    public function components(array $components): self
-    {
-        $this->componentManager->components($components);
-        return $this;
-    }
-
-    /**
-     * Add a path where component views are located
-     *
-     * @param string $path Path to component views
-     * @return self Returns the current instance for method chaining
-     */
-    public function addComponentPath(string $path): self
-    {
-        $this->componentManager->addComponentPath($path);
-        return $this;
-    }
-
-    /**
-     * Get the anonymous component manager
-     *
-     * @return AnonymousComponentManager The component manager instance
-     */
-    public function getComponentManager(): AnonymousComponentManager
-    {
-        return $this->componentManager;
-    }
-
-    /**
-     * Get all discovered components
-     *
-     * @return array Array of component name => view mappings
-     */
-    public function getDiscoveredComponents(): array
-    {
-        return $this->componentManager->getDiscoveredComponents();
     }
 
     /**
@@ -416,7 +214,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -484,13 +282,13 @@ class BladeService
      */
     public function compileViews(bool $force = false): array
     {
-        $compiler = $this->blade->compiler();
+        $compiler = $this->blade->getCompiler();
         $viewsPath = $this->config['viewsPath'];
         $files = $this->getBladeFiles($viewsPath);
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
@@ -560,4 +358,3 @@ class BladeService
         return $files;
     }
 }
-
