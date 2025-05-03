@@ -73,44 +73,19 @@ class BladeExtension
      * @param array $data The view data array.
      * @return array The data array, potentially with an `$errors` object added.
      */
+    /**
+     * Adds a simple error handling object, mimicking Laravel's `$errors` variable.
+     * Retrieves validation errors from the session ('errors' key) and makes them
+     * accessible in the view.
+     *
+     * @param array $data The view data array.
+     * @return array The data array, potentially with an `$errors` object added.
+     */
     protected function addErrorsHandler(array $data): array
     {
         $sessionErrors = session('errors');
         if (!isset($data['errors']) && !empty($sessionErrors) && is_array($sessionErrors)) {
-            $data['errors'] = new class($sessionErrors)
-            {
-                protected array $errors;
-
-                public function __construct(array $errors)
-                {
-                    $this->errors = $errors;
-                }
-
-                public function has(string $key): bool
-                {
-                    return isset($this->errors[$key]);
-                }
-
-                public function first(string $key): ?string
-                {
-                    return $this->errors[$key] ?? null;
-                }
-
-                public function getBag(string $key = 'default'): array
-                {
-                    return $this->errors;
-                }
-
-                public function any(): bool
-                {
-                    return !empty($this->errors);
-                }
-
-                public function all(): array
-                {
-                    return $this->errors;
-                }
-            };
+            $data['errors'] = new ErrorBag($sessionErrors);
         }
 
         return $data;
@@ -132,7 +107,7 @@ class BladeExtension
             $method = strtoupper(trim($expression, "()\"'"));
             return "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">";
         });
-        
+
         foreach ($this->methodMap as $directive => $method) {
             $blade->directive($directive, fn() => "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">");
         }
