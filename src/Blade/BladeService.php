@@ -2,6 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
+use Illuminate\Contracts\Foundation\Application;
 use Rcalicdan\Blade\Blade;
 use Rcalicdan\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
@@ -87,10 +88,8 @@ class BladeService
         // Create a container instance
         $container = new BladeContainer;
 
-        // Important: Bind the view factory interface to itself
-        $container->bind('Illuminate\Contracts\View\Factory', function ($container) {
-            return $container->get('view');
-        });
+        // Set up container bindings for Laravel's dependencies
+        $this->setupContainerBindings($container);
 
         $this->blade = new Blade(
             $this->config['viewsPath'],
@@ -115,6 +114,49 @@ class BladeService
 
         // Initialize the anonymous component manager
         $this->initializeComponentManager();
+    }
+
+    /**
+     * Set up all necessary container bindings for Laravel's View system
+     * 
+     * @param BladeContainer $container
+     * @return void
+     */
+    protected function setupContainerBindings(BladeContainer $container): void
+    {
+        // Bind the Application interface to the container itself
+        $container->bind('Illuminate\Contracts\Foundation\Application', function () use ($container) {
+            return $container;
+        });
+
+        // Make sure the container itself implements Application interface methods
+        if (!$container instanceof Application) {
+            // We need to make sure the container itself fulfills the Application contract
+            // Add missing methods to the container if they don't exist
+            if (!method_exists($container, 'basePath')) {
+                $container->instance('path.base', APPPATH);
+                $container->bind('basePath', function () use ($container) {
+                    return $container->get('path.base');
+                });
+            }
+
+            if (!method_exists($container, 'environment')) {
+                $container->bind('environment', function () {
+                    return ENVIRONMENT;
+                });
+            }
+
+            // Other required Application methods if needed
+        }
+
+        // Make sure View Factory interface is bound
+        $container->bind('Illuminate\Contracts\View\Factory', function ($container) {
+            return $container->get('view');
+        });
+
+        // Ensure necessary paths are registered
+        $container->instance('path.resources', $this->config['viewsPath']);
+        $container->instance('path.view', $this->config['viewsPath']);
     }
 
     /**
