@@ -109,11 +109,12 @@ class BladeService
     {
         $this->ensureCacheDirectory();
 
-        // Create a container instance
         $container = new BladeContainer;
-
-        // Set up container bindings for Laravel's dependencies
-        $this->setupContainerBindings($container);
+        
+        // Set up basic container bindings
+        $container->bind('Illuminate\Contracts\Foundation\Application', function() use ($container) {
+            return $container;
+        });
 
         $this->blade = new Blade(
             $this->config['viewsPath'],
@@ -121,8 +122,8 @@ class BladeService
             $container
         );
 
-        // Replace the component tag compiler with our custom one
-        $this->replaceComponentTagCompiler();
+        // Override Blade compiler with our custom one that uses a safe ComponentTagCompiler
+        $this->registerCustomCompiler();
 
         if (ENVIRONMENT === 'production') {
             try {
@@ -141,6 +142,33 @@ class BladeService
 
         // Initialize the anonymous component manager
         $this->initializeComponentManager();
+    }
+
+      /**
+     * Register a custom blade compiler that safely handles component tags
+     */
+    protected function registerCustomCompiler(): void
+    {
+        // Get the container from our Blade instance
+        $container = $this->blade->getContainer();
+        
+        // Create and register our custom compiler
+        $container->extend('blade.compiler', function ($originalCompiler, $container) {
+            // Create a new custom compiler
+            $customCompiler = new CustomBladeCompiler(
+                $container->make('files'),
+                $this->config['cachePath']
+            );
+            
+            // Copy over any directives or extensions from the original compiler
+            if (method_exists($originalCompiler, 'getCustomDirectives')) {
+                foreach ($originalCompiler->getCustomDirectives() as $name => $directive) {
+                    $customCompiler->directive($name, $directive);
+                }
+            }
+            
+            return $customCompiler;
+        });
     }
 
     /**
@@ -532,3 +560,4 @@ class BladeService
         return $files;
     }
 }
+
