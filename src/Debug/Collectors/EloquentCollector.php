@@ -29,13 +29,6 @@ class EloquentCollector extends BaseCollector
     protected $title = 'Eloquent';
 
     /**
-     * Toggle to display only duplicate queries
-     *
-     * @var bool
-     */
-    protected $showOnlyDuplicates = false;
-
-    /**
      * Get database query log
      */
     protected function getQueryLog(): array
@@ -43,10 +36,8 @@ class EloquentCollector extends BaseCollector
         try {
             if (ENVIRONMENT !== 'production') {
                 $log = Capsule::connection()->getQueryLog();
-
                 return $log;
             }
-
             return [];
         } catch (\Exception $e) {
             return [];
@@ -93,11 +84,12 @@ class EloquentCollector extends BaseCollector
             return $item['count'] - 1;
         }, $duplicates));
 
-        $toggleButton = $this->buildToggleButton($duplicateCount);
-        $tableHeader = $this->buildTableHeader();
-        $tableRows = $this->buildTableRows($queries, $duplicates);
+        $output = $this->buildSummarySection($duplicateCount);
+        $output .= $this->buildTableHeader();
+        $output .= $this->buildTableRows($queries, $duplicates);
+        $output .= '</tbody></table>';
 
-        return $toggleButton.$tableHeader.$tableRows.'</tbody></table>';
+        return $output;
     }
 
     /**
@@ -133,31 +125,22 @@ class EloquentCollector extends BaseCollector
         return $duplicates;
     }
 
-    private function buildToggleButton(int $duplicateCount): string
+    /**
+     * Build the summary section showing duplicate count
+     */
+    private function buildSummarySection(int $duplicateCount): string
     {
-        $showDuplicatesText = $this->showOnlyDuplicates ? 'Show All Queries' : 'Show Only Duplicates';
-        $buttonDisabled = $duplicateCount > 0 ? '' : 'disabled';
-        $currentState = $this->showOnlyDuplicates ? '1' : '0';
-        $buttonColor = $duplicateCount > 0 ? '#ffc107' : '#6c757d';
-        $textColor = $duplicateCount > 0 ? '#000' : '#fff';
-
-        $div = '<div style="margin-bottom: 15px;">';
-        $div .= '<span style="display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;">'.$duplicateCount.' Duplicate Queries</span>';
-        $div .= '<button style="padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; background-color: '.$buttonColor.'; color: '.$textColor.'; border: none;" ';
-        $div .= 'id="toggle-duplicates" onclick="toggleDuplicateQueries('.$currentState.')" '.$buttonDisabled.'>'.$showDuplicatesText.'</button>';
-        $div .= '<script>';
-        $div .= 'function toggleDuplicateQueries(currentState) {';
-        $div .= '  var url = new URL(window.location.href);';
-        $div .= '  var newState = currentState === 1 ? "0" : "1";';
-        $div .= '  url.searchParams.set("show_duplicates", newState);';
-        $div .= '  window.location.href = url.toString();';
-        $div .= '}';
-        $div .= '</script>';
-        $div .= '</div>';
-
-        return $div;
+        $summaryStyle = 'margin-bottom: 15px;';
+        $badgeStyle = 'display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;';
+        
+        return "<div style=\"{$summaryStyle}\">
+                    <span style=\"{$badgeStyle}\">{$duplicateCount} Duplicate Queries</span>
+                </div>";
     }
 
+    /**
+     * Build the table header
+     */
     private function buildTableHeader(): string
     {
         return <<<'HTML'
@@ -174,55 +157,43 @@ class EloquentCollector extends BaseCollector
         HTML;
     }
 
+    /**
+     * Build table rows showing all queries with their counts
+     */
     private function buildTableRows(array $queries, array $duplicates): string
     {
-        // Check URL parameter to toggle display mode
-        $this->showOnlyDuplicates = isset($_GET['show_duplicates']) && $_GET['show_duplicates'] === '1';
-
         $output = '';
         $index = 0;
+        
+        // Process all queries and highlight duplicates
+        foreach ($queries as $i => $query) {
+            $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
+            $duration = $this->calculateDuration($query);
+            $time = sprintf('%.2f ms', $duration);
 
-        if ($this->showOnlyDuplicates) {
-            // Show only duplicate queries
-            foreach ($duplicates as $sql => $info) {
-                $time = sprintf('%.2f ms', $info['total_time']);
+            $isDuplicate = isset($duplicates[$formattedSql]);
+            $count = $isDuplicate ? $duplicates[$formattedSql]['count'] : 1;
+            $rowStyle = $isDuplicate ? 'background-color: #fff8e1;' : ($i % 2 === 0 ? 'background-color: #f8f9fa;' : 'background-color: #ffffff;');
+            $countDisplay = $isDuplicate
+                ? sprintf('<span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span>', $count)
+                : '1';
 
-                $output .= sprintf(
-                    '<tr style="background-color: #fff8e1;"><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: center;"><span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span></td></tr>',
-                    ++$index,
-                    $time,
-                    htmlspecialchars($sql),
-                    $info['count']
-                );
-            }
-        } else {
-            // Show all queries with duplicate highlighting
-            foreach ($queries as $i => $query) {
-                $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);
-                $duration = $this->calculateDuration($query);
-                $time = sprintf('%.2f ms', $duration);
-
-                $isDuplicate = isset($duplicates[$formattedSql]);
-                $count = $isDuplicate ? $duplicates[$formattedSql]['count'] : 1;
-                $rowStyle = $isDuplicate ? 'background-color: #fff8e1;' : ($i % 2 === 0 ? 'background-color: #f8f9fa;' : 'background-color: #ffffff;');
-                $countDisplay = $isDuplicate
-                    ? sprintf('<span style="background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px;">%d</span>', $count)
-                    : '1';
-
-                $output .= sprintf(
-                    '<tr style="%s"><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: center;">%s</td></tr>',
-                    $rowStyle,
-                    ++$index,
-                    $time,
-                    htmlspecialchars($formattedSql),
-                    $countDisplay
-                );
-            }
+            $output .= sprintf(
+                '<tr style="%s"><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%d</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: right;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black;">%s</td><td style="padding: 8px; border-bottom: 1px solid #000000; color:black; text-align: center;">%s</td></tr>',
+                $rowStyle,
+                ++$index,
+                $time,
+                htmlspecialchars($formattedSql),
+                $countDisplay
+            );
         }
 
         return $output;
     }
 
+    /**
+     * Calculate query duration in milliseconds
+     */
     private function calculateDuration(array $query): float
     {
         $duration = match (true) {
