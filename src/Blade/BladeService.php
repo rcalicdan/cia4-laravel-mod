@@ -256,8 +256,7 @@ class BladeService
 
     /**
      * Generate a unique cache key for the view and its data.
-     * Ensures each logged-in user has completely isolated cache entries.
-     * Includes user context, role, permissions and time sensitivity factors.
+     * Uses a simplified approach focused on user separation.
      *
      * @param string $view The view identifier.
      * @param array $viewData The filtered data being passed to the view.
@@ -267,100 +266,47 @@ class BladeService
     {
         $session = session();
 
-        $userContext = '';
-        if ($session->has('auth_user_id')) {
-            $userId = $session->get('auth_user_id');
-            $userRole = $session->get('user_role') ?? 'default';
-            $permHash = md5(json_encode($session->get('permissions') ?? []));
-            $userContext = "user_{$userId}_role_{$userRole}_perm_{$permHash}_";
-        } elseif ($session->has('logged_in')) {
-            $userContext = 'logged_' . md5($session->session_id) . '_';
-        } else {
-            $userContext = 'public_';
-        }
+        // Simple user prefix - just user ID or 'public'
+        $prefix = $session->has('auth_user_id')
+            ? 'user_' . $session->get('auth_user_id')
+            : 'public';
 
-        $timeBucket = '';
-        if (!empty($viewData['time_sensitive']) && $viewData['time_sensitive'] === true) {
-            $timeBucket = 'day_' . date('Ymd') . '_';
-        }
+        // Create a basic hash of the view name and data
+        $contentHash = md5($view . serialize($viewData));
 
-        $baseKey = $view . serialize($viewData);
-        $secretKey = config('App')->cacheSecretKey ?? env('CACHE_SECRET_KEY', 'default-secret-change-me');
-        $signature = hash_hmac('sha256', $userContext . $timeBucket . $baseKey, $secretKey);
-
-        return $userContext . $timeBucket . md5($baseKey) . '_' . substr($signature, 0, 8);
+        return $prefix . '_' . $contentHash;
     }
 
     /**
      * Attempt to retrieve the rendered view output from the cache.
-     * Checks in-memory cache first, then persistent cache if enabled.
-     * Includes security verification to prevent unauthorized cache access.
+     * Simplified version focused on performance.
      *
      * @param string $cacheKey The cache key to look up.
-     * @return string|null The cached HTML output, or null if not found or unauthorized.
+     * @return string|null The cached HTML output, or null if not found.
      */
     private function getFromCache(string $cacheKey): ?string
     {
         $bladeConfig = $this->bladeConfigValues;
 
+        // Check in-memory cache first (fastest)
         if ($bladeConfig->useInMemoryCache && isset($this->viewCache[$cacheKey])) {
-            return $this->verifyUserCacheAccess($cacheKey, $this->viewCache[$cacheKey]);
+            return $this->viewCache[$cacheKey];
         }
 
+        // Check persistent cache if enabled
         if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
             $persistentCache = \Config\Services::cache();
             $cachedOutput = $persistentCache->get('view_' . $cacheKey);
 
             if ($cachedOutput !== null) {
-                $verifiedOutput = $this->verifyUserCacheAccess($cacheKey, $cachedOutput);
-
-                if ($verifiedOutput !== null && $bladeConfig->useInMemoryCache) {
+                // Store in memory cache for future fast access
+                if ($bladeConfig->useInMemoryCache) {
                     $this->viewCache[$cacheKey] = $cachedOutput;
                 }
-
-                return $verifiedOutput;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Verify user has permission to access the requested cache entry.
-     * Prevents unauthorized access to user-specific cached content.
-     *
-     * @param string $cacheKey The cache key being accessed.
-     * @param string $cachedOutput The cached content to return if authorized.
-     * @return string|null The cached content if authorized, null otherwise.
-     */
-    private function verifyUserCacheAccess(string $cacheKey, string $cachedOutput): ?string
-    {
-        $session = session();
-        $userId = $session->get('auth_user_id');
-
-        $isPublicCache = strpos($cacheKey, 'public_') === 0;
-
-        if ($isPublicCache) {
-            return $cachedOutput;
-        }
-
-        if ($userId) {
-            $userPrefix = "user_{$userId}_";
-            $isUserSpecificCache = strpos($cacheKey, $userPrefix) === 0;
-
-            if ($isUserSpecificCache) {
-                return $cachedOutput;
-            }
-        } elseif ($session->has('logged_in')) {
-            $sessionPrefix = 'logged_' . md5($session->session_id) . '_';
-            $isSessionSpecificCache = strpos($cacheKey, $sessionPrefix) === 0;
-
-            if ($isSessionSpecificCache) {
                 return $cachedOutput;
             }
         }
 
-        log_message('warning', "Cache access denied: " . substr($cacheKey, 0, 50));
         return null;
     }
 
@@ -382,7 +328,7 @@ class BladeService
 
         if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
             $session = session();
-            $hasUserContext = $session->has('auth_user_id') || $session->has('logged_in');
+            $hasUserContext = $session->has('auth_user_id');
             $cacheDuration = $hasUserContext
                 ? $bladeConfig->userViewCacheDuration
                 : $bladeConfig->publicViewCacheDuration;
@@ -439,28 +385,6 @@ class BladeService
         if ($userId) {
             $this->invalidateUserCache($userId);
         }
-
-        $sessionId = $session->session_id;
-        if ($sessionId) {
-            $sessionPrefix = 'logged_' . md5($sessionId) . '_';
-
-            if ($this->bladeConfigValues->usePersistentCache) {
-                $persistentCache = \Config\Services::cache();
-                $pattern = 'view_' . $sessionPrefix . '*';
-
-                if (method_exists($persistentCache, 'deleteMatching')) {
-                    $persistentCache->deleteMatching($pattern);
-                }
-            }
-
-            if ($this->bladeConfigValues->useInMemoryCache) {
-                foreach ($this->viewCache as $key => $value) {
-                    if (strpos($key, $sessionPrefix) === 0) {
-                        unset($this->viewCache[$key]);
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -468,9 +392,10 @@ class BladeService
      *
      * @param string $view The view identifier in dot notation.
      * @param array $data Additional data to be passed to the view.
+     * @param bool $debug Whether to include debug comments in the output.
      * @return string Rendered HTML string.
      */
-    public function render(string $view, array $data = []): string
+    public function render(string $view, array $data = [], bool $debug = false): string
     {
         $this->applyExtensions();
         $viewData = $this->prepareViewData($data);
@@ -483,13 +408,17 @@ class BladeService
         $cachedOutput = $this->getFromCache($cacheKey);
 
         if ($cachedOutput !== null) {
-            return $cachedOutput;
+            return $debug
+                ? $cachedOutput . '<!-- Cache hit: ' . $cacheKey . ' -->'
+                : $cachedOutput;
         }
 
         $result = $this->renderView($view, $viewData);
         $this->storeInCache($cacheKey, $result, $viewData);
 
-        return $result;
+        return $debug
+            ? $result . '<!-- Cache miss: ' . $cacheKey . ' -->'
+            : $result;
     }
 
     /**
