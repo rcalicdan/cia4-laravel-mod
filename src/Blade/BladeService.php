@@ -268,8 +268,8 @@ class BladeService
         $session = session();
 
         $userContext = '';
-        if ($session->has('user_id')) {
-            $userId = $session->get('user_id');
+        if ($session->has('auth_user_id')) {
+            $userId = $session->get('auth_user_id');
             $userRole = $session->get('user_role') ?? 'default';
             $permHash = md5(json_encode($session->get('permissions') ?? []));
             $userContext = "user_{$userId}_role_{$userRole}_perm_{$permHash}_";
@@ -336,7 +336,7 @@ class BladeService
     private function verifyUserCacheAccess(string $cacheKey, string $cachedOutput): ?string
     {
         $session = session();
-        $userId = $session->get('user_id');
+        $userId = $session->get('auth_user_id');
 
         $isPublicCache = strpos($cacheKey, 'public_') === 0;
 
@@ -382,7 +382,7 @@ class BladeService
 
         if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
             $session = session();
-            $hasUserContext = $session->has('user_id') || $session->has('logged_in');
+            $hasUserContext = $session->has('auth_user_id') || $session->has('logged_in');
             $cacheDuration = $hasUserContext
                 ? $bladeConfig->userViewCacheDuration
                 : $bladeConfig->publicViewCacheDuration;
@@ -434,7 +434,7 @@ class BladeService
     public function clearUserCacheOnLogout(): void
     {
         $session = session();
-        $userId = $session->get('user_id');
+        $userId = $session->get('auth_user_id');
 
         if ($userId) {
             $this->invalidateUserCache($userId);

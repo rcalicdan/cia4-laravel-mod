@@ -3,6 +3,7 @@
 namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use CodeIgniter\Session\Session;
+use Rcalicdan\Ci4Larabridge\Blade\BladeService;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 
 class Authentication
@@ -95,6 +96,10 @@ class Authentication
         $this->session->remove('auth_user_id');
         $this->session->regenerate(true);
 
+        $blade = new BladeService();
+        if (method_exists($blade, 'clearUserCacheOnLogout')) {
+            $blade->clearUserCacheOnLogout();
+        }
         return true;
     }
 }
