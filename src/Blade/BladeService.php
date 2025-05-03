@@ -255,87 +255,32 @@ class BladeService
     }
 
     /**
-     * Generate a unique cache key for the view and its data.
-     * Uses a simplified approach focused on user separation.
+     * Generate a simplified cache key focusing on performance.
      *
      * @param string $view The view identifier.
      * @param array $viewData The filtered data being passed to the view.
      * @return string The generated cache key.
      */
-    private function generateCacheKey(string $view, array $viewData): string
+    private function generateSimpleCacheKey(string $view, array $viewData): string
     {
         $session = session();
 
-        // Simple user prefix - just user ID or 'public'
         $prefix = $session->has('auth_user_id')
             ? 'user_' . $session->get('auth_user_id')
             : 'public';
 
-        // Create a basic hash of the view name and data
-        $contentHash = md5($view . serialize($viewData));
-
-        return $prefix . '_' . $contentHash;
-    }
-
-    /**
-     * Attempt to retrieve the rendered view output from the cache.
-     * Simplified version focused on performance.
-     *
-     * @param string $cacheKey The cache key to look up.
-     * @return string|null The cached HTML output, or null if not found.
-     */
-    private function getFromCache(string $cacheKey): ?string
-    {
-        $bladeConfig = $this->bladeConfigValues;
-
-        // Check in-memory cache first (fastest)
-        if ($bladeConfig->useInMemoryCache && isset($this->viewCache[$cacheKey])) {
-            return $this->viewCache[$cacheKey];
-        }
-
-        // Check persistent cache if enabled
-        if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
-            $persistentCache = \Config\Services::cache();
-            $cachedOutput = $persistentCache->get('view_' . $cacheKey);
-
-            if ($cachedOutput !== null) {
-                // Store in memory cache for future fast access
-                if ($bladeConfig->useInMemoryCache) {
-                    $this->viewCache[$cacheKey] = $cachedOutput;
-                }
-                return $cachedOutput;
+        $keyData = [];
+        foreach ($viewData as $key => $value) {
+            if (is_scalar($value) || is_null($value)) {
+                $keyData[$key] = $value;
+            } else {
+                // For complex objects/arrays, just use a type indicator and length or count
+                $keyData[$key] = gettype($value) . (is_array($value) ? count($value) : '');
             }
         }
 
-        return null;
-    }
-
-    /**
-     * Store the rendered view output in the configured caches.
-     *
-     * @param string $cacheKey The cache key.
-     * @param string $output The rendered HTML output to store.
-     * @param array $viewData The data used, needed to determine user context for duration.
-     * @return void
-     */
-    private function storeInCache(string $cacheKey, string $output, array $viewData): void
-    {
-        $bladeConfig = $this->bladeConfigValues;
-
-        if ($bladeConfig->useInMemoryCache) {
-            $this->viewCache[$cacheKey] = $output;
-        }
-
-        if ($bladeConfig->usePersistentCache && ENVIRONMENT === 'production') {
-            $session = session();
-            $hasUserContext = $session->has('auth_user_id');
-            $cacheDuration = $hasUserContext
-                ? $bladeConfig->userViewCacheDuration
-                : $bladeConfig->publicViewCacheDuration;
-
-            $persistentCache = \Config\Services::cache();
-            $persistentCache->save('view_' . $cacheKey, $output, $cacheDuration);
-        }
+        $contentHash = md5($view . json_encode($keyData));
+        return $prefix . '_' . $contentHash;
     }
 
     /**
@@ -351,22 +296,10 @@ class BladeService
             return;
         }
 
-        $bladeConfig = $this->bladeConfigValues;
-
-        if ($bladeConfig->usePersistentCache) {
-            $persistentCache = \Config\Services::cache();
-            $userCachePattern = 'view_user_' . $userId . '_*';
-
-            if (method_exists($persistentCache, 'deleteMatching')) {
-                $persistentCache->deleteMatching($userCachePattern);
-            }
-        }
-
-        if ($bladeConfig->useInMemoryCache) {
-            foreach ($this->viewCache as $key => $value) {
-                if (strpos($key, 'user_' . $userId . '_') === 0) {
-                    unset($this->viewCache[$key]);
-                }
+        $userPrefix = 'user_' . $userId . '_';
+        foreach ($this->viewCache as $key => $value) {
+            if (strpos($key, $userPrefix) === 0) {
+                unset($this->viewCache[$key]);
             }
         }
     }
@@ -388,7 +321,7 @@ class BladeService
     }
 
     /**
-     * Render a view with Blade, utilizing caching for improved performance.
+     * Render a view with Blade, utilizing in-memory caching for improved performance.
      *
      * @param string $view The view identifier in dot notation.
      * @param array $data Additional data to be passed to the view.
@@ -404,17 +337,16 @@ class BladeService
             return $this->renderView($view, $viewData);
         }
 
-        $cacheKey = $this->generateCacheKey($view, $viewData);
-        $cachedOutput = $this->getFromCache($cacheKey);
+        $cacheKey = $this->generateSimpleCacheKey($view, $viewData);
 
-        if ($cachedOutput !== null) {
+        if (isset($this->viewCache[$cacheKey])) {
             return $debug
-                ? $cachedOutput . '<!-- Cache hit: ' . $cacheKey . ' -->'
-                : $cachedOutput;
+                ? $this->viewCache[$cacheKey] . '<!-- Cache hit: ' . $cacheKey . ' -->'
+                : $this->viewCache[$cacheKey];
         }
 
         $result = $this->renderView($view, $viewData);
-        $this->storeInCache($cacheKey, $result, $viewData);
+        $this->viewCache[$cacheKey] = $result;
 
         return $debug
             ? $result . '<!-- Cache miss: ' . $cacheKey . ' -->'
