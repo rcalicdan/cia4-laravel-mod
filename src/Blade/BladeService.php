@@ -274,7 +274,6 @@ class BladeService
             if (is_scalar($value) || is_null($value)) {
                 $keyData[$key] = $value;
             } else {
-                // For complex objects/arrays, just use a type indicator and length or count
                 $keyData[$key] = gettype($value) . (is_array($value) ? count($value) : '');
             }
         }
