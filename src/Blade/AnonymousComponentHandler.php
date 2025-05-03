@@ -43,7 +43,7 @@ class AnonymousComponentHandler
     protected function setupDirectives(): void
     {
         $blade = $this->bladeService->getBlade();
-        $compiler = $blade->getCompiler();
+        $compiler = $blade->compiler();
         
         // Register component directives
         $compiler->directive('component', function ($expression) {
