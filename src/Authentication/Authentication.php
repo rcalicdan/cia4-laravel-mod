@@ -95,11 +95,7 @@ class Authentication
         $this->user = null;
         $this->session->remove('auth_user_id');
         $this->session->regenerate(true);
-
-        $blade = new BladeService();
-        if (method_exists($blade, 'clearUserCacheOnLogout')) {
-            $blade->clearUserCacheOnLogout();
-        }
+        
         return true;
     }
 }
