@@ -240,61 +240,59 @@ class BladeService
     {
         $this->applyExtensions();
 
-        // Merge and preprocess incoming data
-        $mergedData   = array_merge($this->viewData ?? [], $data);
-        $processed    = $this->processData($mergedData);
-        $filteredData = $this->filterInternalKeys($processed);
+        $mergedData = array_merge($this->viewData ?? [], $data);
+        $processedData = $this->processData($mergedData);
+        $filteredData = $this->filterInternalKeys($processedData);
 
-        // === Build a separate cache-key payload without any flash/msg entries ===
-        $cachePayload = $filteredData;
-        foreach (['alert', 'errors', 'flash', 'messages'] as $dynKey) {
-            if (array_key_exists($dynKey, $cachePayload)) {
-                unset($cachePayload[$dynKey]);
+        // Generate cache key
+        $cacheKey = md5($view . serialize($filteredData));
+
+        // Check for any flash data in the session
+        $session = session();
+        $hasFlashData = !empty($session->getFlashdata());
+
+        // Only use cache if there are no flash messages
+        if (!$hasFlashData) {
+            // Check in-memory cache first (fastest)
+            if (isset($this->viewCache[$cacheKey])) {
+                return $this->viewCache[$cacheKey];
+            }
+
+            // Then check persistent cache (still fast)
+            $persistentCache = \Config\Services::cache();
+            if (ENVIRONMENT === 'production' && $cachedOutput = $persistentCache->get('view_' . $cacheKey)) {
+                // Also store in memory cache for future use in this request
+                $this->viewCache[$cacheKey] = $cachedOutput;
+                return $cachedOutput;
             }
         }
-        $cacheKey = md5($view . serialize($cachePayload));
 
-        // In-memory cache check
-        if (isset($this->viewCache[$cacheKey])) {
-            return $this->viewCache[$cacheKey];
-        }
-
-        // Persistent cache check
-        $persistentCache = \Config\Services::cache();
-        if (
-            ENVIRONMENT === 'production'
-            && $cachedOutput = $persistentCache->get('view_' . $cacheKey)
-        ) {
-            $this->viewCache[$cacheKey] = $cachedOutput;
-            return $cachedOutput;
-        }
-
-        // Render fresh
+        // Render the view if not cached or has flash data
         try {
             $result = $this->blade->make($view, $filteredData)->render();
 
-            // Save into both caches
-            $this->viewCache[$cacheKey] = $result;
-            if (ENVIRONMENT === 'production') {
-                $persistentCache->save('view_' . $cacheKey, $result, 3600);
+            // Only cache if there are no flash messages
+            if (!$hasFlashData) {
+                $this->viewCache[$cacheKey] = $result;
+                if (ENVIRONMENT === 'production') {
+                    $persistentCache->save('view_' . $cacheKey, $result, 3600); // Cache for 1 hour
+                }
             }
 
             return $result;
         } catch (\Throwable $e) {
-            // Log more trace in non-prod, less in prod
-            $msg = "Blade rendering error in view [{$view}]: {$e->getMessage()}";
-            if (ENVIRONMENT !== 'production') {
-                $msg .= "\n" . $e->getTraceAsString();
+            if (ENVIRONMENT === 'production') {
+                log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}");
+            } else {
+                log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}\n{$e->getTraceAsString()}");
+                throw $e;
             }
-            log_message('error', $msg);
 
             return '<!-- View Rendering Error -->';
         } finally {
-            // Always reset viewData for the next call
             $this->viewData = [];
         }
     }
-
 
     /**
      * Get the Blade instance
