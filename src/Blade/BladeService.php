@@ -55,6 +55,11 @@ class BladeService
     protected bool $extensionsLoaded = false;
 
     /**
+     * @var AnonymousComponentHandler Handler for anonymous components
+     */
+    protected AnonymousComponentHandler $componentHandler;
+
+    /**
      * Initialize the BladeService with configuration
      */
     public function __construct()
@@ -70,6 +75,7 @@ class BladeService
         ];
 
         $this->initialize();
+        $this->componentHandler = new AnonymousComponentHandler($this);
     }
 
     /**
@@ -93,7 +99,7 @@ class BladeService
                     return false; // Never recompile in production for optimal performance
                 });
             } catch (\Exception $e) {
-                log_message('warning', 'Unable to set compiler expiration check: '.$e->getMessage());
+                log_message('warning', 'Unable to set compiler expiration check: ' . $e->getMessage());
             }
         }
 
@@ -101,6 +107,76 @@ class BladeService
             $this->config['componentNamespace'],
             $this->config['componentPath']
         );
+    }
+
+    /**
+     * Add a path to discover components from
+     *
+     * @param string $path Directory path containing blade components
+     * @return self
+     */
+    public function addComponentsPath(string $path): self
+    {
+        $this->componentHandler->addComponentsPath($path);
+        return $this;
+    }
+
+    /**
+     * Register a component manually
+     *
+     * @param string $name Component name
+     * @param string $viewPath View path for the component
+     * @return self
+     */
+    public function registerComponent(string $name, string $viewPath): self
+    {
+        $this->componentHandler->registerComponent($name, $viewPath);
+        return $this;
+    }
+
+    /**
+     * Register multiple components
+     *
+     * @param array $components Array of component name => view path
+     * @return self
+     */
+    public function registerComponents(array $components): self
+    {
+        $this->componentHandler->registerComponents($components);
+        return $this;
+    }
+
+    /**
+     * Render a component by name
+     *
+     * @param string $name Component name
+     * @param array $data Component data
+     * @return string Rendered component
+     */
+    public function renderComponent(string $name, array $data = []): string
+    {
+        return $this->componentHandler->renderComponent($name, $data);
+    }
+
+    /**
+     * Refresh component discovery
+     *
+     * @return self
+     */
+    public function refreshComponents(): self
+    {
+        $this->componentHandler->refresh();
+        return $this;
+    }
+
+    /**
+     * Get all registered components
+     *
+     * @return array
+     */
+    public function getRegisteredComponents(): array
+    {
+        return $this->componentHandler->getComponents();
     }
 
     /**
@@ -214,7 +290,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -288,7 +364,7 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath.'/', '', $file);
+            $relativePath = str_replace($viewsPath . '/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
