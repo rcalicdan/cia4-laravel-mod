@@ -244,20 +244,30 @@ class BladeService
         $processedData = $this->processData($mergedData);
         $filteredData = $this->filterInternalKeys($processedData);
 
-        // Generate a cache key for this view and data
+        // Generate cache key
         $cacheKey = md5($view . serialize($filteredData));
 
-        // Check if we have a cached version in production
-        if (ENVIRONMENT === 'production' && isset($this->viewCache[$cacheKey])) {
+        // Check in-memory cache first (fastest)
+        if (isset($this->viewCache[$cacheKey])) {
             return $this->viewCache[$cacheKey];
         }
 
+        // Then check persistent cache (still fast)
+        $persistentCache = \Config\Services::cache();
+        if (ENVIRONMENT === 'production' && $cachedOutput = $persistentCache->get('view_' . $cacheKey)) {
+            // Also store in memory cache for future use in this request
+            $this->viewCache[$cacheKey] = $cachedOutput;
+            return $cachedOutput;
+        }
+
+        // Render the view if not cached
         try {
             $result = $this->blade->make($view, $filteredData)->render();
 
-            // Cache the result in production
+            // Store in both caches
+            $this->viewCache[$cacheKey] = $result;
             if (ENVIRONMENT === 'production') {
-                $this->viewCache[$cacheKey] = $result;
+                $persistentCache->save('view_' . $cacheKey, $result, 3600); // Cache for 1 hour
             }
 
             return $result;
