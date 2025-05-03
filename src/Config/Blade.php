@@ -43,34 +43,6 @@ class Blade extends BaseConfig
     public $componentPath = APPPATH . 'Views/components';
 
     /**
-     * Determines whether to check for template recompilation in production.
-     *
-     * When set to false, templates are not recompiled on change, and the cache does
-     * not expire, improving performance in production environments.
-     *
-     * @var bool
-     */
-    public $checksCompilationInProduction = false;
-
-    /**
-     * Paths where anonymous components are located.
-     * Components will be auto-discovered from these paths.
-     */
-    public $anonymousComponentPaths = [
-        APPPATH . 'Views/components',
-    ];
-
-    /**
-     * Explicitly registered anonymous components.
-     * These will override auto-discovered components with the same name.
-     * Format: 'alias' => 'view-name'
-     */
-    public $anonymousComponents = [
-        // 'alert' => 'components.alert',
-        // Only specify components that need custom aliases or aren't in standard locations
-    ];
-
-    /**
      * Registers custom Blade directives.
      *
      * Allows developers to define custom directives for the Blade templating engine.

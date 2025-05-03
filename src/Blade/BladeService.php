@@ -40,11 +40,6 @@ class BladeService
     protected array $viewData = [];
 
     /**
-     * @var array Cached rendered views for improved performance
-     */
-    protected array $viewCache = [];
-
-    /**
      * @var array Cache for file existence checks to reduce I/O operations
      */
     protected array $fileExistsCache = [];
@@ -53,11 +48,6 @@ class BladeService
      * @var bool Flag indicating whether extensions have been loaded
      */
     protected bool $extensionsLoaded = false;
-
-    /**
-     * @var AnonymousComponentHandler Handler for anonymous components
-     */
-    protected AnonymousComponentHandler $componentHandler;
 
     /**
      * Initialize the BladeService with configuration
@@ -71,11 +61,9 @@ class BladeService
             'cachePath' => $this->bladeConfigValues->cachePath,
             'componentNamespace' => $this->bladeConfigValues->componentNamespace,
             'componentPath' => $this->bladeConfigValues->componentPath,
-            'checksCompilationInProduction' => $this->bladeConfigValues->checksCompilationInProduction ?? false,
         ];
 
         $this->initialize();
-        $this->componentHandler = new AnonymousComponentHandler($this);
     }
 
     /**
@@ -93,90 +81,10 @@ class BladeService
             $container
         );
 
-        if (ENVIRONMENT === 'production') {
-            try {
-                $this->blade->getCompiler()->setIsExpired(function (): bool {
-                    return false; // Never recompile in production for optimal performance
-                });
-            } catch (\Exception $e) {
-                log_message('warning', 'Unable to set compiler expiration check: ' . $e->getMessage());
-            }
-        }
-
         $this->blade->addNamespace(
             $this->config['componentNamespace'],
             $this->config['componentPath']
         );
-    }
-
-    /**
-     * Add a path to discover components from
-     *
-     * @param string $path Directory path containing blade components
-     * @return self
-     */
-    public function addComponentsPath(string $path): self
-    {
-        $this->componentHandler->addComponentsPath($path);
-        return $this;
-    }
-
-    /**
-     * Register a component manually
-     *
-     * @param string $name Component name
-     * @param string $viewPath View path for the component
-     * @return self
-     */
-    public function registerComponent(string $name, string $viewPath): self
-    {
-        $this->componentHandler->registerComponent($name, $viewPath);
-        return $this;
-    }
-
-    /**
-     * Register multiple components
-     *
-     * @param array $components Array of component name => view path
-     * @return self
-     */
-    public function registerComponents(array $components): self
-    {
-        $this->componentHandler->registerComponents($components);
-        return $this;
-    }
-
-    /**
-     * Render a component by name
-     *
-     * @param string $name Component name
-     * @param array $data Component data
-     * @return string Rendered component
-     */
-    public function renderComponent(string $name, array $data = []): string
-    {
-        return $this->componentHandler->renderComponent($name, $data);
-    }
-
-    /**
-     * Refresh component discovery
-     *
-     * @return self
-     */
-    public function refreshComponents(): self
-    {
-        $this->componentHandler->refresh();
-        return $this;
-    }
-
-    /**
-     * Get all registered components
-     *
-     * @return array
-     */
-    public function getRegisteredComponents(): array
-    {
-        return $this->componentHandler->getComponents();
     }
 
     /**
