@@ -3,10 +3,14 @@
 namespace Rcalicdan\Ci4Larabridge\Providers;
 
 use Rcalicdan\Blade\Blade;
+use DOMDocument;
+use DOMXPath;
+use DOMNode;
+use DOMElement;
 
 /**
  * Provides custom component tag syntax support (<h-component>) for Blade templates
- * without relying on Laravel's container or dependency injection.
+ * using DOMDocument for robust parsing.
  */
 class ComponentTagCompilerProvider
 {
@@ -30,90 +34,226 @@ class ComponentTagCompilerProvider
         });
     }
 
+    /**
+     * Process all component tags in the template
+     */
     public function processComponentTags(string $content): string
     {
-        // Debug the content to make sure we have the complete HTML
-        file_put_contents(WRITEPATH . 'logs/content_debug.log', $content, FILE_APPEND);
+        // Create a valid XML document by wrapping content in a root element
+        // and adding CDATA sections around blade directives to prevent parsing errors
+        $wrappedContent = $this->prepareContentForDOM($content);
 
-        // First, properly identify all h-tags (just for logging)
-        preg_match_all('/<h-[^>]*(?:>|\/>)/s', $content, $allTags);
-        file_put_contents(
-            WRITEPATH . 'logs/all_h_tags.log',
-            "All h- tags: " . json_encode($allTags[0]) . "\n",
-            FILE_APPEND
-        );
+        // Load the document
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->loadXML($wrappedContent, LIBXML_NOERROR | LIBXML_HTML_NODEFDTD);
+
+        // Create XPath object to query for components
+        $xpath = new DOMXPath($dom);
 
         // Process slots first
-        $content = $this->compileSlots($content);
+        $this->processSlotTags($xpath);
 
-        // Process self-closing tags
-        $content = $this->compileSelfClosingTags($content);
+        // Process self-closing components
+        $this->processSelfClosingTags($xpath);
 
         // Process standard component tags
-        $content = $this->compileStandardComponentTags($content);
+        $this->processStandardComponentTags($xpath);
+
+        // Extract content from wrapper
+        $processedContent = $this->extractContentFromDOM($dom);
+
+        return $processedContent;
+    }
+
+    /**
+     * Prepare template content for DOM parsing by protecting Blade syntax
+     */
+    protected function prepareContentForDOM(string $content): string
+    {
+        // Replace Blade directives with placeholders
+        $content = preg_replace_callback('/@(.*?)(?:\s|\(|$)/m', function ($matches) {
+            return '<!--BLADE_DIRECTIVE:' . base64_encode($matches[0]) . '-->';
+        }, $content);
+
+        // Replace Blade expressions with placeholders
+        $content = preg_replace_callback('/\{\{(.*?)\}\}/s', function ($matches) {
+            return '<!--BLADE_EXPR:' . base64_encode($matches[0]) . '-->';
+        }, $content);
+
+        // Replace Blade raw expressions with placeholders
+        $content = preg_replace_callback('/\{!!(.*?)!!\}/s', function ($matches) {
+            return '<!--BLADE_RAW:' . base64_encode($matches[0]) . '-->';
+        }, $content);
+
+        // Wrap in a root element for proper XML parsing
+        return '<root>' . $content . '</root>';
+    }
+
+    /**
+     * Extract processed content from DOM and restore Blade syntax
+     */
+    protected function extractContentFromDOM(DOMDocument $dom): string
+    {
+        // Get inner content of root
+        $content = '';
+        foreach ($dom->documentElement->childNodes as $node) {
+            $content .= $dom->saveXML($node);
+        }
+
+        // Restore Blade directives
+        $content = preg_replace_callback('/<!--BLADE_DIRECTIVE:(.*?)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $content);
+
+        // Restore Blade expressions
+        $content = preg_replace_callback('/<!--BLADE_EXPR:(.*?)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $content);
+
+        // Restore Blade raw expressions
+        $content = preg_replace_callback('/<!--BLADE_RAW:(.*?)-->/', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $content);
 
         return $content;
     }
 
     /**
-     * Compile slot tags within components
+     * Process slot tags within components
      */
-    protected function compileSlots(string $content): string
+    protected function processSlotTags(DOMXPath $xpath): void
     {
-        $pattern = '/<h-slot\s+name=(["\'])(.*?)\1\s*(?:[^>]*)>(.*?)<\/h-slot>/s';
+        $slotNodes = $xpath->query('//h-slot');
 
-        return preg_replace_callback($pattern, function ($matches) {
-            $name = $matches[2];
-            $content = $matches[3];
+        // Process in reverse to avoid issues with changing DOM structure
+        for ($i = $slotNodes->length - 1; $i >= 0; $i--) {
+            $slotNode = $slotNodes->item($i);
+            if (!$slotNode instanceof DOMElement) continue;
 
-            return "@slot('{$name}'){$content}@endslot";
-        }, $content);
+            $name = $slotNode->getAttribute('name');
+
+            // Create slot directive nodes
+            $startSlot = $slotNode->ownerDocument->createTextNode("@slot('{$name}')");
+            $endSlot = $slotNode->ownerDocument->createTextNode('@endslot');
+
+            // Replace slot tag with directives and its content
+            $parent = $slotNode->parentNode;
+
+            // Insert start directive
+            $parent->insertBefore($startSlot, $slotNode);
+
+            // Move all child nodes after the start directive
+            while ($slotNode->firstChild) {
+                $parent->insertBefore($slotNode->firstChild, $slotNode);
+            }
+
+            // Insert end directive
+            $parent->insertBefore($endSlot, $slotNode);
+
+            // Remove original slot tag
+            $parent->removeChild($slotNode);
+        }
     }
 
-    protected function compileSelfClosingTags(string $content): string
+    /**
+     * Process self-closing component tags
+     */
+    protected function processSelfClosingTags(DOMXPath $xpath): void
     {
-        // Updated pattern to more reliably match self-closing tags
-        $pattern = '/<h-([a-z0-9\-:.]+)\s*(.*?)(\/)?>/s';
+        // Find all h- prefixed elements that are self-closing (no children)
+        $componentNodes = $xpath->query('//*[starts-with(local-name(), "h-") and not(*) and not(text()[normalize-space()])]');
 
-        return preg_replace_callback($pattern, function ($matches) use ($content) {
-            $component = $matches[1];
-            $attributesString = $matches[2];
-            $isSelfClosing = !empty($matches[3]) || strpos($content, "</h-{$component}>") === false;
+        for ($i = $componentNodes->length - 1; $i >= 0; $i--) {
+            $componentNode = $componentNodes->item($i);
+            if (!$componentNode instanceof DOMElement) continue;
 
-            // Debug capture
-            file_put_contents(
-                WRITEPATH . 'logs/tag_debug.log',
-                "Component: $component\nAttributes: $attributesString\nSelf-closing: " .
-                    ($isSelfClosing ? 'true' : 'false') . "\n\n",
-                FILE_APPEND
-            );
+            $componentName = substr($componentNode->nodeName, 2); // Remove 'h-' prefix
+            $attributes = $this->extractAttributes($componentNode);
+            $componentPath = $this->resolveComponentPath($componentName);
 
-            $attributes = $this->parseAttributes($attributesString);
-            $componentPath = $this->resolveComponentPath($component);
+            // Create component directive
+            $directive = "@component('{$componentPath}', {$attributes}, true)";
+            $newNode = $componentNode->ownerDocument->createTextNode($directive);
 
-            file_put_contents(
-                WRITEPATH . 'logs/component_tags.log',
-                "Component: $component\nAttributes: $attributes\nPath: $componentPath\n\n",
-                FILE_APPEND
-            );
-
-            return "@component('{$componentPath}', {$attributes}, true)";
-        }, $content);
+            // Replace component tag with directive
+            $componentNode->parentNode->replaceChild($newNode, $componentNode);
+        }
     }
 
-    protected function compileStandardComponentTags(string $content): string
+    /**
+     * Process standard component tags with content
+     */
+    protected function processStandardComponentTags(DOMXPath $xpath): void
     {
-        // Updated pattern to capture component content properly
-        $pattern = '/<h-([a-z0-9\-:.]+)\s*(.*?)>(.*?)<\/h-\1>/s';
+        // Find all remaining h- prefixed elements (ones with content)
+        $componentNodes = $xpath->query('//*[starts-with(local-name(), "h-")]');
 
-        return preg_replace_callback($pattern, function ($matches) {
-            $component = $matches[1];
-            $attributes = $this->parseAttributes($matches[2]);
-            $content = $matches[3];
-            $componentPath = $this->resolveComponentPath($component);
+        for ($i = $componentNodes->length - 1; $i >= 0; $i--) {
+            $componentNode = $componentNodes->item($i);
+            if (!$componentNode instanceof DOMElement) continue;
 
-            return "@component('{$componentPath}', {$attributes}){$content}@endcomponent";
-        }, $content);
+            $componentName = substr($componentNode->nodeName, 2); // Remove 'h-' prefix
+            $attributes = $this->extractAttributes($componentNode);
+            $componentPath = $this->resolveComponentPath($componentName);
+
+            // Get parent node for insertion
+            $parent = $componentNode->parentNode;
+
+            // Create start directive
+            $startDirective = $componentNode->ownerDocument->createTextNode("@component('{$componentPath}', {$attributes})");
+            $parent->insertBefore($startDirective, $componentNode);
+
+            // Move component's children after the start directive
+            while ($componentNode->firstChild) {
+                $parent->insertBefore($componentNode->firstChild, $componentNode);
+            }
+
+            // Create end directive
+            $endDirective = $componentNode->ownerDocument->createTextNode('@endcomponent');
+            $parent->insertBefore($endDirective, $componentNode);
+
+            // Remove original component tag
+            $parent->removeChild($componentNode);
+        }
+    }
+
+    /**
+     * Extract all attributes from a component DOM element
+     */
+    protected function extractAttributes(DOMElement $element): string
+    {
+        $attributes = [];
+
+        // Process all attributes on the element
+        foreach ($element->attributes as $attr) {
+            $name = $attr->nodeName;
+            $value = $attr->nodeValue;
+
+            // Handle different attribute types
+            if (strpos($name, ':') === 0) {
+                // Bound attribute (:prop="expression")
+                $name = substr($name, 1);
+                $attributes[$name] = $value; // Already PHP expression
+            } elseif (preg_match('/^\{\{(.*)\}\}$/', $value, $matches)) {
+                // Blade expression (prop="{{ expression }}")
+                $attributes[$name] = trim($matches[1]);
+            } else {
+                // Regular string attribute
+                $attributes[$name] = "'" . addslashes($value) . "'";
+            }
+        }
+
+        // Build attributes array string
+        $result = '[';
+        foreach ($attributes as $key => $value) {
+            $result .= "'" . addslashes($key) . "' => " . $value . ", ";
+        }
+        if (!empty($attributes)) {
+            $result = rtrim($result, ', ');
+        }
+        $result .= ']';
+
+        return $result;
     }
 
     /**
@@ -138,84 +278,5 @@ class ComponentTagCompilerProvider
 
         // Default to components namespace
         return $this->componentNamespace . '::' . $component;
-    }
-
-    protected function parseAttributes(string $attributeString): string
-    {
-        $attributes = [];
-
-        // Log the raw attribute string for debugging
-        file_put_contents(
-            WRITEPATH . 'logs/attr_raw.log',
-            "Raw: " . $attributeString . "\n",
-            FILE_APPEND
-        );
-
-        // Normalize spaces
-        $attributeString = trim(preg_replace('/\s+/', ' ', $attributeString));
-
-        // Match Blade expressions: name="{{ expression }}"
-        if (preg_match_all('/([a-zA-Z0-9_-]+)=(["\'])\{\{(.*?)\}\}\2/s', $attributeString, $bladeMatches, PREG_SET_ORDER)) {
-            foreach ($bladeMatches as $match) {
-                $attrName = $match[1];
-                $expression = trim($match[3]);
-                $attributes[$attrName] = $expression; // PHP expression
-                // Remove from string for next stages
-                $attributeString = str_replace($match[0], '', $attributeString);
-            }
-        }
-
-        // Match bound attributes: :name="expression"
-        if (preg_match_all('/:([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/s', $attributeString, $boundMatches, PREG_SET_ORDER)) {
-            foreach ($boundMatches as $match) {
-                $attrName = $match[1];
-                $expression = $match[3];
-                $attributes[$attrName] = $expression; // Already PHP code
-                // Remove from string for next stages
-                $attributeString = str_replace($match[0], '', $attributeString);
-            }
-        }
-
-        // Match regular attributes: name="value"
-        if (preg_match_all('/([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/s', $attributeString, $regularMatches, PREG_SET_ORDER)) {
-            foreach ($regularMatches as $match) {
-                if (!isset($attributes[$match[1]])) {
-                    $attributes[$match[1]] = "'" . addslashes($match[3]) . "'";
-                }
-                // Remove from string for next stages
-                $attributeString = str_replace($match[0], '', $attributeString);
-            }
-        }
-
-        // Match boolean attributes (what's left)
-        $attributeString = trim($attributeString);
-        if (!empty($attributeString)) {
-            $booleanAttrs = preg_split('/\s+/', $attributeString);
-            foreach ($booleanAttrs as $attr) {
-                if (!empty($attr) && !isset($attributes[$attr])) {
-                    $attributes[$attr] = 'true';
-                }
-            }
-        }
-
-        // Build the attributes array string
-        $result = '[';
-        foreach ($attributes as $key => $value) {
-            $result .= "'" . addslashes($key) . "' => " . $value . ", ";
-        }
-        if (!empty($attributes)) {
-            $result = rtrim($result, ', ');
-        }
-        $result .= ']';
-
-        // Debug the parsed result
-        file_put_contents(
-            WRITEPATH . 'logs/component_attributes.log',
-            "Original: " . $attributeString . "\n" .
-                "Parsed: " . $result . "\n",
-            FILE_APPEND
-        );
-
-        return $result;
     }
 }
