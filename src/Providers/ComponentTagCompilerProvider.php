@@ -140,42 +140,68 @@ class ComponentTagCompilerProvider
     {
         $attributes = [];
 
-        // Match bound attributes with :name="expression" 
+        // ---> ADD THIS SECTION <---
+        // Match attributes with Blade echo syntax: name="{{ expression }}"
+        // Important: Do this *before* matching regular attributes
+        if (preg_match_all('/\s([a-zA-Z0-9_-]+)=["\']\{\{\s*(.*?)\s*\}\}["\']/i', $attributeString, $bladeEchoMatches, PREG_SET_ORDER)) {
+            foreach ($bladeEchoMatches as $match) {
+                $attrName = $match[1];
+                $expression = trim($match[2]); // The content inside {{ }}
+                // Ensure it's treated as a PHP expression, not a string
+                $attributes[$attrName] = $expression;
+                // Remove processed attribute to prevent double processing
+                $attributeString = str_replace($match[0], '', $attributeString);
+            }
+        }
+        // ---> END ADDED SECTION <---
+
+
+        // Match bound attributes with :name="expression"
         if (preg_match_all('/\s:([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $attributeString, $boundMatches, PREG_SET_ORDER)) {
+            // ... (rest of the existing bound attribute logic) ...
             foreach ($boundMatches as $match) {
-                // The raw expression without wrapping quotes - already a PHP expression
                 $attrName = $match[1];
                 $expression = $match[3];
-
-                // Don't add extra quotes for bound expressions - they're already PHP code
-                $attributes[$attrName] = $expression;
-
-                // Remove processed bound attributes to avoid double-processing
+                $attributes[$attrName] = $expression; // Already PHP code
                 $attributeString = str_replace($match[0], '', $attributeString);
             }
         }
 
 
-        // Match regular attributes with name="value"
+        // Match regular attributes with name="value" (ensure it doesn't re-match processed ones)
         if (preg_match_all('/\s([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $attributeString, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $attributes[$match[1]] = "'" . addslashes($match[3]) . "'";
+                // Only add if not already processed as bound or echo
+                if (!isset($attributes[$match[1]])) {
+                    $attributes[$match[1]] = "'" . addslashes($match[3]) . "'";
+                }
+                // Still remove from string to prepare for boolean check
+                $attributeString = str_replace($match[0], '', $attributeString);
             }
         }
 
-        // Match boolean attributes (without values)
-        if (preg_match_all('/\s([a-zA-Z0-9_-]+)(?=\s|$)/i', $attributeString, $boolMatches, PREG_SET_ORDER)) {
-            foreach ($boolMatches as $match) {
-                if (! isset($attributes[$match[1]])) {
-                    $attributes[$match[1]] = 'true';
+        // Match boolean attributes (clean up remaining string first)
+        $cleanedAttributeString = trim(preg_replace('/\s+/', ' ', $attributeString)); // Normalize spaces
+        if (preg_match_all('/([a-zA-Z0-9_-]+)/i', $cleanedAttributeString, $boolMatches)) {
+            foreach ($boolMatches[1] as $match) {
+                if (! isset($attributes[$match])) { // Check if already set by previous regex
+                    $attributes[$match] = 'true';
                 }
             }
         }
 
+
         // Convert to PHP array code
         $result = '[';
         foreach ($attributes as $key => $value) {
-            $result .= "'$key' => $value, ";
+            // Use Str::studly or similar for camelCase conversion if needed for props
+            // $propName = \Illuminate\Support\Str::camel($key);
+            $propName = $key; // Keep original key for now
+            $result .= "'$propName' => $value, ";
+        }
+        // Remove trailing comma and space if attributes exist
+        if (!empty($attributes)) {
+            $result = rtrim($result, ', ');
         }
         $result .= ']';
 
