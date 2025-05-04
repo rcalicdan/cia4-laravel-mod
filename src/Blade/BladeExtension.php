@@ -4,6 +4,7 @@ namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Rcalicdan\Blade\Blade;
 use Rcalicdan\Ci4Larabridge\Providers\ComponentDirectiveProvider;
+use Rcalicdan\Ci4Larabridge\Providers\ComponentTagCompilerProvider;
 
 /**
  * Provides high-performance CodeIgniter-specific integrations for the Blade templating engine.
@@ -57,6 +58,9 @@ class BladeExtension
 
         $componentProvider = new ComponentDirectiveProvider;
         $componentProvider->register($blade);
+
+        $componentTagCompiler = new ComponentTagCompilerProvider();
+        $componentTagCompiler->register($blade);
     }
 
     // ======================================================================
