@@ -35,11 +35,10 @@ class ComponentTagCompilerProvider
      */
     public function processComponentTags(string $content): string
     {
-        file_put_contents(
-            WRITEPATH . 'logs/component_processing.log',
-            "Processing content: " . substr($content, 0, 100) . "...\n",
-            FILE_APPEND
-        );
+        preg_match_all('/<h-[^>]*>/', $content, $allTags);
+        file_put_contents(WRITEPATH . 'logs/all_h_tags.log', 
+                         "All h- tags: " . json_encode($allTags[0]) . "\n", 
+                         FILE_APPEND);
         // Process slots first
         $content = $this->compileSlots($content);
 
@@ -72,16 +71,13 @@ class ComponentTagCompilerProvider
      */
     protected function compileSelfClosingTags(string $content): string
     {
-        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)\/>/i';
-        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)\/>/i';
-        $matches = [];
-        preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
-        // Debug logging
-        file_put_contents(
-            WRITEPATH . 'logs/component_matches.log',
-            "Found matches: " . json_encode($matches) . "\n",
-            FILE_APPEND
-        );
+        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)(?:\/?>)/i';
+    
+        // Debug logging - log the content too
+        file_put_contents(WRITEPATH . 'logs/component_debug.log', 
+                         "Content sample: " . substr($content, 0, 500) . "\n" .
+                         "Pattern: " . $pattern . "\n", 
+                         FILE_APPEND);
 
         return preg_replace_callback($pattern, function ($matches) {
             $component = $matches[1];
