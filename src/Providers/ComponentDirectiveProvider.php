@@ -101,15 +101,15 @@ class ComponentDirectiveProvider
         $phpSetupCode = $this->_generateComponentSetupCode($componentPath, $parsed['attributes']);
 
         if ($parsed['isSelfClosing']) {
-            return '<?php '.$phpSetupCode.
-                "\$__componentData['slot'] = ''; ".
-                'echo blade_view($__componentPath, $__componentData, true); '.
-                'unset($__componentPath, $__componentAttributes, $__componentData, $__definedVars, $__internalVars); '.
+            return '<?php ' . $phpSetupCode .
+                "\$__componentData['slot'] = ''; " .
+                'echo blade_view($__componentPath, $__componentData, true); ' .
+                'unset($__componentPath, $__componentAttributes, $__componentData, $__definedVars, $__internalVars); ' .
                 '?>';
         } else {
-            return '<?php '.$phpSetupCode.
-                "\$__componentSlot = ''; ".
-                'ob_start(); '.
+            return '<?php ' . $phpSetupCode .
+                "\$__componentSlot = ''; " .
+                'ob_start(); ' .
                 '?>';
         }
     }
@@ -127,7 +127,7 @@ class ComponentDirectiveProvider
         return "<?php \$__componentSlot = ob_get_clean();
                  \$__componentData['slot'] = \$__componentSlot;
                  echo blade_view(\$__componentPath, \$__componentData, true);
-                 unset(\$__componentPath, \$__componentAttributes, \$__componentData, \$__componentSlot, \$__definedVars, \$__internalVars); ".
+                 unset(\$__componentPath, \$__componentAttributes, \$__componentData, \$__componentSlot, \$__definedVars, \$__internalVars); " .
             '?>';
     }
 
@@ -225,7 +225,7 @@ class ComponentDirectiveProvider
         $componentNamespace = 'components';
 
         if (\str_starts_with($componentName, 'x-')) { // PHP 8+ required
-            return $componentNamespace.'::'.substr($componentName, 2);
+            return $componentNamespace . '::' . substr($componentName, 2);
         }
 
         return $componentName;
@@ -253,11 +253,11 @@ class ComponentDirectiveProvider
         $phpCode .= '$__definedVars = get_defined_vars(); ';
         $phpCode .= "\$__internalVars = json_decode('{$internalVarsJson}', true); ";
         $phpCode .= 'foreach(array_keys($__definedVars) as $__key) { ';
-        $phpCode .= "if (\\str_starts_with(\$__key, '__') || in_array(\$__key, \$__internalVars)) { unset(\$__definedVars[\$__key]); } "; // PHP 8+ required
+        $phpCode .= "if (\\str_starts_with(\$__key, '__') || in_array(\$__key, \$__internalVars)) { unset(\$__definedVars[\$__key]); } ";
         $phpCode .= '} ';
         $phpCode .= '$__componentData = array_merge($__definedVars, $__componentAttributes); ';
         $phpCode .= "\$__finalFilterKeys = json_decode('{$finalFilterKeysJson}', true); ";
-        $phpCode .= '$__componentData = array_filter($__componentData, fn($key) => !in_array($key, $__finalFilterKeys), ARRAY_FILTER_USE_KEY); ';
+        $phpCode .= '$__componentData = array_filter($__componentData, function($key) use ($__finalFilterKeys) { return !in_array($key, $__finalFilterKeys); }, ARRAY_FILTER_USE_KEY); ';
 
         return $phpCode;
     }
