@@ -36,9 +36,11 @@ class ComponentTagCompilerProvider
     public function processComponentTags(string $content): string
     {
         preg_match_all('/<h-[^>]*>/', $content, $allTags);
-        file_put_contents(WRITEPATH . 'logs/all_h_tags.log', 
-                         "All h- tags: " . json_encode($allTags[0]) . "\n", 
-                         FILE_APPEND);
+        file_put_contents(
+            WRITEPATH . 'logs/all_h_tags.log',
+            "All h- tags: " . json_encode($allTags[0]) . "\n",
+            FILE_APPEND
+        );
         // Process slots first
         $content = $this->compileSlots($content);
 
@@ -72,12 +74,14 @@ class ComponentTagCompilerProvider
     protected function compileSelfClosingTags(string $content): string
     {
         $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)(?:\/?>)/i';
-    
+
         // Debug logging - log the content too
-        file_put_contents(WRITEPATH . 'logs/component_debug.log', 
-                         "Content sample: " . substr($content, 0, 500) . "\n" .
-                         "Pattern: " . $pattern . "\n", 
-                         FILE_APPEND);
+        file_put_contents(
+            WRITEPATH . 'logs/component_debug.log',
+            "Content sample: " . substr($content, 0, 500) . "\n" .
+                "Pattern: " . $pattern . "\n",
+            FILE_APPEND
+        );
 
         return preg_replace_callback($pattern, function ($matches) {
             $component = $matches[1];
@@ -136,15 +140,21 @@ class ComponentTagCompilerProvider
     {
         $attributes = [];
 
-        // Match bound attributes with :name="expression"
+        // Match bound attributes with :name="expression" 
         if (preg_match_all('/\s:([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $attributeString, $boundMatches, PREG_SET_ORDER)) {
             foreach ($boundMatches as $match) {
-                $attributes[$match[1]] = $match[3]; // Raw PHP expression
+                // The raw expression without wrapping quotes - already a PHP expression
+                $attrName = $match[1];
+                $expression = $match[3];
 
-                // Remove processed bound attributes
+                // Don't add extra quotes for bound expressions - they're already PHP code
+                $attributes[$attrName] = $expression;
+
+                // Remove processed bound attributes to avoid double-processing
                 $attributeString = str_replace($match[0], '', $attributeString);
             }
         }
+
 
         // Match regular attributes with name="value"
         if (preg_match_all('/\s([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $attributeString, $matches, PREG_SET_ORDER)) {
