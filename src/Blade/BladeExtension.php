@@ -58,9 +58,6 @@ class BladeExtension
 
         $componentProvider = new ComponentDirectiveProvider;
         $componentProvider->register($blade);
-
-        $componentTagCompiler = new ComponentTagCompilerProvider;
-        $componentTagCompiler->register($blade);
     }
 
     // ======================================================================
