@@ -7,16 +7,11 @@ use Rcalicdan\Blade\Blade;
 /**
  * Provides component tag syntax support (<x-component>) for Blade templates
  * without relying on Laravel's container or dependency injection.
- *
- * This implementation processes component tags at compile time and 
- * transforms them into regular Blade view rendering calls.
  */
 class ComponentTagCompilerProvider
 {
     /**
      * Component view namespace (used for x- prefixed components)
-     *
-     * @var string
      */
     protected string $componentNamespace = 'components';
     
@@ -28,75 +23,95 @@ class ComponentTagCompilerProvider
      */
     public function register(Blade $blade): void
     {
-        $blade->precompiler([$this, 'compile']);
+        // Get the BladeCompiler instance
+        $compiler = $blade->compiler();
+        
+        // Register a custom directive to process component tags
+        $compiler->directive('renderComponentTags', [$this, 'compileDirective']);
+        
+        // Register the component processing extension
+        $compiler->extend(function ($view, $compiler) {
+            // Process the component tags first
+            $processed = $this->processComponentTags($view);
+            
+            // Then insert the @renderComponentTags directive at the beginning
+            return '@renderComponentTags' . PHP_EOL . $processed;
+        });
     }
     
     /**
-     * Compile all component tags in the given template string
+     * Empty directive handler - the actual processing is done in the extend callback
      *
-     * @param string $template
      * @return string
      */
-    public function compile(string $template): string
+    public function compileDirective(): string
     {
-        // First compile <x-slot> tags within components
-        $template = $this->compileSlots($template);
+        return '<?php /* Component tags processed */ ?>';
+    }
+    
+    /**
+     * Process all component tags in the view content
+     *
+     * @param string $content
+     * @return string
+     */
+    public function processComponentTags(string $content): string
+    {
+        // Process slots first
+        $content = $this->compileSlots($content);
         
-        // Then compile self-closing component tags
-        $template = $this->compileSelfClosingTags($template);
+        // Process self-closing tags
+        $content = $this->compileSelfClosingTags($content);
         
-        // Finally compile normal component tags
-        $template = $this->compileComponentTags($template);
+        // Process standard component tags
+        $content = $this->compileStandardComponentTags($content);
         
-        return $template;
+        return $content;
     }
     
     /**
      * Compile slot tags within components
      *
-     * @param string $template
+     * @param string $content
      * @return string
      */
-    protected function compileSlots(string $template): string
+    protected function compileSlots(string $content): string
     {
-        $pattern = '/<x-slot\s+name=(["\'])(.*?)\1\s*(:[^>]*)?>(.*?)<\/x-slot>/s';
+        $pattern = '/<x-slot\s+name=(["\'])(.*?)\1\s*(?:[^>]*)>(.*?)<\/x-slot>/s';
         
         return preg_replace_callback($pattern, function ($matches) {
             $name = $matches[2];
-            $content = $matches[4];
+            $content = $matches[3];
             
-            return "<?php \$__currentSlot = '{$name}'; ob_start(); ?>" .
-                   $content .
-                   "<?php \$__componentData['{$name}'] = ob_get_clean(); unset(\$__currentSlot); ?>";
-        }, $template);
+            return "@slot('{$name}'){$content}@endslot";
+        }, $content);
     }
     
     /**
      * Compile self-closing component tags
      *
-     * @param string $template
+     * @param string $content
      * @return string
      */
-    protected function compileSelfClosingTags(string $template): string
+    protected function compileSelfClosingTags(string $content): string
     {
         $pattern = '/<x-([a-z0-9\-:.]+)\s*([^>]*)\/>/i';
         
         return preg_replace_callback($pattern, function ($matches) {
             $component = $matches[1];
             $attributes = $this->parseAttributes($matches[2] ?? '');
-            $componentPath = $this->resolveComponentPath($component);
             
-            return $this->compileSelfClosingComponent($componentPath, $attributes);
-        }, $template);
+            return "@component('{$component}', {$attributes}, true)";
+        }, $content);
     }
     
     /**
-     * Compile normal component tags with content
+     * Compile regular component tags with content
      *
-     * @param string $template
+     * @param string $content
      * @return string
      */
-    protected function compileComponentTags(string $template): string
+    protected function compileStandardComponentTags(string $content): string
     {
         $pattern = '/<x-([a-z0-9\-:.]+)\s*([^>]*)>(.*?)<\/x-\1>/is';
         
@@ -104,10 +119,9 @@ class ComponentTagCompilerProvider
             $component = $matches[1];
             $attributes = $this->parseAttributes($matches[2] ?? '');
             $content = $matches[3];
-            $componentPath = $this->resolveComponentPath($component);
             
-            return $this->compileComponent($componentPath, $attributes, $content);
-        }, $template);
+            return "@component('{$component}', {$attributes}){$content}@endcomponent";
+        }, $content);
     }
     
     /**
@@ -154,79 +168,5 @@ class ComponentTagCompilerProvider
         $result .= ']';
         
         return $result;
-    }
-    
-    /**
-     * Resolve component name to a view path
-     *
-     * @param string $component
-     * @return string
-     */
-    protected function resolveComponentPath(string $component): string
-    {
-        // Handle namespaced components (directly specified)
-        if (strpos($component, '::') !== false) {
-            return $component;
-        }
-        
-        // Handle x- prefixed components
-        if (str_starts_with($component, 'x-')) {
-            return $this->componentNamespace . '::' . substr($component, 2);
-        }
-        
-        // Handle dot notation paths
-        if (strpos($component, '.') !== false) {
-            return $component;
-        }
-        
-        // Default to components namespace
-        return $this->componentNamespace . '::' . $component;
-    }
-    
-    /**
-     * Generate PHP code for a self-closing component
-     *
-     * @param string $componentPath
-     * @param string $attributes
-     * @return string
-     */
-    protected function compileSelfClosingComponent(string $componentPath, string $attributes): string
-    {
-        return "<?php 
-            \$__componentPath = '{$componentPath}';
-            \$__componentAttributes = {$attributes};
-            \$__componentData = array_merge(get_defined_vars(), \$__componentAttributes);
-            \$__internalVars = ['__env', '__data', '__componentPath', '__componentAttributes', '__componentData'];
-            \$__componentData = array_filter(\$__componentData, function(\$key) use (\$__internalVars) {
-                return !in_array(\$key, \$__internalVars) && !str_starts_with(\$key, '__');
-            }, ARRAY_FILTER_USE_KEY);
-            \$__componentData['slot'] = '';
-            echo blade_view(\$__componentPath, \$__componentData, true);
-        ?>";
-    }
-    
-    /**
-     * Generate PHP code for a component with content
-     *
-     * @param string $componentPath
-     * @param string $attributes
-     * @param string $content
-     * @return string
-     */
-    protected function compileComponent(string $componentPath, string $attributes, string $content): string
-    {
-        return "<?php 
-            \$__componentPath = '{$componentPath}';
-            \$__componentAttributes = {$attributes};
-            \$__componentData = array_merge(get_defined_vars(), \$__componentAttributes);
-            \$__internalVars = ['__env', '__data', '__componentPath', '__componentAttributes', '__componentData'];
-            \$__componentData = array_filter(\$__componentData, function(\$key) use (\$__internalVars) {
-                return !in_array(\$key, \$__internalVars) && !str_starts_with(\$key, '__');
-            }, ARRAY_FILTER_USE_KEY);
-            ob_start();
-        ?>{$content}<?php
-            \$__componentData['slot'] = ob_get_clean();
-            echo blade_view(\$__componentPath, \$__componentData, true);
-        ?>";
     }
 }
