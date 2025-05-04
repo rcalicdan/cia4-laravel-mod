@@ -5,12 +5,13 @@ use Illuminate\Contracts\Foundation\Application as ApplicationContract;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\Fluent;
 use Rcalicdan\Blade\Blade;
+use Rcalicdan\Blade\Container;
 
 define('APP_PATH', __DIR__);
 
 $bladeConfig = config('Blade');
 
-$app = Application::getInstance();
+$app = Container::getInstance();
 
 $app->bind(ApplicationContract::class, Application::class);
 

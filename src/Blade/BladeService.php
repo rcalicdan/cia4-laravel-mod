@@ -5,6 +5,7 @@ namespace Rcalicdan\Ci4Larabridge\Blade;
 use Illuminate\Container\Container;
 use Rcalicdan\Blade\Blade;
 use Illuminate\View\Component;
+use Rcalicdan\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
 
 class BladeService
@@ -68,13 +69,13 @@ class BladeService
     {
         $this->ensureCacheDirectory();
 
-        $container = new Container();
+        $container = new BladeContainer;
         $app = Application::getInstance();
 
         $this->blade = new \Rcalicdan\Blade\Blade(
             $this->config['viewsPath'],
             $this->config['cachePath'],
-            $app
+            $container
         );
 
         $this->blade->addNamespace(
