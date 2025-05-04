@@ -5,55 +5,33 @@ namespace Rcalicdan\Ci4Larabridge\Providers;
 use Rcalicdan\Blade\Blade;
 
 /**
- * Provides component tag syntax support (<x-component>) for Blade templates
+ * Provides custom component tag syntax support (<h-component>) for Blade templates
  * without relying on Laravel's container or dependency injection.
  */
 class ComponentTagCompilerProvider
 {
     /**
-     * Component view namespace (used for x- prefixed components)
+     * Component view namespace (used for h- prefixed components)
      */
     protected string $componentNamespace = 'components';
 
     /**
      * Register this compiler with the Blade instance
-     *
-     * @param Blade $blade
-     * @return void
      */
     public function register(Blade $blade): void
     {
         // Get the BladeCompiler instance
         $compiler = $blade->compiler();
 
-        // Register a custom directive to process component tags
-        $compiler->directive('renderComponentTags', [$this, 'compileDirective']);
-
         // Register the component processing extension
         $compiler->extend(function ($view, $compiler) {
-            // Process the component tags first
-            $processed = $this->processComponentTags($view);
-
-            // Then insert the @renderComponentTags directive at the beginning
-            return '@renderComponentTags' . PHP_EOL . $processed;
+            // Process the component tags
+            return $this->processComponentTags($view);
         });
     }
 
     /**
-     * Empty directive handler - the actual processing is done in the extend callback
-     *
-     * @return string
-     */
-    public function compileDirective(): string
-    {
-        return '<?php /* Component tags processed */ ?>';
-    }
-
-    /**
      * Process all component tags in the view content
-     *
-     * @param string $content
-     * @return string
      */
     public function processComponentTags(string $content): string
     {
@@ -71,13 +49,10 @@ class ComponentTagCompilerProvider
 
     /**
      * Compile slot tags within components
-     *
-     * @param string $content
-     * @return string
      */
     protected function compileSlots(string $content): string
     {
-        $pattern = '/<x-slot\s+name=(["\'])(.*?)\1\s*(?:[^>]*)>(.*?)<\/x-slot>/s';
+        $pattern = '/<h-slot\s+name=(["\'])(.*?)\1\s*(?:[^>]*)>(.*?)<\/h-slot>/s';
 
         return preg_replace_callback($pattern, function ($matches) {
             $name = $matches[2];
@@ -89,46 +64,63 @@ class ComponentTagCompilerProvider
 
     /**
      * Compile self-closing component tags
-     *
-     * @param string $content
-     * @return string
      */
     protected function compileSelfClosingTags(string $content): string
     {
-        $pattern = '/<x-([a-z0-9\-:.]+)\s*([^>]*)\/>/i';
+        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)\/>/i';
 
         return preg_replace_callback($pattern, function ($matches) {
             $component = $matches[1];
             $attributes = $this->parseAttributes($matches[2] ?? '');
+            $componentPath = $this->resolveComponentPath($component);
 
-            return "@component('{$component}', {$attributes}, true)";
+            return "@component('{$componentPath}', {$attributes}, true)";
         }, $content);
     }
 
     /**
      * Compile regular component tags with content
-     *
-     * @param string $content
-     * @return string
      */
     protected function compileStandardComponentTags(string $content): string
     {
-        $pattern = '/<x-([a-z0-9\-:.]+)\s*([^>]*)>(.*?)<\/x-\1>/is';
+        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)>(.*?)<\/h-\1>/is';
 
         return preg_replace_callback($pattern, function ($matches) {
             $component = $matches[1];
             $attributes = $this->parseAttributes($matches[2] ?? '');
             $content = $matches[3];
+            $componentPath = $this->resolveComponentPath($component);
 
-            return "@component('{$component}', {$attributes}){$content}@endcomponent";
+            return "@component('{$componentPath}', {$attributes}){$content}@endcomponent";
         }, $content);
     }
 
     /**
+     * Resolve component name to a view path
+     */
+    protected function resolveComponentPath(string $component): string
+    {
+        // Handle namespaced components (directly specified)
+        if (strpos($component, '::') !== false) {
+            return $component;
+        }
+
+        // Handle h- prefixed components (strip the prefix)
+        if (str_starts_with($component, 'h-')) {
+            return $this->componentNamespace.'::'.substr($component, 2);
+        }
+
+        // Handle dot notation paths
+        if (strpos($component, '.') !== false) {
+            return $component;
+        }
+
+        // Default to components namespace
+        return $this->componentNamespace.'::'.$component;
+    }
+
+    /**
      * Parse component tag attributes into PHP array format
-     *
-     * @param string $attributeString
-     * @return string
      */
     protected function parseAttributes(string $attributeString): string
     {
@@ -147,14 +139,14 @@ class ComponentTagCompilerProvider
         // Match regular attributes with name="value"
         if (preg_match_all('/\s([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $attributeString, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $attributes[$match[1]] = "'" . addslashes($match[3]) . "'";
+                $attributes[$match[1]] = "'".addslashes($match[3])."'";
             }
         }
 
         // Match boolean attributes (without values)
         if (preg_match_all('/\s([a-zA-Z0-9_-]+)(?=\s|$)/i', $attributeString, $boolMatches, PREG_SET_ORDER)) {
             foreach ($boolMatches as $match) {
-                if (!isset($attributes[$match[1]])) {
+                if (! isset($attributes[$match[1]])) {
                     $attributes[$match[1]] = 'true';
                 }
             }

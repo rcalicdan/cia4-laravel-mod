@@ -36,8 +36,10 @@ class EloquentCollector extends BaseCollector
         try {
             if (ENVIRONMENT !== 'production') {
                 $log = Capsule::connection()->getQueryLog();
+
                 return $log;
             }
+
             return [];
         } catch (\Exception $e) {
             return [];
@@ -132,7 +134,7 @@ class EloquentCollector extends BaseCollector
     {
         $summaryStyle = 'margin-bottom: 15px;';
         $badgeStyle = 'display: inline-block; background-color: #dc3545; color: white; padding: 3px 8px; border-radius: 10px; font-size: 12px; margin-right: 10px;';
-        
+
         return "<div style=\"{$summaryStyle}\">
                     <span style=\"{$badgeStyle}\">{$duplicateCount} Duplicate Queries</span>
                 </div>";
@@ -164,7 +166,7 @@ class EloquentCollector extends BaseCollector
     {
         $output = '';
         $index = 0;
-        
+
         // Process all queries and highlight duplicates
         foreach ($queries as $i => $query) {
             $formattedSql = $this->formatSql($query['query'], $query['bindings'] ?? []);

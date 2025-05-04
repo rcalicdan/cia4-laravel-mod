@@ -19,14 +19,14 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $viewsPath = APPPATH . 'Views';
+    public $viewsPath = APPPATH.'Views';
 
     /**
      * Path to the directory for storing compiled Blade template cache.
      *
      * @var string
      */
-    public $cachePath = WRITEPATH . 'cache/blade';
+    public $cachePath = WRITEPATH.'cache/blade';
 
     /**
      * Namespace for Blade components.
@@ -40,7 +40,7 @@ class Blade extends BaseConfig
      *
      * @var string
      */
-    public $componentPath = APPPATH . 'Views/components';
+    public $componentPath = APPPATH.'Views/components';
 
     /**
      * Registers custom Blade directives.
