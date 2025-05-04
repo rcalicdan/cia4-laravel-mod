@@ -30,17 +30,19 @@ class ComponentTagCompilerProvider
         });
     }
 
-    /**
-     * Process all component tags in the view content
-     */
     public function processComponentTags(string $content): string
     {
-        preg_match_all('/<h-[^>]*>/', $content, $allTags);
+        // Debug the content to make sure we have the complete HTML
+        file_put_contents(WRITEPATH . 'logs/content_debug.log', $content, FILE_APPEND);
+
+        // First, properly identify all h-tags (just for logging)
+        preg_match_all('/<h-[^>]*(?:>|\/>)/s', $content, $allTags);
         file_put_contents(
             WRITEPATH . 'logs/all_h_tags.log',
             "All h- tags: " . json_encode($allTags[0]) . "\n",
             FILE_APPEND
         );
+
         // Process slots first
         $content = $this->compileSlots($content);
 
@@ -68,29 +70,27 @@ class ComponentTagCompilerProvider
         }, $content);
     }
 
-    /**
-     * Compile self-closing component tags
-     */
     protected function compileSelfClosingTags(string $content): string
     {
-        // This pattern needs to be more flexible to handle different self-closing formats
-        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*?)(\s*\/)?>|<h-([a-z0-9\-:.]+)\s*([^>]*)><\/h-\4>/i';
+        // Updated pattern to more reliably match self-closing tags
+        $pattern = '/<h-([a-z0-9\-:.]+)\s*(.*?)(\/)?>/s';
 
-        return preg_replace_callback($pattern, function ($matches) {
-            // If matched the first pattern (self-closing tag with possible />)
-            if (!empty($matches[1])) {
-                $component = $matches[1];
-                $attributes = $this->parseAttributes($matches[2]);
-            }
-            // If matched the second pattern (empty tag with separate closing tag)
-            else {
-                $component = $matches[4];
-                $attributes = $this->parseAttributes($matches[5]);
-            }
+        return preg_replace_callback($pattern, function ($matches) use ($content) {
+            $component = $matches[1];
+            $attributesString = $matches[2];
+            $isSelfClosing = !empty($matches[3]) || strpos($content, "</h-{$component}>") === false;
 
+            // Debug capture
+            file_put_contents(
+                WRITEPATH . 'logs/tag_debug.log',
+                "Component: $component\nAttributes: $attributesString\nSelf-closing: " .
+                    ($isSelfClosing ? 'true' : 'false') . "\n\n",
+                FILE_APPEND
+            );
+
+            $attributes = $this->parseAttributes($attributesString);
             $componentPath = $this->resolveComponentPath($component);
 
-            // Log for debugging
             file_put_contents(
                 WRITEPATH . 'logs/component_tags.log',
                 "Component: $component\nAttributes: $attributes\nPath: $componentPath\n\n",
@@ -101,16 +101,14 @@ class ComponentTagCompilerProvider
         }, $content);
     }
 
-    /**
-     * Compile regular component tags with content
-     */
     protected function compileStandardComponentTags(string $content): string
     {
-        $pattern = '/<h-([a-z0-9\-:.]+)\s*([^>]*)>(.*?)<\/h-\1>/is';
+        // Updated pattern to capture component content properly
+        $pattern = '/<h-([a-z0-9\-:.]+)\s*(.*?)>(.*?)<\/h-\1>/s';
 
         return preg_replace_callback($pattern, function ($matches) {
             $component = $matches[1];
-            $attributes = $this->parseAttributes($matches[2] ?? '');
+            $attributes = $this->parseAttributes($matches[2]);
             $content = $matches[3];
             $componentPath = $this->resolveComponentPath($component);
 
@@ -142,58 +140,65 @@ class ComponentTagCompilerProvider
         return $this->componentNamespace . '::' . $component;
     }
 
-    /**
-     * Parse component tag attributes into PHP array format
-     */
     protected function parseAttributes(string $attributeString): string
     {
         $attributes = [];
 
-        // First, escape any special characters in the attribute string that might interfere with regex
-        $safeAttributeString = $attributeString;
+        // Log the raw attribute string for debugging
+        file_put_contents(
+            WRITEPATH . 'logs/attr_raw.log',
+            "Raw: " . $attributeString . "\n",
+            FILE_APPEND
+        );
 
-        // Process Blade expressions first: name="{{ expression }}"
-        if (preg_match_all('/\s([a-zA-Z0-9_-]+)=(["\'])\{\{\s*(.*?)\s*\}\}\2/i', $safeAttributeString, $bladeEchoMatches, PREG_SET_ORDER)) {
-            foreach ($bladeEchoMatches as $match) {
+        // Normalize spaces
+        $attributeString = trim(preg_replace('/\s+/', ' ', $attributeString));
+
+        // Match Blade expressions: name="{{ expression }}"
+        if (preg_match_all('/([a-zA-Z0-9_-]+)=(["\'])\{\{(.*?)\}\}\2/s', $attributeString, $bladeMatches, PREG_SET_ORDER)) {
+            foreach ($bladeMatches as $match) {
                 $attrName = $match[1];
-                $expression = trim($match[3]); // The content inside {{ }}
-                $attributes[$attrName] = $expression;
-                // Remove processed attribute to prevent double processing
-                $safeAttributeString = str_replace($match[0], '', $safeAttributeString);
+                $expression = trim($match[3]);
+                $attributes[$attrName] = $expression; // PHP expression
+                // Remove from string for next stages
+                $attributeString = str_replace($match[0], '', $attributeString);
             }
         }
 
-        // Match bound attributes with :name="expression"
-        if (preg_match_all('/\s:([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $safeAttributeString, $boundMatches, PREG_SET_ORDER)) {
+        // Match bound attributes: :name="expression"
+        if (preg_match_all('/:([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/s', $attributeString, $boundMatches, PREG_SET_ORDER)) {
             foreach ($boundMatches as $match) {
                 $attrName = $match[1];
                 $expression = $match[3];
                 $attributes[$attrName] = $expression; // Already PHP code
-                $safeAttributeString = str_replace($match[0], '', $safeAttributeString);
+                // Remove from string for next stages
+                $attributeString = str_replace($match[0], '', $attributeString);
             }
         }
 
-        // Match regular attributes with name="value"
-        if (preg_match_all('/\s([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/i', $safeAttributeString, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
+        // Match regular attributes: name="value"
+        if (preg_match_all('/([a-zA-Z0-9_-]+)=(["\'])(.*?)\2/s', $attributeString, $regularMatches, PREG_SET_ORDER)) {
+            foreach ($regularMatches as $match) {
                 if (!isset($attributes[$match[1]])) {
                     $attributes[$match[1]] = "'" . addslashes($match[3]) . "'";
                 }
-                $safeAttributeString = str_replace($match[0], '', $safeAttributeString);
+                // Remove from string for next stages
+                $attributeString = str_replace($match[0], '', $attributeString);
             }
         }
 
-        // Match boolean attributes
-        $cleanedAttributeString = trim(preg_replace('/\s+/', ' ', $safeAttributeString));
-        if (preg_match_all('/\b([a-zA-Z0-9_-]+)\b/i', $cleanedAttributeString, $boolMatches)) {
-            foreach ($boolMatches[1] as $match) {
-                if (!isset($attributes[$match])) {
-                    $attributes[$match] = 'true';
+        // Match boolean attributes (what's left)
+        $attributeString = trim($attributeString);
+        if (!empty($attributeString)) {
+            $booleanAttrs = preg_split('/\s+/', $attributeString);
+            foreach ($booleanAttrs as $attr) {
+                if (!empty($attr) && !isset($attributes[$attr])) {
+                    $attributes[$attr] = 'true';
                 }
             }
         }
 
-        // Convert to PHP array code with proper escaping of keys
+        // Build the attributes array string
         $result = '[';
         foreach ($attributes as $key => $value) {
             $result .= "'" . addslashes($key) . "' => " . $value . ", ";
@@ -203,7 +208,7 @@ class ComponentTagCompilerProvider
         }
         $result .= ']';
 
-        // Debug log to track attribute parsing
+        // Debug the parsed result
         file_put_contents(
             WRITEPATH . 'logs/component_attributes.log',
             "Original: " . $attributeString . "\n" .
