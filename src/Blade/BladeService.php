@@ -106,7 +106,7 @@ class BladeService
     {
         // We'll create a custom instance that bypasses the normal ViewServiceProvider
         // to avoid the terminating() method issue
-        return new Blade($viewPaths, $cachePath, $app);
+        return new CustomBlade($viewPaths, $cachePath, $app);
     }
 
 
