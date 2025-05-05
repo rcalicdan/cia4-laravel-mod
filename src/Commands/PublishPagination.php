@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
@@ -13,7 +13,7 @@ class PublishPagination extends BaseCommand
     /**
      * @var string The group the command is lumped under
      */
-    protected $group = 'Custom';
+    protected $group = 'Pagination';
 
     /**
      * @var string The Command's name
