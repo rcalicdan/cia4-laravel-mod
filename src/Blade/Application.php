@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
 use Illuminate\Container\Container;
-use Closure;
 
 class Application extends Container
 {
@@ -13,7 +12,7 @@ class Application extends Container
      * @var array
      */
     protected $terminatingCallbacks = [];
-    
+
     /**
      * Get the application namespace.
      *
@@ -23,7 +22,7 @@ class Application extends Container
     {
         return '';
     }
-    
+
     /**
      * Determine if the application is running in the console.
      *
@@ -33,7 +32,7 @@ class Application extends Container
     {
         return false;
     }
-    
+
     /**
      * Get the path to the application "app" directory.
      *
@@ -42,9 +41,9 @@ class Application extends Container
      */
     public function basePath($path = '')
     {
-        return $path ? APPPATH . $path : APPPATH;
+        return $path ? APPPATH.$path : APPPATH;
     }
-    
+
     /**
      * Register a terminating callback with the application.
      *
@@ -57,7 +56,7 @@ class Application extends Container
 
         return $this;
     }
-    
+
     /**
      * Terminate the application.
      *
@@ -69,7 +68,7 @@ class Application extends Container
             $this->call($terminating);
         }
     }
-    
+
     /**
      * Get the application's base path.
      *
@@ -79,7 +78,7 @@ class Application extends Container
     {
         return $this->basePath('app').($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
-    
+
     /**
      * Get the path to the storage directory.
      *
@@ -89,7 +88,7 @@ class Application extends Container
     {
         return $this->basePath('writable').($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
-    
+
     /**
      * Get the path to the resources directory.
      *
@@ -100,7 +99,7 @@ class Application extends Container
     {
         return $this->basePath('resources').($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
-    
+
     /**
      * Get the path to the views directory.
      *
@@ -111,7 +110,7 @@ class Application extends Container
     {
         return $this->resourcePath('views').($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
-    
+
     /**
      * Register a service provider with the application.
      *

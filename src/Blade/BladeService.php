@@ -198,7 +198,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn ($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -272,7 +272,7 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath . '/', '', $file);
+            $relativePath = str_replace($viewsPath.'/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
