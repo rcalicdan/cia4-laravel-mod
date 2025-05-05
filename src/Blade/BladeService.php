@@ -2,18 +2,22 @@
 
 namespace Rcalicdan\Ci4Larabridge\Blade;
 
-use Illuminate\Container\Container;
 use Rcalicdan\Blade\Blade;
-use Illuminate\View\Component;
 use Rcalicdan\Blade\Container as BladeContainer;
 use Rcalicdan\Ci4Larabridge\Config\Blade as ConfigBlade;
 
+/**
+ * BladeService provides a high-performance implementation of the Blade templating engine for CodeIgniter 4.
+ *
+ * This service handles view rendering, caching, and performance optimizations to ensure
+ * minimal resource usage while providing the full power of Blade templates.
+ */
 class BladeService
 {
     /**
      * @var Blade Instance of the Blade engine
      */
-    protected $blade;
+    protected Blade $blade;
 
     /**
      * @var array Configuration for Blade
@@ -55,75 +59,32 @@ class BladeService
         $this->config = [
             'viewsPath' => $this->bladeConfigValues->viewsPath,
             'cachePath' => $this->bladeConfigValues->cachePath,
-            'componentNamespace' => $this->bladeConfigValues->componentNamespace ?? 'components',
-            'componentPath' => $this->bladeConfigValues->componentPath ?? APPPATH . 'Views/components',
+            'componentNamespace' => $this->bladeConfigValues->componentNamespace,
+            'componentPath' => $this->bladeConfigValues->componentPath,
         ];
 
         $this->initialize();
     }
 
-  /**
-     * Initialize the Blade engine
+    /**
+     * Initialize the Blade engine with performance optimizations
      */
     protected function initialize(): void
     {
         $this->ensureCacheDirectory();
 
-        // Set up a custom application instance with the methods Laravel needs
-        $app = Application::getInstance();
-        
-        try {
-            // Create Blade instance with a custom setup instead of using ViewServiceProvider
-            $this->blade = $this->createCustomBladeInstance(
-                $this->config['viewsPath'],
-                $this->config['cachePath'],
-                $app
-            );
-            
-            if (!empty($this->config['componentNamespace']) && !empty($this->config['componentPath'])) {
-                $this->blade->addNamespace(
-                    $this->config['componentNamespace'],
-                    $this->config['componentPath']
-                );
-            }
-            
-            // Make the blade instance available to the container
-            $app->instance('view', $this->blade);
-            $app->singleton(\Illuminate\Contracts\View\Factory::class, function() {
-                return $this->blade;
-            });
-            
-        } catch (\Exception $e) {
-            log_message('error', "Blade initialization error: " . $e->getMessage());
-            throw $e;
-        }
-    }
+        $container = new BladeContainer;
 
-    /**
-     * Create a custom Blade instance without relying on ViewServiceProvider
-     */
-    protected function createCustomBladeInstance($viewPaths, $cachePath, $app)
-    {
-        // We'll create a custom instance that bypasses the normal ViewServiceProvider
-        // to avoid the terminating() method issue
-        return new CustomBlade($viewPaths, $cachePath, $app);
-    }
+        $this->blade = new Blade(
+            $this->config['viewsPath'],
+            $this->config['cachePath'],
+            $container
+        );
 
-
-    /**
-     * Register the x-component directive with Blade
-     */
-    protected function registerXComponentDirective(): void
-    {
-        if (method_exists($this->blade, 'directive')) {
-            $this->blade->directive('xcomponent', function ($expression) {
-                return "<?php echo \$this->renderXComponent({$expression}); ?>";
-            });
-        } else if (method_exists($this->blade->getCompiler(), 'directive')) {
-            $this->blade->getCompiler()->directive('xcomponent', function ($expression) {
-                return "<?php echo \$this->renderXComponent({$expression}); ?>";
-            });
-        }
+        $this->blade->addNamespace(
+            $this->config['componentNamespace'],
+            $this->config['componentPath']
+        );
     }
 
     /**
@@ -133,16 +94,16 @@ class BladeService
     {
         $cachePath = $this->config['cachePath'];
 
-        if (!isset($this->fileExistsCache[$cachePath]) || !$this->fileExistsCache[$cachePath]) {
+        if (! isset($this->fileExistsCache[$cachePath]) || ! $this->fileExistsCache[$cachePath]) {
             $this->fileExistsCache[$cachePath] = is_dir($cachePath);
 
-            if (!$this->fileExistsCache[$cachePath]) {
+            if (! $this->fileExistsCache[$cachePath]) {
                 mkdir($cachePath, 0777, true);
                 $this->fileExistsCache[$cachePath] = true;
             }
         }
 
-        if (!$this->checkFileWritable($cachePath)) {
+        if (! $this->checkFileWritable($cachePath)) {
             log_message('error', "Blade cache path is not writable: {$cachePath}");
         }
     }
@@ -157,7 +118,7 @@ class BladeService
     {
         $cacheKey = "writable:{$path}";
 
-        if (!isset($this->fileExistsCache[$cacheKey])) {
+        if (! isset($this->fileExistsCache[$cacheKey])) {
             $this->fileExistsCache[$cacheKey] = is_writable($path);
         }
 
@@ -173,9 +134,10 @@ class BladeService
             return;
         }
 
-        if (!class_exists(BladeExtension::class)) {
+        if (! class_exists(BladeExtension::class)) {
             log_message('warning', 'BladeExtension class not found. Custom directives are disabled.');
             $this->extensionsLoaded = true;
+
             return;
         }
 
@@ -198,7 +160,7 @@ class BladeService
      */
     public function processData(array $data): array
     {
-        if (!class_exists(BladeExtension::class)) {
+        if (! class_exists(BladeExtension::class)) {
             return $data;
         }
 
@@ -236,7 +198,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn($key) => !in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn($key) => ! in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -248,6 +210,7 @@ class BladeService
     public function setData(array $data = []): self
     {
         $this->viewData = $this->processData($data);
+
         return $this;
     }
 
@@ -268,14 +231,17 @@ class BladeService
 
         try {
             $result = $this->blade->make($view, $filteredData)->render();
+
             return $result;
         } catch (\Throwable $e) {
             if (ENVIRONMENT === 'production') {
                 log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}");
             } else {
                 log_message('error', "Blade rendering error in view [{$view}]: {$e->getMessage()}\n{$e->getTraceAsString()}");
+
                 throw $e;
             }
+
             return '<!-- View Rendering Error -->';
         } finally {
             $this->viewData = [];
@@ -283,57 +249,13 @@ class BladeService
     }
 
     /**
-     * Render an x-component
-     *
-     * @param  string  $component  The component to render
-     * @param  array  $data  Data to be passed to the component
-     * @return string Rendered component content
-     */
-    public function renderXComponent(string $component, array $data = []): string
-    {
-        $componentPath = $this->config['componentPath'] . '/' . str_replace('.', '/', $component) . '.blade.php';
-
-        if (!file_exists($componentPath)) {
-            log_message('error', "X-component not found: {$componentPath}");
-            return '<!-- X-Component Not Found: ' . htmlspecialchars($component) . ' -->';
-        }
-
-        return $this->render($component, $data);
-    }
-
-    /**
      * Get the Blade instance
      *
      * @return Blade The Blade engine instance
      */
-    public function getBlade()
+    public function getBlade(): Blade
     {
         return $this->blade;
-    }
-
-    /**
-     * Register a component class
-     * 
-     * @param string $alias The component alias
-     * @param string $class The component class
-     * @return void
-     */
-    public function component(string $alias, string $class): void
-    {
-        $this->blade->component($alias, $class);
-    }
-
-    /**
-     * Register multiple components
-     * 
-     * @param array $components Array of components to register
-     * @return void
-     */
-    public function components(array $components): void
-    {
-        foreach ($components as $alias => $class) {
-            $this->component($alias, $class);
-        }
     }
 
     /**
@@ -355,12 +277,30 @@ class BladeService
             $viewName = str_replace('/', '.', $viewName);
 
             try {
-                if ($force || !$compiler->isExpired($file)) {
+                if ($force || ! $compiler->isExpired($file)) {
                     $compiler->compile($file);
                 }
                 $results[$viewName] = true;
             } catch (\Exception $e) {
                 $results[$viewName] = $e->getMessage();
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Precompiles all views to optimize performance after deployment
+     *
+     * @return array Results of the precompilation
+     */
+    public function precompileAllViews(): array
+    {
+        $results = $this->compileViews(true);
+
+        foreach ($results as $view => $status) {
+            if ($status !== true) {
+                log_message('error', "Failed to precompile view {$view}: {$status}");
             }
         }
 
