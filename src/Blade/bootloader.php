@@ -37,4 +37,5 @@ $app->instance('view', $blade);
 $blade->compiler()->components([
     'button' => 'button',
     'component-wrapper' => 'component-wrapper',
+    'edit-button' => 'edit-button'
 ]);
