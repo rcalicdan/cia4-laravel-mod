@@ -2,41 +2,39 @@
 
 use Rcalicdan\Ci4Larabridge\Blade\Application;
 use Illuminate\Contracts\Foundation\Application as ApplicationContract;
-use Illuminate\Contracts\View\Factory as ViewFactory;
+use Illuminate\Contracts\View\Factory as ViewFactoryContract;
+use Illuminate\View\Factory as ViewFactory;
 use Illuminate\Support\Fluent;
+use Illuminate\View\Engines\EngineResolver;
+use Illuminate\View\FileViewFinder;
 use Rcalicdan\Blade\Blade;
-use Rcalicdan\Blade\Container;
 
 define('APP_PATH', __DIR__);
 
-$bladeConfig = config('Blade');
-
-$app = Container::getInstance();
+$app = Application::getInstance();
 
 $app->bind(ApplicationContract::class, Application::class);
 
-// Needed for anonymous components
-$app->alias('view', ViewFactory::class);
-
-$app->extend('config', function (array $config) {
-    return new Fluent($config);
-});
-
+// Create and configure Blade
 $blade = new Blade(
     [
-       $bladeConfig->viewsPath,
-       $bladeConfig->componentsPath,
+        APP_PATH.'Views',
+        APP_PATH.'Views/components',
     ],
-    $bladeConfig->cachePath,
+    WRITEPATH . 'cache/blade',
     $app
 );
 
-$app->bind('view', function () use ($blade) {
+// This is important - bind the ViewFactory interface to our Blade instance
+$app->singleton(ViewFactoryContract::class, function() use ($blade) {
     return $blade;
 });
 
+// Also bind the 'view' alias to our Blade instance
+$app->instance('view', $blade);
+
 // Register x-components
-$blade->components([
+$blade->compiler()->components([
     'button' => 'button',
     'component-wrapper' => 'component-wrapper',
 ]);

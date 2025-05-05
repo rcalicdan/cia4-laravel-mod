@@ -63,29 +63,35 @@ class BladeService
     }
 
     /**
-     * Initialize the Blade engine with performance optimizations
+     * Initialize the Blade engine
      */
     protected function initialize(): void
     {
         $this->ensureCacheDirectory();
 
-        $container = new BladeContainer;
         $app = Application::getInstance();
 
-        $this->blade = new \Rcalicdan\Blade\Blade(
+        // Create Blade instance
+        $this->blade = new Blade(
             $this->config['viewsPath'],
             $this->config['cachePath'],
-            $container
+            $app
         );
 
-        $this->blade->addNamespace(
-            $this->config['componentNamespace'],
-            $this->config['componentPath']
-        );
-        
-        // Register x-component directive
-        $this->registerXComponentDirective();
+        if (!empty($this->config['componentNamespace']) && !empty($this->config['componentPath'])) {
+            $this->blade->addNamespace(
+                $this->config['componentNamespace'],
+                $this->config['componentPath']
+            );
+        }
+
+        // Make the blade instance available to the container
+        $app->instance('view', $this->blade);
+        $app->singleton(\Illuminate\Contracts\View\Factory::class, function () {
+            return $this->blade;
+        });
     }
+
 
     /**
      * Register the x-component directive with Blade
@@ -213,7 +219,7 @@ class BladeService
             'data',
         ];
 
-        return array_filter($data, fn ($key) => !in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
+        return array_filter($data, fn($key) => !in_array($key, $internalKeys), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -269,12 +275,12 @@ class BladeService
     public function renderXComponent(string $component, array $data = []): string
     {
         $componentPath = $this->config['componentPath'] . '/' . str_replace('.', '/', $component) . '.blade.php';
-        
+
         if (!file_exists($componentPath)) {
             log_message('error', "X-component not found: {$componentPath}");
             return '<!-- X-Component Not Found: ' . htmlspecialchars($component) . ' -->';
         }
-        
+
         return $this->render($component, $data);
     }
 
@@ -327,7 +333,7 @@ class BladeService
 
         $results = [];
         foreach ($files as $file) {
-            $relativePath = str_replace($viewsPath.'/', '', $file);
+            $relativePath = str_replace($viewsPath . '/', '', $file);
             $viewName = str_replace('.blade.php', '', $relativePath);
             $viewName = str_replace('/', '.', $viewName);
 
