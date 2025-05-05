@@ -12,6 +12,7 @@ use Illuminate\View\FileViewFinder;
 use Illuminate\View\Compilers\BladeCompiler;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Container\Container;
+use Illuminate\View\View;
 
 class CustomBlade extends \Rcalicdan\Blade\Blade
 {
@@ -133,6 +134,11 @@ class CustomBlade extends \Rcalicdan\Blade\Blade
             throw new \LogicException('View factory not initialized.');
         }
         return $this->factory->make($view, $data, $mergeData)->render();
+    }
+
+    public function make($view, $data = [], $mergeData = []): View
+    {
+        return $this->factory->make($view, $data, $mergeData);
     }
 
     public function directive(string $name, callable $handler): void
