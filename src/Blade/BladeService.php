@@ -55,8 +55,8 @@ class BladeService
         $this->config = [
             'viewsPath' => $this->bladeConfigValues->viewsPath,
             'cachePath' => $this->bladeConfigValues->cachePath,
-            'componentNamespace' => $this->bladeConfigValues->componentNamespace,
-            'componentPath' => $this->bladeConfigValues->componentPath,
+            'componentNamespace' => $this->bladeConfigValues->componentNamespace ?? 'components',
+            'componentPath' => $this->bladeConfigValues->componentPath ?? APPPATH . 'Views/components',
         ];
 
         $this->initialize();
