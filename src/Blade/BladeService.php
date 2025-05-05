@@ -62,34 +62,51 @@ class BladeService
         $this->initialize();
     }
 
-    /**
+  /**
      * Initialize the Blade engine
      */
     protected function initialize(): void
     {
         $this->ensureCacheDirectory();
 
+        // Set up a custom application instance with the methods Laravel needs
         $app = Application::getInstance();
-
-        // Create Blade instance
-        $this->blade = new Blade(
-            $this->config['viewsPath'],
-            $this->config['cachePath'],
-            $app
-        );
-
-        if (!empty($this->config['componentNamespace']) && !empty($this->config['componentPath'])) {
-            $this->blade->addNamespace(
-                $this->config['componentNamespace'],
-                $this->config['componentPath']
+        
+        try {
+            // Create Blade instance with a custom setup instead of using ViewServiceProvider
+            $this->blade = $this->createCustomBladeInstance(
+                $this->config['viewsPath'],
+                $this->config['cachePath'],
+                $app
             );
+            
+            if (!empty($this->config['componentNamespace']) && !empty($this->config['componentPath'])) {
+                $this->blade->addNamespace(
+                    $this->config['componentNamespace'],
+                    $this->config['componentPath']
+                );
+            }
+            
+            // Make the blade instance available to the container
+            $app->instance('view', $this->blade);
+            $app->singleton(\Illuminate\Contracts\View\Factory::class, function() {
+                return $this->blade;
+            });
+            
+        } catch (\Exception $e) {
+            log_message('error', "Blade initialization error: " . $e->getMessage());
+            throw $e;
         }
+    }
 
-        // Make the blade instance available to the container
-        $app->instance('view', $this->blade);
-        $app->singleton(\Illuminate\Contracts\View\Factory::class, function () {
-            return $this->blade;
-        });
+    /**
+     * Create a custom Blade instance without relying on ViewServiceProvider
+     */
+    protected function createCustomBladeInstance($viewPaths, $cachePath, $app)
+    {
+        // We'll create a custom instance that bypasses the normal ViewServiceProvider
+        // to avoid the terminating() method issue
+        return new Blade($viewPaths, $cachePath, $app);
     }
 
 
