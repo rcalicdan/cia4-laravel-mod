@@ -12,28 +12,32 @@ class SystemHandler extends SetupHandler
     public function setupEvents(): void
     {
         $file = 'Config/Events.php';
-        $path = $this->distPath.$file;
+        $path = $this->distPath . $file;
         $cleanPath = clean_path($path);
 
         if (! file_exists($path)) {
             $this->error('  Events file not found. Make sure you have a Config/Events.php file.');
-
             return;
         }
 
         $content = file_get_contents($path);
 
-        // Check if the code is already there
         if (strpos($content, "service('eloquent')") !== false) {
-            $this->write(CLI::color('  Events Setup: ', 'green').'Eloquent already initialized in events.');
-
+            $this->write(CLI::color('  Events Setup: ', 'green') . 'Eloquent already initialized in events.');
             return;
         }
 
-        // Find the position to add the new event (before the existing Events::on)
+        if (
+            !$this->skipConfirmations &&
+            $this->prompt("  Ready to update '{$cleanPath}' to initialize Eloquent and auth services. Continue?", ['y', 'n']) === 'n'
+        ) {
+            $this->error("  Skipped updating {$cleanPath}.");
+            return;
+        }
+
         $pattern = '/(Events::on\(\'pre_system\',)/';
         $eloquentCode = <<<'EOD'
-Events::on('pre_system', static function (): void {
+Events::on('pre_system', static function (): void {S
     // Load the Eloquent configuration
     service('eloquent');
     // Load the authentication configuration
@@ -46,7 +50,7 @@ EOD;
         $newContent = preg_replace($pattern, $eloquentCode, $content);
 
         if ($newContent !== $content && write_file($path, $newContent)) {
-            $this->write(CLI::color('  Updated: ', 'green').$cleanPath);
+            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
         } else {
             $this->error('  Error updating Events file.');
         }
@@ -58,7 +62,7 @@ EOD;
     public function setupFilters(): void
     {
         $file = 'Config/Filters.php';
-        $path = $this->distPath.$file;
+        $path = $this->distPath . $file;
         $cleanPath = clean_path($path);
 
         if (! file_exists($path)) {
@@ -71,7 +75,7 @@ EOD;
 
         // Check if the code is already there
         if (strpos($content, '\\Rcalicdan\\Ci4Larabridge\\Filters\\AuthFilter::class') !== false) {
-            $this->write(CLI::color('  Filters Setup: ', 'green').'Auth filters already added.');
+            $this->write(CLI::color('  Filters Setup: ', 'green') . 'Auth filters already added.');
 
             return;
         }
@@ -88,7 +92,7 @@ EOD;
         $newContent = preg_replace($pattern, $filterAliases, $content);
 
         if ($newContent !== $content && write_file($path, $newContent)) {
-            $this->write(CLI::color('  Updated: ', 'green').$cleanPath);
+            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
         } else {
             $this->error('  Error updating Filters file.');
         }

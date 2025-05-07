@@ -54,6 +54,7 @@ class BladeExtension
         $this->_registerErrorDirectives($blade);
         $this->_registerBackDirectives($blade);
         $this->_registerAuthDirectives($blade);
+        $this->_registerLangDirectives($blade);
 
         $componentProvider = new ComponentDirectiveProvider;
         $componentProvider->register($blade);
@@ -170,6 +171,13 @@ class BladeExtension
             $default = $expression ? ", $expression" : '';
 
             return "<?php echo '<input type=\"hidden\" name=\"back\" value=\"'.e(back_url($default)).'\">'; ?>";
+        });
+    }
+
+    public function _registerLangDirectives(Blade $blade): void
+    {
+        $blade->directive('lang', function ($expression) {
+            return "<?php echo lang({$expression});?>";
         });
     }
 }

@@ -24,5 +24,5 @@ class Pagination extends BaseConfig
      *
      * @var string
      */
-    public $defaultSimpleView = 'pagination::simple';
+    public $defaultSimpleView = 'pagination::simple-default';
 }

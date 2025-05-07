@@ -29,6 +29,13 @@ abstract class SetupHandler
     protected $replacer;
 
     /**
+     * Whether to skip individual confirmations
+     * 
+     * @var bool
+     */
+    protected $skipConfirmations = false;
+
+    /**
      * Constructor
      */
     public function __construct(string $sourcePath, string $distPath)
@@ -36,6 +43,7 @@ abstract class SetupHandler
         $this->sourcePath = $sourcePath;
         $this->distPath = $distPath;
         $this->replacer = new ContentReplacer;
+        $this->skipConfirmations = (bool) CLI::getOption('f');
     }
 
     /**
@@ -49,7 +57,7 @@ abstract class SetupHandler
         $path = "{$this->sourcePath}/{$file}";
 
         if (! file_exists($path)) {
-            $this->error('  Source file not found: '.clean_path($path));
+            $this->error('  Source file not found: ' . clean_path($path));
 
             return;
         }
@@ -91,14 +99,10 @@ abstract class SetupHandler
         }
 
         if (file_exists($path)) {
-            $overwrite = (bool) CLI::getOption('f');
-
-            if (
-                ! $overwrite
-                && $this->prompt("  File '{$cleanPath}' already exists in destination. Overwrite?", ['n', 'y']) === 'n'
+            if (!$this->skipConfirmations && 
+                $this->prompt("  File '{$cleanPath}' already exists in destination. Overwrite?", ['n', 'y']) === 'n'
             ) {
                 $this->error("  Skipped {$cleanPath}. If you wish to overwrite, please use the '-f' option or reply 'y' to the prompt.");
-
                 return;
             }
         }
