@@ -57,11 +57,13 @@ class LaravelMigrate extends BaseCommand
     ];
 
     /**
-     * Command options (currently none).
+     * Available options for the command.
      *
      * @var array
      */
-    protected $options = [];
+    protected $options = [
+        '-f' => 'Force the operation without confirmation, even in production',
+    ];
 
     /**
      * Handler for database operations.
@@ -132,10 +134,10 @@ class LaravelMigrate extends BaseCommand
             if (strpos($e->getMessage(), 'Unknown database') !== false) {
                 $this->promptAndCreateDatabase();
             } else {
-                CLI::error('Database connection error: '.$e->getMessage());
+                CLI::error('Database connection error: ' . $e->getMessage());
             }
         } catch (\Exception $e) {
-            CLI::error('Error executing migration command: '.$e->getMessage());
+            CLI::error('Error executing migration command: ' . $e->getMessage());
         }
     }
 
@@ -209,6 +211,10 @@ class LaravelMigrate extends BaseCommand
      */
     private function executeAction(string $action)
     {
+        if (! $this->confirmDestructiveAction($action)) {
+            return;
+        }
+
         switch ($action) {
             case 'up':
                 $migrations = $this->migrationHandler->runMigrations();
@@ -244,6 +250,87 @@ class LaravelMigrate extends BaseCommand
 
                 break;
         }
+    }
+
+    /**
+     * Confirms destructive actions in production environment.
+     *
+     * @param  string  $action  The migration action to check
+     * @return bool True if action is confirmed or no confirmation needed, false otherwise
+     */
+    private function confirmDestructiveAction(string $action): bool
+    {
+        $destructiveActions = ['down', 'refresh', 'fresh'];
+
+        // If not a destructive action or not in production, no confirmation needed
+        if (! in_array($action, $destructiveActions) || ENVIRONMENT !== 'production') {
+            return true;
+        }
+
+        // Check if force flag is set
+        $force = (bool) CLI::getOption('f');
+        if ($force) {
+            return true;
+        }
+
+        // Show warning and get basic confirmation
+        if (! $this->showWarningAndConfirm($action)) {
+            return false;
+        }
+
+        // For fresh action, require additional confirmation
+        if ($action === 'fresh' && ! $this->confirmFreshAction()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Shows warning and asks for confirmation for destructive actions.
+     *
+     * @param  string  $action  The migration action
+     * @return bool True if confirmed, false otherwise
+     */
+    private function showWarningAndConfirm(string $action): bool
+    {
+        $actionDescription = match ($action) {
+            'down' => 'roll back the last batch of migrations',
+            'refresh' => 'roll back and re-run all migrations',
+            'fresh' => 'drop all tables and run all migrations',
+            default => $action
+        };
+
+        CLI::write('⚠️  WARNING: You are about to ' . $actionDescription . ' in PRODUCTION!', 'red');
+        CLI::write('This operation may cause data loss and application downtime.', 'yellow');
+
+        $confirm = CLI::prompt('Are you absolutely sure you want to continue?', ['n', 'y']);
+
+        if ($confirm !== 'y') {
+            CLI::write('Operation cancelled.', 'yellow');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Additional confirmation specifically for the 'fresh' action.
+     *
+     * @return bool True if confirmed, false otherwise
+     */
+    private function confirmFreshAction(): bool
+    {
+        $confirmAgain = CLI::prompt('This will DELETE ALL DATA in your database. Type "DELETE" to confirm', null, 'required');
+
+        if ($confirmAgain !== 'DELETE') {
+            CLI::write('Operation cancelled.', 'yellow');
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

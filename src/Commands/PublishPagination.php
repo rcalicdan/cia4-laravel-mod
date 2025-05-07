@@ -48,8 +48,8 @@ class PublishPagination extends BaseCommand
      */
     public function run(array $params)
     {
-        $sourcePath = __DIR__ . '/../Views/pagination';
-        $destinationPath = APPPATH . 'Views/pagination';
+        $sourcePath = __DIR__.'/../Views/pagination';
+        $destinationPath = APPPATH.'Views/pagination';
 
         if (! is_dir($sourcePath)) {
             CLI::error("Source directory not found: {$sourcePath}");
@@ -86,8 +86,8 @@ class PublishPagination extends BaseCommand
                 continue;
             }
 
-            $sourcePath = $source . '/' . $file;
-            $destPath = $destination . '/' . $file;
+            $sourcePath = $source.'/'.$file;
+            $destPath = $destination.'/'.$file;
 
             if (is_file($sourcePath)) {
                 if (copy($sourcePath, $destPath)) {

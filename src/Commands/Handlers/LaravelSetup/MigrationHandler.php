@@ -21,19 +21,20 @@ class MigrationHandler extends SetupHandler
      */
     public function copyMigrationFiles(): void
     {
-        $this->destinationMigrationsDir = $this->distPath . 'Database/Eloquent-Migrations';
-        $this->sourceMigrationsDir = $this->sourcePath . 'Database/Eloquent-Migrations';
+        $this->destinationMigrationsDir = $this->distPath.'Database/Eloquent-Migrations';
+        $this->sourceMigrationsDir = $this->sourcePath.'Database/Eloquent-Migrations';
 
-        if (!$this->ensureDestinationDirectoryExists()) {
+        if (! $this->ensureDestinationDirectoryExists()) {
             return;
         }
 
-        if (!$this->validateSourceDirectoryExists()) {
+        if (! $this->validateSourceDirectoryExists()) {
             return;
         }
 
-        if (!$this->confirmProceedWithCopy()) {
-            $this->error("  Skipped copying migration files.");
+        if (! $this->confirmProceedWithCopy()) {
+            $this->error('  Skipped copying migration files.');
+
             return;
         }
 
@@ -49,14 +50,16 @@ class MigrationHandler extends SetupHandler
      */
     private function ensureDestinationDirectoryExists(): bool
     {
-        if (!is_dir($this->destinationMigrationsDir)) {
+        if (! is_dir($this->destinationMigrationsDir)) {
             if (mkdir($this->destinationMigrationsDir, 0777, true)) {
-                $this->write(CLI::color('  Created: ', 'green') . clean_path($this->destinationMigrationsDir));
+                $this->write(CLI::color('  Created: ', 'green').clean_path($this->destinationMigrationsDir));
             } else {
-                $this->error('  Failed to create directory: ' . clean_path($this->destinationMigrationsDir));
+                $this->error('  Failed to create directory: '.clean_path($this->destinationMigrationsDir));
+
                 return false;
             }
         }
+
         return true;
     }
 
@@ -67,10 +70,12 @@ class MigrationHandler extends SetupHandler
      */
     private function validateSourceDirectoryExists(): bool
     {
-        if (!is_dir($this->sourceMigrationsDir)) {
-            $this->error('  Source migration directory not found: ' . clean_path($this->sourceMigrationsDir));
+        if (! is_dir($this->sourceMigrationsDir)) {
+            $this->error('  Source migration directory not found: '.clean_path($this->sourceMigrationsDir));
+
             return false;
         }
+
         return true;
     }
 
@@ -86,9 +91,10 @@ class MigrationHandler extends SetupHandler
         }
 
         $promptMessage = sprintf(
-            "  Ready to copy migration files to %s. Continue?",
+            '  Ready to copy migration files to %s. Continue?',
             clean_path($this->destinationMigrationsDir)
         );
+
         return $this->prompt($promptMessage, ['y', 'n']) === 'y';
     }
 
@@ -99,7 +105,8 @@ class MigrationHandler extends SetupHandler
     {
         $files = scandir($this->sourceMigrationsDir);
         if ($files === false) {
-            $this->error('  Could not read source migration directory: ' . clean_path($this->sourceMigrationsDir));
+            $this->error('  Could not read source migration directory: '.clean_path($this->sourceMigrationsDir));
+
             return;
         }
 
@@ -109,13 +116,13 @@ class MigrationHandler extends SetupHandler
                 continue;
             }
             $migrationFilesFound = true;
-            $sourceFile = $this->sourceMigrationsDir . '/' . $file;
-            $destFile = $this->destinationMigrationsDir . '/' . $file;
+            $sourceFile = $this->sourceMigrationsDir.'/'.$file;
+            $destFile = $this->destinationMigrationsDir.'/'.$file;
 
             $this->copySingleMigrationFile($sourceFile, $destFile);
         }
 
-        if (!$migrationFilesFound) {
+        if (! $migrationFilesFound) {
             $this->write(CLI::color('  No migration files found in the source directory.', 'yellow'));
         }
     }
@@ -123,26 +130,27 @@ class MigrationHandler extends SetupHandler
     /**
      * Handles the copying of a single migration file, including overwrite confirmation.
      *
-     * @param string $sourceFile The full path to the source migration file.
-     * @param string $destFile The full path to the destination migration file.
+     * @param  string  $sourceFile  The full path to the source migration file.
+     * @param  string  $destFile  The full path to the destination migration file.
      */
     private function copySingleMigrationFile(string $sourceFile, string $destFile): void
     {
-        if (file_exists($destFile) && !$this->skipConfirmations) {
+        if (file_exists($destFile) && ! $this->skipConfirmations) {
             $promptMessage = sprintf(
                 "  File '%s' already exists. Overwrite?",
                 clean_path($destFile)
             );
             if ($this->prompt($promptMessage, ['n', 'y']) === 'n') {
-                $this->write(CLI::color("  Skipped: ", 'yellow') . clean_path($destFile));
+                $this->write(CLI::color('  Skipped: ', 'yellow').clean_path($destFile));
+
                 return;
             }
         }
 
         if (copy($sourceFile, $destFile)) {
-            $this->write(CLI::color('  Copied: ', 'green') . clean_path($destFile));
+            $this->write(CLI::color('  Copied: ', 'green').clean_path($destFile));
         } else {
-            $this->error('  Error copying migration file: ' . basename($sourceFile) . ' to ' . clean_path($destFile));
+            $this->error('  Error copying migration file: '.basename($sourceFile).' to '.clean_path($destFile));
         }
     }
 }
