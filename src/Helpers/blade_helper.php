@@ -1,46 +1,28 @@
 <?php
 
 /**
- * Renders a view using the Blade templating engine
+ * Renders a view file using the Blade templating engine
  *
- * Provides a fluent interface for rendering Blade templates within CodeIgniter.
- * The function maintains a singleton instance of BladeViewRenderer for efficiency.
+ * This function serves as the primary interface to the Blade templating system.
+ * It handles view rendering through the BladeService, which manages all
+ * template processing, extension loading, and error handling.
  *
- * @param  string|null  $view  The view identifier in dot notation (e.g. 'pages.users.index')
- *                             When null, returns the renderer instance for method chaining.
- * @param  array  $data  Associative array of data to pass to the view
- *                       Defaults to empty array if not provided.
- * @return BladeViewRenderer|string Returns:
- *                                  - BladeViewRenderer instance when $view is null (for method chaining)
- *                                  - Rendered HTML string when view is specified
+ * @param  string  $view  The view identifier in dot notation (e.g. 'pages.users.index')
+ * @param  array  $data  Data to be passed to the view
+ * @param  bool  $render  If true, returns the output instead of echoing
+ * @return mixed Rendered HTML string or void
  *
- * @throws Throwable Propagates template rendering exceptions with stack trace
- *                   in development environment for debugging purposes.
+ * @throws Throwable Re-throws rendering exceptions in non-production environments
  */
-
-use Rcalicdan\Ci4Larabridge\Blade\BladeViewRenderer;
-
 if (! function_exists('blade_view')) {
-    function blade_view(?string $view = null, array $data = [])
+    function blade_view(string $view, array $data = [], bool $render = false)
     {
-        static $renderer = null;
+        $output = service('blade')->render($view, $data);
 
-        if ($renderer === null) {
-            $renderer = new BladeViewRenderer;
+        if ($render) {
+            return $output;
         }
 
-        $instance = $renderer;
-
-        if ($view !== null) {
-            $instance->view($view);
-
-            if (! empty($data)) {
-                $instance->with($data);
-            }
-
-            return $instance->render();
-        }
-
-        return $instance;
+        echo $output;
     }
 }
