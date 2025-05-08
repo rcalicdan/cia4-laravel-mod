@@ -190,6 +190,7 @@ class EloquentDatabase
         $this->registerHashService();
         $this->registerPaginationRenderer();
         $this->configurePagination();
+        $this->registerDatabaseService();
     }
 
     /**
@@ -203,6 +204,14 @@ class EloquentDatabase
                 'bcrypt' => ['rounds' => 10],
             ],
         ]));
+    }
+
+    /**
+     * Register the database manager service.
+     */
+    protected function registerDatabaseService(): void
+    {
+        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
     }
 
     /**
