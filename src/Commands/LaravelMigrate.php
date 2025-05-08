@@ -134,10 +134,10 @@ class LaravelMigrate extends BaseCommand
             if (strpos($e->getMessage(), 'Unknown database') !== false) {
                 $this->promptAndCreateDatabase();
             } else {
-                CLI::error('Database connection error: ' . $e->getMessage());
+                CLI::error('Database connection error: '.$e->getMessage());
             }
         } catch (\Exception $e) {
-            CLI::error('Error executing migration command: ' . $e->getMessage());
+            CLI::error('Error executing migration command: '.$e->getMessage());
         }
     }
 
@@ -301,7 +301,7 @@ class LaravelMigrate extends BaseCommand
             default => $action
         };
 
-        CLI::write('⚠️  WARNING: You are about to ' . $actionDescription . ' in PRODUCTION!', 'red');
+        CLI::write('⚠️  WARNING: You are about to '.$actionDescription.' in PRODUCTION!', 'red');
         CLI::write('This operation may cause data loss and application downtime.', 'yellow');
 
         $confirm = CLI::prompt('Are you absolutely sure you want to continue?', ['n', 'y']);
