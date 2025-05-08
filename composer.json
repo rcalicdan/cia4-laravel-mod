@@ -15,7 +15,8 @@
             "src/Helpers/http_helper.php",
             "src/Helpers/remember_cache_helper.php",
             "src/Helpers/url_back_helper.php",
-            "src/Helpers/url_params.php"
+            "src/Helpers/url_params.php",
+            "src/Helpers/bcrypt_helper.php"
         ],
         "exclude-from-classmap": [
             "**/Database/Eloquent-Migrations/**"
