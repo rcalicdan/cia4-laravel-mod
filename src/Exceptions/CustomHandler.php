@@ -2,13 +2,13 @@
 
 namespace Rcalicdan\Ci4Larabridge\Exceptions;
 
+use CodeIgniter\Debug\ExceptionHandler as DefaultHandler;
 use CodeIgniter\Debug\ExceptionHandlerInterface;
-use CodeIgniter\Debug\ExceptionHandler as DefaultHandler; 
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use Config\Exceptions as ExceptionsConfig; 
-use Illuminate\Database\Eloquent\ModelNotFoundException; 
+use Config\Exceptions as ExceptionsConfig;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Throwable;
 
 class CustomHandler implements ExceptionHandlerInterface
@@ -31,11 +31,11 @@ class CustomHandler implements ExceptionHandlerInterface
      * and delegate the actual processing to it, potentially with a
      * transformed exception type.
      *
-     * @param Throwable         $exception  The exception instance.
-     * @param RequestInterface  $request    The current request.
-     * @param ResponseInterface $response   The current response.
-     * @param int               $statusCode The HTTP status code suggested.
-     * @param int               $exitCode   The exit status code.
+     * @param  Throwable  $exception  The exception instance.
+     * @param  RequestInterface  $request  The current request.
+     * @param  ResponseInterface  $response  The current response.
+     * @param  int  $statusCode  The HTTP status code suggested.
+     * @param  int  $exitCode  The exit status code.
      */
     public function handle(
         Throwable $exception,

@@ -3,7 +3,6 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
-use CodeIgniter\Debug\ExceptionHandler;
 use CodeIgniter\Debug\ExceptionHandlerInterface;
 use Psr\Log\LogLevel;
 use Rcalicdan\Ci4Larabridge\Exceptions\CustomHandler;
@@ -45,7 +44,7 @@ class Exceptions extends BaseConfig
      *
      * Default: APPPATH.'Views/errors'
      */
-    public string $errorViewPath = APPPATH . 'Views/errors';
+    public string $errorViewPath = APPPATH.'Views/errors';
 
     /**
      * --------------------------------------------------------------------------
