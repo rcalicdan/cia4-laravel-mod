@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Exceptions;
+namespace Rcalicdan\Ci4Larabridge\Exceptions;
 
 use RuntimeException;
 use CodeIgniter\Exceptions\HTTPExceptionInterface;
