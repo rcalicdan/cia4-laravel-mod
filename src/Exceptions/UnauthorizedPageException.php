@@ -1,6 +1,6 @@
 <?php
 
-namespace Rcalicdan\Ci4Larabridge\Exceptions;
+namespace App\Exceptions;
 
 use RuntimeException;
 use CodeIgniter\Exceptions\HTTPExceptionInterface;
@@ -8,28 +8,22 @@ use CodeIgniter\Exceptions\HTTPExceptionInterface;
 class UnauthorizedPageException extends RuntimeException implements HTTPExceptionInterface
 {
     /**
-     * The HTTP status code for this exception.
-     * CodeIgniter’s handler will use this as the response code
-     * and look for app/Views/errors/html/error_403.php
+     * @param string         $message  Custom or default message
+     * @param \Throwable|null $previous
      */
-    protected int $code = 403;
-
-    /**
-     * Constructor: accepts an optional custom message.
-     */
-    public function __construct(?string $message = null, ?\Throwable $previous = null)
-    {
-        $message ??= 'Unauthorized Action.';
-        parent::__construct($message, $this->code, $previous);
+    public function __construct(
+        string $message = 'You do not have permission to access this page.',
+        \Throwable $previous = null
+    ) {
+        // Pass 403 as the exception code
+        parent::__construct($message, 403, $previous);
     }
 
     /**
-     * A static helper to throw it with a fluent API:
-     *
-     *     throw UnauthorizedPageException::forPage('Custom message');
+     * (Optional) A fluent helper:
      */
-    public static function forPage(?string $message = null): static
+    public static function forPage(string $message = null): static
     {
-        return new static($message);
+        return new static($message ?? 'You do not have permission to access this page.');
     }
 }
