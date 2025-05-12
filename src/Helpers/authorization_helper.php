@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UnauthorizedPageException;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
 
 /**
@@ -56,7 +57,7 @@ if (! function_exists('authorize')) {
     function authorize($ability, ...$arguments)
     {
         if (cannot($ability, ...$arguments)) {
-            throw new CodeIgniter\Exceptions\PageNotFoundException('Unauthorized action.');
+            throw new UnauthorizedPageException('Unauthorized action.');
         }
 
         return true;
