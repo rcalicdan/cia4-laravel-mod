@@ -1,7 +1,7 @@
 <?php
 
-use App\Exceptions\UnauthorizedPageException;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
+use Rcalicdan\Ci4Larabridge\Exceptions\UnauthorizedPageException;
 
 /**
  * Retrieves an instance of the Gate class.
