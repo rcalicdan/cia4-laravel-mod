@@ -67,7 +67,10 @@ class Services extends BaseService
             return static::getSharedInstance('authorization');
         }
 
-        $provider = new AuthServiceProvider;
+        $provider = class_exists(\App\Libraries\Validation\AuthServiceProvider::class)
+            ? new \App\Libraries\Validation\AuthServiceProvider
+            : new AuthServiceProvider;
+
         $provider->register();
 
         return gate();

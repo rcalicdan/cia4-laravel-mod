@@ -2,15 +2,14 @@
 
 namespace Rcalicdan\Ci4Larabridge\Routing;
 
-if (!defined('REDIRECT_BACK_SESSION_KEY')) {
+if (! defined('REDIRECT_BACK_SESSION_KEY')) {
     define('REDIRECT_BACK_SESSION_KEY', '_redirect_back_history_array');
 }
-if (!defined('MAX_REDIRECT_HISTORY_SIZE')) {
+if (! defined('MAX_REDIRECT_HISTORY_SIZE')) {
     define('MAX_REDIRECT_HISTORY_SIZE', 5);
 }
 
 use Config\Services;
-use CodeIgniter\Log\Logger;
 
 class RedirectBackManager
 {
@@ -91,6 +90,7 @@ class RedirectBackManager
         self::$generatedTokenForThisRequest = null;
         self::$urlAssociatedWithGeneratedToken = null;
         $this->logger->debug("[RB_CUSTOM] Token '{$tokenFromGet}' found in GET. Returning it sanitized. This token is for navigating BACK FROM this page.");
+
         return $this->sanitizeToken($tokenFromGet);
     }
 
@@ -111,7 +111,7 @@ class RedirectBackManager
         $this->logger->debug("[RB_CUSTOM] Generating new token '{$newToken}' to be associated with current URL '{$currentActualUrl}'.");
 
         $this->addToHistory($newToken, $currentActualUrl);
-        
+
         // Save for reuse in this request
         self::$generatedTokenForThisRequest = $newToken;
         self::$urlAssociatedWithGeneratedToken = $currentActualUrl;
@@ -126,8 +126,10 @@ class RedirectBackManager
     {
         if (self::$generatedTokenForThisRequest !== null && self::$urlAssociatedWithGeneratedToken === $url) {
             $this->logger->debug("[RB_CUSTOM] Reusing token '".self::$generatedTokenForThisRequest."' for current URL '{$url}' (already generated in this request).");
+
             return true;
         }
+
         return false;
     }
 
@@ -140,10 +142,10 @@ class RedirectBackManager
 
         $newEntry = ['token' => $token, 'url' => $url];
         array_push($history, $newEntry);
-        $this->logger->debug("[RB_CUSTOM] Pushed to history: Token '{$token}', URL '{$url}'. History size: " . count($history));
+        $this->logger->debug("[RB_CUSTOM] Pushed to history: Token '{$token}', URL '{$url}'. History size: ".count($history));
 
         $this->pruneHistory($history);
-        
+
         $this->session->set(REDIRECT_BACK_SESSION_KEY, $history);
     }
 
@@ -154,7 +156,7 @@ class RedirectBackManager
     {
         while (count($history) > MAX_REDIRECT_HISTORY_SIZE) {
             $removed = array_shift($history);
-            $this->logger->debug("[RB_CUSTOM] History limit exceeded. Shifted: Token '{$removed['token']}', URL '{$removed['url']}'. New size: " . count($history));
+            $this->logger->debug("[RB_CUSTOM] History limit exceeded. Shifted: Token '{$removed['token']}', URL '{$removed['url']}'. New size: ".count($history));
         }
     }
 
@@ -164,12 +166,12 @@ class RedirectBackManager
     private function getHistory(): array
     {
         $history = $this->session->get(REDIRECT_BACK_SESSION_KEY) ?? [];
-        
-        if (!is_array($history)) {
-            $this->logger->warning("[RB_CUSTOM] Session data for " . REDIRECT_BACK_SESSION_KEY . " was not an array. Resetting.");
+
+        if (! is_array($history)) {
+            $this->logger->warning('[RB_CUSTOM] Session data for '.REDIRECT_BACK_SESSION_KEY.' was not an array. Resetting.');
             $history = [];
         }
-        
+
         return $history;
     }
 
@@ -188,15 +190,17 @@ class RedirectBackManager
     {
         $sanitizedToken = $this->sanitizeToken($token);
         $this->logger->debug("[RB_CUSTOM] Attempting to find URL for token '{$sanitizedToken}' from GET.");
-        
+
         foreach ($history as $item) {
             if (isset($item['token']) && $item['token'] === $sanitizedToken) {
                 $this->logger->info("[RB_CUSTOM] Found URL '{$item['url']}' for token '{$sanitizedToken}' in history.");
+
                 return $item['url'];
             }
         }
-        
+
         $this->logger->debug("[RB_CUSTOM] Token '{$sanitizedToken}' not found in history. Proceeding to fallbacks.");
+
         return null;
     }
 
@@ -208,6 +212,7 @@ class RedirectBackManager
         // Fallback 1: Explicit default URL
         if (str_starts_with($default, 'http://') || str_starts_with($default, 'https://')) {
             $this->logger->debug("[RB_CUSTOM] Default is a full URL: '{$default}'. Returning it.");
+
             return $default;
         }
 
@@ -216,12 +221,13 @@ class RedirectBackManager
             try {
                 $url = route_to($default);
                 $this->logger->debug("[RB_CUSTOM] Default is a route name '{$default}'. Resolved to '{$url}'. Returning it.");
+
                 return $url;
             } catch (\Throwable $e) {
-                $this->logger->error("[RB_CUSTOM] Invalid Route Name '{$default}' provided as default. Error: " . $e->getMessage());
+                $this->logger->error("[RB_CUSTOM] Invalid Route Name '{$default}' provided as default. Error: ".$e->getMessage());
             }
         }
-        
+
         // Fallback 3: Latest from history
         $latestUrl = $this->getLatestUrlFromHistory($history);
         if ($latestUrl) {
@@ -243,13 +249,15 @@ class RedirectBackManager
      */
     private function getLatestUrlFromHistory(array $history): ?string
     {
-        if (!empty($history)) {
+        if (! empty($history)) {
             $latestEntry = end($history);
             if ($latestEntry && isset($latestEntry['url'])) {
                 $this->logger->debug("[RB_CUSTOM] No default, using latest URL from history: '{$latestEntry['url']}'.");
+
                 return $latestEntry['url'];
             }
         }
+
         return null;
     }
 
@@ -266,12 +274,14 @@ class RedirectBackManager
             if ($refererHost && $refererHost === $siteHost) {
                 $safeReferer = filter_var($referer, FILTER_SANITIZE_URL);
                 $this->logger->debug("[RB_CUSTOM] Using same-host referer: '{$safeReferer}'.");
+
                 return $safeReferer;
             }
             $this->logger->debug("[RB_CUSTOM] Referer '{$referer}' is external or invalid. Ignoring.");
         } else {
-            $this->logger->debug("[RB_CUSTOM] No referer available.");
+            $this->logger->debug('[RB_CUSTOM] No referer available.');
         }
+
         return null;
     }
 
@@ -282,6 +292,7 @@ class RedirectBackManager
     {
         $finalUrl = site_url('/');
         $this->logger->debug("[RB_CUSTOM] All fallbacks failed. Returning site_url('/'): '{$finalUrl}'.");
+
         return $finalUrl;
     }
 
@@ -291,6 +302,7 @@ class RedirectBackManager
     private function appendTokenToUrl(string $url, string $token): string
     {
         $sep = str_contains($url, '?') ? '&' : '?';
+
         return "{$url}{$sep}rb_token={$token}";
     }
 }
