@@ -17,7 +17,7 @@ trait RedirectIfNotFoundTrait
      *
      * @throws \CodeIgniter\HTTP\RedirectResponse If resource is not found, redirects back with error message
      */
-    public function redirectBackIfNotFound(?Model $resource, string $recordName = 'Record'): ?Model
+    public function redirectBackIfNotFound(Model|Collection $resource, string $recordName = 'Record'): ?Model
     {
         if (! $resource) {
             $response = redirect()->back()->with('error', "{$recordName} not found");
@@ -37,7 +37,7 @@ trait RedirectIfNotFoundTrait
      *
      * @throws PageNotFoundException If resource is not found
      */
-    public function redirectBack404IfNotFound(?Model $resource, string $recordName = 'Record'): ?Model
+    public function redirectBack404IfNotFound(Model|Collection $resource, string $recordName = 'Record'): ?Model
     {
         if (! $resource) {
             throw PageNotFoundException::forPageNotFound("{$recordName} not found");
