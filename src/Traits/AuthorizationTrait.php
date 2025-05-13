@@ -53,15 +53,10 @@ trait AuthorizationTrait
      *
      * @throws UnauthorizedPageException If the user is not authorized.
      */
-    protected function authorize($ability, $message = 'Unauthorized Action.', ...$arguments): bool
+    protected function authorize($ability, ...$arguments): bool
     {
-        if (! is_string($message)) {
-            array_unshift($arguments, $message);
-            $message = 'Unauthorized Action.';
-        }
-
         if (cannot($ability, ...$arguments)) {
-            throw new UnauthorizedPageException($message);
+            throw new UnauthorizedPageException('Unauthorized Action.');
         }
 
         return true;
@@ -78,15 +73,10 @@ trait AuthorizationTrait
      *
      * @throws PageNotFoundException If the user is not authorized.
      */
-    public function authorizeOrNotFound($ability, $message = 'Page Not Found.', ...$arguments): bool
+    public function authorizeOrNotFound($ability, ...$arguments): bool
     {
-        if (! is_string($message)) {
-            array_unshift($arguments, $message);
-            $message = 'Page Not Found.';
-        }
-
         if (cannot($ability, ...$arguments)) {
-            throw PageNotFoundException::forPageNotFound($message);
+            throw PageNotFoundException::forPageNotFound('Page Not Found.');
         }
 
         return true;

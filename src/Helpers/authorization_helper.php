@@ -56,15 +56,10 @@ if (! function_exists('cannot')) {
  * @throws UnauthorizedPageException If the user is not authorized.
  */
 if (! function_exists('authorize')) {
-    function authorize($ability, $message = 'Unauthorized Action.', ...$arguments): bool
+    function authorize($ability, ...$arguments): bool
     {
-        if (! is_string($message)) {
-            array_unshift($arguments, $message);
-            $message = 'Unauthorized Action.';
-        }
-
         if (cannot($ability, ...$arguments)) {
-            throw new UnauthorizedPageException($message);
+            throw new UnauthorizedPageException('Unauthorized Action.');
         }
 
         return true;
@@ -83,15 +78,10 @@ if (! function_exists('authorize')) {
  * @throws PageNotFoundException If the user is not authorized.
  */
 if (! function_exists('authorizeOrNotFound')) {
-    function authorizeOrNotFound($ability, $message = 'Page Not Found.', ...$arguments): bool
+    function authorizeOrNotFound($ability, ...$arguments): bool
     {
-        if (! is_string($message)) {
-            array_unshift($arguments, $message);
-            $message = 'Page Not Found.';
-        }
-
         if (cannot($ability, ...$arguments)) {
-            throw PageNotFoundException::forPageNotFound($message);
+            throw PageNotFoundException::forPageNotFound('Page Not Found.');
         }
 
         return true;
