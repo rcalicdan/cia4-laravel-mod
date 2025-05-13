@@ -2,14 +2,13 @@
 
 namespace Rcalicdan\Ci4Larabridge\Exceptions;
 
-use RuntimeException;
 use CodeIgniter\Exceptions\HTTPExceptionInterface;
+use RuntimeException;
 
 class UnauthorizedPageException extends RuntimeException implements HTTPExceptionInterface
 {
     /**
-     * @param string         $message  Custom or default message
-     * @param \Throwable|null $previous
+     * @param  string  $message  Custom or default message
      */
     public function __construct(
         string $message = 'You do not have permission to access this page.',

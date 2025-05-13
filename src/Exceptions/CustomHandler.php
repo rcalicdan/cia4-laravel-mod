@@ -47,8 +47,9 @@ class CustomHandler implements ExceptionHandlerInterface
         $defaultHandler = new DefaultHandler($this->config);
 
         if ($exception instanceof ModelNotFoundException) {
+            $modelName = class_basename($exception->getModel());
             $ci4Exception = PageNotFoundException::forPageNotFound(
-                'The requested resource could not be found.'
+                "The requested {$modelName} not be found."
             );
 
             $defaultHandler->handle($ci4Exception, $request, $response, 404, $exitCode);

@@ -1,5 +1,6 @@
 <?php
 
+use CodeIgniter\Exceptions\PageNotFoundException;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
 use Rcalicdan\Ci4Larabridge\Exceptions\UnauthorizedPageException;
 
@@ -51,13 +52,25 @@ if (! function_exists('cannot')) {
  * @param  mixed  ...$arguments  Additional arguments for the authorization check.
  * @return bool True if the user is authorized.
  *
- * @throws CodeIgniter\Exceptions\PageNotFoundException If the user is not authorized.
+ * @throws PageNotFoundException If the user is not authorized.
  */
 if (! function_exists('authorize')) {
-    function authorize($ability, ...$arguments)
+    function authorize($ability, ...$arguments, string $message = '', int $statusCode = 403): bool
     {
-        if (cannot($ability, ...$arguments)) {
-            throw new UnauthorizedPageException('Unauthorized action.');
+        if ($statusCode !== 403 || $statusCode !== 404) {
+            throw new InvalidArgumentException('Invalid status code. Only 403 and 404 are allowed.');
+        }
+
+        if (cannot($ability, ...$arguments) && $statusCode === 404) {
+            $message ??= 'Page Not Found.';
+
+            throw PageNotFoundException::forPageNotFound($message);
+        }
+
+        if (cannot($ability, ...$arguments) && $statusCode === 403) {
+            $message ??= 'Unauthorized Action.';
+
+            throw new UnauthorizedPageException($message);
         }
 
         return true;

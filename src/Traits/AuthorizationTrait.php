@@ -2,7 +2,10 @@
 
 namespace Rcalicdan\Ci4Larabridge\Traits;
 
+use CodeIgniter\Exceptions\PageNotFoundException;
+use InvalidArgumentException;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
+use Rcalicdan\Ci4Larabridge\Exceptions\UnauthorizedPageException;
 
 trait AuthorizationTrait
 {
@@ -48,12 +51,24 @@ trait AuthorizationTrait
      * @param  mixed  ...$arguments
      * @return bool
      *
-     * @throws \CodeIgniter\Exceptions\PageNotFoundException
+     * @throws PageNotFoundException
      */
-    protected function authorize($ability, ...$arguments)
+    protected function authorize($ability, ...$arguments, string $message = '', int $statusCode = 403)
     {
-        if ($this->cannot($ability, ...$arguments)) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException('Unauthorized action.');
+        if ($statusCode !== 403 || $statusCode !== 404) {
+            throw new InvalidArgumentException('Invalid status code. Only 403 and 404 are allowed.');
+        }
+
+        if (cannot($ability, ...$arguments) && $statusCode === 404) {
+            $message ??= 'Page Not Found.';
+
+            throw PageNotFoundException::forPageNotFound($message);
+        }
+
+        if (cannot($ability, ...$arguments) && $statusCode === 403) {
+            $message ??= 'Unauthorized Action.';
+
+            throw new UnauthorizedPageException($message);
         }
 
         return true;
