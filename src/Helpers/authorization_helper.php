@@ -46,31 +46,52 @@ if (! function_exists('cannot')) {
 
 /**
  * Authorizes the current user to perform a specific ability.
- * Throws a PageNotFoundException if the user is not authorized.
+ * Throws an UnauthorizedPageException (403) if the user is not authorized.
  *
  * @param  string  $ability  The ability to authorize.
+ * @param  string  $message  Custom error message.
+ * @param  mixed  ...$arguments  Additional arguments for the authorization check.
+ * @return bool True if the user is authorized.
+ *
+ * @throws UnauthorizedPageException If the user is not authorized.
+ */
+if (! function_exists('authorize')) {
+    function authorize($ability, $message = 'Unauthorized Action.', ...$arguments): bool
+    {
+        if (! is_string($message)) {
+            array_unshift($arguments, $message);
+            $message = 'Unauthorized Action.';
+        }
+
+        if (cannot($ability, ...$arguments)) {
+            throw new UnauthorizedPageException($message);
+        }
+
+        return true;
+    }
+}
+
+/**
+ * Authorizes the current user to perform a specific ability.
+ * Throws a PageNotFoundException (404) if the user is not authorized.
+ *
+ * @param  string  $ability  The ability to authorize.
+ * @param  string  $message  Custom error message.
  * @param  mixed  ...$arguments  Additional arguments for the authorization check.
  * @return bool True if the user is authorized.
  *
  * @throws PageNotFoundException If the user is not authorized.
  */
-if (! function_exists('authorize')) {
-    function authorize($ability, ...$arguments, string $message = '', int $statusCode = 403): bool
+if (! function_exists('authorizeOrNotFound')) {
+    function authorizeOrNotFound($ability, $message = 'Page Not Found.', ...$arguments): bool
     {
-        if ($statusCode !== 403 || $statusCode !== 404) {
-            throw new InvalidArgumentException('Invalid status code. Only 403 and 404 are allowed.');
+        if (! is_string($message)) {
+            array_unshift($arguments, $message);
+            $message = 'Page Not Found.';
         }
 
-        if (cannot($ability, ...$arguments) && $statusCode === 404) {
-            $message ??= 'Page Not Found.';
-
+        if (cannot($ability, ...$arguments)) {
             throw PageNotFoundException::forPageNotFound($message);
-        }
-
-        if (cannot($ability, ...$arguments) && $statusCode === 403) {
-            $message ??= 'Unauthorized Action.';
-
-            throw new UnauthorizedPageException($message);
         }
 
         return true;

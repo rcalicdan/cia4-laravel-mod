@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Traits;
 
 use CodeIgniter\Exceptions\PageNotFoundException;
-use InvalidArgumentException;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
 use Rcalicdan\Ci4Larabridge\Exceptions\UnauthorizedPageException;
 
@@ -44,31 +43,50 @@ trait AuthorizationTrait
     }
 
     /**
-     * Authorize the current user for an action.
-     * Throws PageNotFoundException if unauthorized.
+     * Authorizes the current user to perform a specific ability.
+     * Throws an UnauthorizedPageException (403) if the user is not authorized.
      *
-     * @param  string  $ability
-     * @param  mixed  ...$arguments
-     * @return bool
+     * @param  string  $ability  The ability to authorize.
+     * @param  string  $message  Custom error message.
+     * @param  mixed  ...$arguments  Additional arguments for the authorization check.
+     * @return bool True if the user is authorized.
      *
-     * @throws PageNotFoundException
+     * @throws UnauthorizedPageException If the user is not authorized.
      */
-    protected function authorize($ability, ...$arguments, string $message = '', int $statusCode = 403)
+    protected function authorize($ability, $message = 'Unauthorized Action.', ...$arguments): bool
     {
-        if ($statusCode !== 403 || $statusCode !== 404) {
-            throw new InvalidArgumentException('Invalid status code. Only 403 and 404 are allowed.');
+        if (! is_string($message)) {
+            array_unshift($arguments, $message);
+            $message = 'Unauthorized Action.';
         }
 
-        if (cannot($ability, ...$arguments) && $statusCode === 404) {
-            $message ??= 'Page Not Found.';
-
-            throw PageNotFoundException::forPageNotFound($message);
-        }
-
-        if (cannot($ability, ...$arguments) && $statusCode === 403) {
-            $message ??= 'Unauthorized Action.';
-
+        if (cannot($ability, ...$arguments)) {
             throw new UnauthorizedPageException($message);
+        }
+
+        return true;
+    }
+
+    /**
+     * Authorizes the current user to perform a specific ability.
+     * Throws a PageNotFoundException (404) if the user is not authorized.
+     *
+     * @param  string  $ability  The ability to authorize.
+     * @param  string  $message  Custom error message.
+     * @param  mixed  ...$arguments  Additional arguments for the authorization check.
+     * @return bool True if the user is authorized.
+     *
+     * @throws PageNotFoundException If the user is not authorized.
+     */
+    public function authorizeOrNotFound($ability, $message = 'Page Not Found.', ...$arguments): bool
+    {
+        if (! is_string($message)) {
+            array_unshift($arguments, $message);
+            $message = 'Page Not Found.';
+        }
+
+        if (cannot($ability, ...$arguments)) {
+            throw PageNotFoundException::forPageNotFound($message);
         }
 
         return true;
