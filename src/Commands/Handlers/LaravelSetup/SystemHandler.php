@@ -40,7 +40,7 @@ class SystemHandler extends SetupHandler
 
         $pattern = '/(Events::on\(\'pre_system\',)/';
         $eloquentCode = <<<'EOD'
-Events::on('pre_system', static function (): void {S
+Events::on('pre_system', static function (): void {
     // Load the Eloquent configuration
     service('eloquent');
     // Load the authentication configuration
