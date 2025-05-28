@@ -322,9 +322,9 @@ class LaravelMigrate extends BaseCommand
      */
     private function confirmFreshAction(): bool
     {
-        $confirmAgain = CLI::prompt('This will DELETE ALL DATA in your database. Type "DELETE" to confirm', null, 'required');
+        $confirmAgain = CLI::prompt('This will DELETE ALL DATA in your database. Type "CONFIRM" to confirm', null, 'required');
 
-        if ($confirmAgain !== 'DELETE') {
+        if ($confirmAgain !== 'CONFIRM') {
             CLI::write('Operation cancelled.', 'yellow');
 
             return false;
