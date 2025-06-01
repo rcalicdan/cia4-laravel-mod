@@ -4,6 +4,8 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 use Config\Services;
+use Illuminate\Support\Carbon;
+use Rcalicdan\Ci4Larabridge\Exceptions\PasswordResetThrottledException;
 use UnverifiedEmailException;
 
 class Authentication
@@ -13,6 +15,7 @@ class Authentication
     protected $userModel;
     protected $config;
     protected $response;
+    protected $email;
 
     public function __construct()
     {
@@ -80,6 +83,7 @@ class Authentication
 
     /**
      * Login user
+     * Handle remember me functionality
      */
     public function login($user, bool $remember = false): bool
     {
@@ -90,7 +94,6 @@ class Authentication
             $this->session->regenerate(true);
         }
 
-        // Handle remember me functionality
         if ($remember && $this->config->rememberMe['enabled']) {
             $this->setRememberToken($user);
         }
@@ -122,23 +125,21 @@ class Authentication
         return true;
     }
 
-    /**
-     * Send password reset email
-     */
     public function sendPasswordResetLink(string $email): bool
     {
         $model = $this->userModel;
         $user = $model::where('email', $email)->first();
 
         if (!$user) {
-            return true; // Don't reveal if email exists
+            return true;
         }
 
         if ($this->isPasswordResetThrottled($user)) {
-            throw new \Exception('Password reset request throttled');
+            throw new PasswordResetThrottledException();
         }
 
         $token = $user->generatePasswordResetToken();
+        $user->update(['password_reset_created_at' => Carbon::now()]);
 
         return $this->sendPasswordResetEmail($user, $token);
     }
@@ -179,7 +180,6 @@ class Authentication
 
         $token = $user->generateEmailVerificationToken();
 
-        // Send email (you'll need to implement email service)
         return $this->sendVerificationEmail($user, $token);
     }
 
@@ -228,6 +228,7 @@ class Authentication
         }
 
         $cookieValue = get_cookie($this->config->rememberMe['cookieName']);
+
         if (!$cookieValue) {
             return;
         }
@@ -259,27 +260,79 @@ class Authentication
      */
     protected function isPasswordResetThrottled($user): bool
     {
-        // Implement throttling logic based on your needs
-        // This is a basic example
-        return false;
+        if (!$user->password_reset_created_at) {
+            return false;
+        }
+
+        $throttleTime = $this->config->passwordReset['throttle'];
+        $lastResetTime = strtotime($user->password_reset_created_at);
+        $currentTime = time();
+
+        return ($currentTime - $lastResetTime) < $throttleTime;
     }
 
     /**
      * Send password reset email (implement based on your email service)
+     * Load the password reset email template
      */
     protected function sendPasswordResetEmail($user, string $token): bool
     {
-        // Implement email sending logic
-        // You might want to use CodeIgniter's email service or a third-party service
-        return true;
+        try {
+            $resetUrl = site_url("password/reset/{$token}");
+
+            $this->email->clear();
+            $this->email->setFrom(
+                $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+                $this->config->email['fromName'] ?? 'Your Application'
+            );
+            $this->email->setTo($user->email);
+            $this->email->setSubject('Password Reset Request');
+
+            $emailBody = view('larabridge::emails.password_reset', [
+                'user' => $user,
+                'resetUrl' => $resetUrl,
+                'expiry' => $this->config->passwordReset['tokenExpiry'] / 3600
+            ]);
+
+            $this->email->setMessage($emailBody);
+
+            return $this->email->send();
+        } catch (\Exception $e) {
+            log_message('error', 'Password reset email failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
      * Send verification email (implement based on your email service)
+     * Load the email verification template
      */
     protected function sendVerificationEmail($user, string $token): bool
     {
-        // Implement email sending logic
-        return true;
+        try {
+            $verificationUrl = site_url("email/verify/{$token}");
+
+            $this->email->clear();
+            $this->email->setFrom(
+                $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+                $this->config->email['fromName'] ?? 'Your Application'
+            );
+            $this->email->setTo($user->email);
+            $this->email->setSubject('Verify Your Email Address');
+
+
+            $emailBody = view('larabridge::emails.email_verification', [
+                'user' => $user,
+                'verificationUrl' => $verificationUrl,
+                'expiry' => $this->config->emailVerification['tokenExpiry'] / 3600
+            ]);
+
+            $this->email->setMessage($emailBody);
+
+            return $this->email->send();
+        } catch (\Exception $e) {
+            log_message('error', 'Email verification failed: ' . $e->getMessage());
+            return false;
+        }
     }
 }
