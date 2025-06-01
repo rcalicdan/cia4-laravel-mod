@@ -40,6 +40,11 @@ class LarabridgeAuthentication extends BaseConfig
     public string $loginUrl = '/login';
 
     /**
+     * Email Verfification page URL
+     */
+    public string $emailVerficationUrl = '/email/verify';
+    
+    /**
      * Password reset settings
      */
     public array $passwordReset = [
