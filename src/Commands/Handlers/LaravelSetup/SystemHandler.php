@@ -12,7 +12,7 @@ class SystemHandler extends SetupHandler
     public function setupEvents(): void
     {
         $file = 'Config/Events.php';
-        $path = $this->distPath.$file;
+        $path = $this->distPath . $file;
         $cleanPath = clean_path($path);
 
         if (! file_exists($path)) {
@@ -24,7 +24,7 @@ class SystemHandler extends SetupHandler
         $content = file_get_contents($path);
 
         if (strpos($content, "service('eloquent')") !== false) {
-            $this->write(CLI::color('  Events Setup: ', 'green').'Eloquent already initialized in events.');
+            $this->write(CLI::color('  Events Setup: ', 'green') . 'Eloquent already initialized in events.');
 
             return;
         }
@@ -53,7 +53,7 @@ EOD;
         $newContent = preg_replace($pattern, $eloquentCode, $content);
 
         if ($newContent !== $content && write_file($path, $newContent)) {
-            $this->write(CLI::color('  Updated: ', 'green').$cleanPath);
+            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
         } else {
             $this->error('  Error updating Events file.');
         }
@@ -65,7 +65,7 @@ EOD;
     public function setupFilters(): void
     {
         $file = 'Config/Filters.php';
-        $path = $this->distPath.$file;
+        $path = $this->distPath . $file;
         $cleanPath = clean_path($path);
 
         if (! file_exists($path)) {
@@ -78,7 +78,7 @@ EOD;
 
         // Check if the code is already there
         if (strpos($content, '\\Rcalicdan\\Ci4Larabridge\\Filters\\AuthFilter::class') !== false) {
-            $this->write(CLI::color('  Filters Setup: ', 'green').'Auth filters already added.');
+            $this->write(CLI::color('  Filters Setup: ', 'green') . 'Auth filters already added.');
 
             return;
         }
@@ -89,13 +89,15 @@ EOD;
 $1$2
         'auth'     => \Rcalicdan\Ci4Larabridge\Filters\AuthFilter::class,
         'guest'    => \Rcalicdan\Ci4Larabridge\Filters\GuestFilter::class,
+        'throttle' => \Rcalicdan\Ci4Larabridge\Filters\ThrottleFilter::class,
+        'email_verified' => \Rcalicdan\Ci4Larabridge\Filters\EmailVerifiedFilter::class,
 $3
 EOD;
 
         $newContent = preg_replace($pattern, $filterAliases, $content);
 
         if ($newContent !== $content && write_file($path, $newContent)) {
-            $this->write(CLI::color('  Updated: ', 'green').$cleanPath);
+            $this->write(CLI::color('  Updated: ', 'green') . $cleanPath);
         } else {
             $this->error('  Error updating Filters file.');
         }
