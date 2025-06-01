@@ -149,7 +149,7 @@ class Authentication
         $model = $this->userModel;
 
         $user = $model::where('password_reset_token', $hashedToken)
-            ->where('password_reset_expires_at', '>', now())
+            ->where('password_reset_expires_at', '>', Carbon::now())
             ->first();
 
         if (!$user) {
@@ -188,7 +188,7 @@ class Authentication
         $model = $this->userModel;
 
         $user = $model::where('email_verification_token', $hashedToken)
-            ->where('email_verification_expires_at', '>', now())
+            ->where('email_verification_expires_at', '>', Carbon::now())
             ->first();
 
         if (!$user) {

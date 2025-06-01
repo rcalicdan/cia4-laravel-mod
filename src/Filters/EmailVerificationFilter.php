@@ -10,6 +10,8 @@ use Rcalicdan\Ci4Larabridge\Facades\Auth;
 
 class EmailVerificationFilter implements FilterInterface
 {
+    private const EMAIL_VERIFICATION_URL = '/email/verify';
+
     public function before(RequestInterface $request, $arguments = null)
     {
         $config = Services::config('LarabridgeAuthentication');
@@ -24,7 +26,7 @@ class EmailVerificationFilter implements FilterInterface
 
         $user = Auth::user();
         if (!$user->hasVerifiedEmail()) {
-            return redirect()->to('/email/verify')
+            return redirect()->to($config->verificationUrl ?? self::EMAIL_VERIFICATION_URL)
                 ->with('error', 'Please verify your email address');
         }
     }

@@ -55,7 +55,7 @@ class LarabridgeAuthentication extends BaseConfig
      * Email verification settings
      */
     public array $emailVerification = [
-        'required' => true,
+        'required' => false,
         'tokenExpiry' => 86400, // 24 hours in seconds
     ];
 
@@ -63,7 +63,7 @@ class LarabridgeAuthentication extends BaseConfig
      * Remember me settings
      */
     public array $rememberMe = [
-        'enabled' => true,
+        'enabled' => false,
         'tokenExpiry' => 2592000, // 30 days in seconds
         'cookieName' => 'remember_token',
         'cookieSecure' => true,
