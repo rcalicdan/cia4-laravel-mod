@@ -5,7 +5,6 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 use Config\Services;
 use Illuminate\Support\Carbon;
-use Rcalicdan\Ci4Larabridge\Exceptions\PasswordResetThrottledException;
 use UnverifiedEmailException;
 
 class Authentication
@@ -27,6 +26,7 @@ class Authentication
 
         $this->session = Services::session();
         $this->response = Services::response();
+        $this->email = Services::email();
 
         // Check for remember me token on construction
         $this->checkRememberToken();
@@ -131,11 +131,7 @@ class Authentication
         $user = $model::where('email', $email)->first();
 
         if (!$user) {
-            return true;
-        }
-
-        if ($this->isPasswordResetThrottled($user)) {
-            throw new PasswordResetThrottledException();
+            return true; // Don't reveal if email exists
         }
 
         $token = $user->generatePasswordResetToken();
@@ -256,22 +252,6 @@ class Authentication
     }
 
     /**
-     * Check if password reset is throttled
-     */
-    protected function isPasswordResetThrottled($user): bool
-    {
-        if (!$user->password_reset_created_at) {
-            return false;
-        }
-
-        $throttleTime = $this->config->passwordReset['throttle'];
-        $lastResetTime = strtotime($user->password_reset_created_at);
-        $currentTime = time();
-
-        return ($currentTime - $lastResetTime) < $throttleTime;
-    }
-
-    /**
      * Send password reset email (implement based on your email service)
      * Load the password reset email template
      */
@@ -288,7 +268,7 @@ class Authentication
             $this->email->setTo($user->email);
             $this->email->setSubject('Password Reset Request');
 
-            $emailBody = view('larabridge::emails.password_reset', [
+            $emailBody = view($this->config->passwordResetVerficationViewPath, [
                 'user' => $user,
                 'resetUrl' => $resetUrl,
                 'expiry' => $this->config->passwordReset['tokenExpiry'] / 3600
@@ -320,8 +300,7 @@ class Authentication
             $this->email->setTo($user->email);
             $this->email->setSubject('Verify Your Email Address');
 
-
-            $emailBody = view('larabridge::emails.email_verification', [
+            $emailBody = view($this->config->emailVerificationViewPath, [
                 'user' => $user,
                 'verificationUrl' => $verificationUrl,
                 'expiry' => $this->config->emailVerification['tokenExpiry'] / 3600
