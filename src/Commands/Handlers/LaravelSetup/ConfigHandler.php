@@ -12,6 +12,7 @@ class ConfigHandler extends SetupHandler
         $this->publishConfigEloquent();
         $this->publishConfigPagination();
         $this->publishConfigBlade();
+        $this->publishConfigAuthentication();
     }
 
     /**
@@ -50,6 +51,19 @@ class ConfigHandler extends SetupHandler
             'use CodeIgniter\Config\BaseConfig;' => 'use CodeIgniter\Config\BaseConfig;
 use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
             'class Pagination extends BaseConfig' => 'class Pagination extends BaseConfig',
+        ];
+
+        $this->copyAndReplace($file, $replaces);
+    }
+
+    /**
+     * Copy and replace the given file
+     */
+    private function publishConfigAuthentication(): void
+    {
+        $file = 'Config/LarabridgeAuthentication.php';
+        $replaces = [
+            'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
         ];
 
         $this->copyAndReplace($file, $replaces);

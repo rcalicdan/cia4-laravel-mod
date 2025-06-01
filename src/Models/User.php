@@ -2,25 +2,43 @@
 
 namespace Rcalicdan\Ci4Larabridge\Models;
 
+use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasEmailVerification;
+use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasPasswordReset;
+use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasRememberToken;
+
 class User extends Model
 {
+    use HasEmailVerification,
+        HasPasswordReset,
+        HasRememberToken;
+
     protected $table = 'users';
 
     protected $fillable = [
         'name',
         'email',
         'password',
+        'email_verified_at',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+        'email_verification_token',
+        'password_reset_token',
     ];
 
     /**
      * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
             'password' => 'hashed',
+            'email_verified_at' => 'datetime',
+            'password_reset_expires_at' => 'datetime',
+            'email_verification_expires_at' => 'datetime',
+            'password_reset_created_at' => 'datetime',
         ];
     }
 }
