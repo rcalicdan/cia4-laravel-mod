@@ -2,7 +2,6 @@
 
 namespace Rcalicdan\Ci4Larabridge\Authentication;
 
-use Config\LarabridgeAuthentication;
 use Config\Services;
 use Illuminate\Support\Carbon;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
@@ -16,10 +15,11 @@ class Authentication
     protected $config;
     protected $response;
     protected $email;
+    protected $request;
 
     public function __construct()
     {
-        $this->config = Services::config(LarabridgeAuthentication::class);
+        $this->config = config('LarabridgeAuthentication');
 
         $this->userModel = class_exists(\App\Models\User::class)
             ? \App\Models\User::class
@@ -28,6 +28,7 @@ class Authentication
         $this->session = Services::session();
         $this->response = Services::response();
         $this->email = Services::email();
+        $this->request = Services::request();
 
         // Check for remember me token on construction
         $this->checkRememberToken();
@@ -226,7 +227,7 @@ class Authentication
             return;
         }
 
-        $cookieValue = get_cookie($this->config->rememberMe['cookieName']);
+        $cookieValue = $this->request->getCookie($this->config->rememberMe['cookieName']);
 
         if (! $cookieValue) {
             return;
