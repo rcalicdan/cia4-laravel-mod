@@ -2,9 +2,9 @@
 
 namespace Rcalicdan\Ci4Larabridge\Authentication;
 
-use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 use Config\Services;
 use Illuminate\Support\Carbon;
+use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 use UnverifiedEmailException;
 
 class Authentication
@@ -43,7 +43,7 @@ class Authentication
 
         $userId = $this->session->get('auth_user_id');
 
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
@@ -59,7 +59,7 @@ class Authentication
 
     public function guest(): bool
     {
-        return !$this->check();
+        return ! $this->check();
     }
 
     /**
@@ -70,11 +70,11 @@ class Authentication
         $model = $this->userModel;
         $user = $model::where('email', $credentials['email'])->first();
 
-        if (!$user || !password_verify($credentials['password'], $user->password)) {
+        if (! $user || ! password_verify($credentials['password'], $user->password)) {
             return false;
         }
 
-        if ($this->config->emailVerification['required'] && !$user->hasVerifiedEmail()) {
+        if ($this->config->emailVerification['required'] && ! $user->hasVerifiedEmail()) {
             throw new UnverifiedEmailException('Email verification required');
         }
 
@@ -130,7 +130,7 @@ class Authentication
         $model = $this->userModel;
         $user = $model::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return true; // Don't reveal if email exists
         }
 
@@ -150,9 +150,10 @@ class Authentication
 
         $user = $model::where('password_reset_token', $hashedToken)
             ->where('password_reset_expires_at', '>', Carbon::now())
-            ->first();
+            ->first()
+        ;
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -189,9 +190,10 @@ class Authentication
 
         $user = $model::where('email_verification_token', $hashedToken)
             ->where('email_verification_expires_at', '>', Carbon::now())
-            ->first();
+            ->first()
+        ;
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -219,13 +221,13 @@ class Authentication
      */
     protected function checkRememberToken(): void
     {
-        if (!$this->config->rememberMe['enabled'] || $this->check()) {
+        if (! $this->config->rememberMe['enabled'] || $this->check()) {
             return;
         }
 
         $cookieValue = get_cookie($this->config->rememberMe['cookieName']);
 
-        if (!$cookieValue) {
+        if (! $cookieValue) {
             return;
         }
 
@@ -234,7 +236,8 @@ class Authentication
         $model = $this->userModel;
         $user = $model::where('id', $userId)
             ->where('remember_token', hash('sha256', $token))
-            ->first();
+            ->first()
+        ;
 
         if ($user) {
             $this->login($user);
@@ -262,7 +265,7 @@ class Authentication
 
             $this->email->clear();
             $this->email->setFrom(
-                $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+                $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
                 $this->config->email['fromName'] ?? 'Your Application'
             );
             $this->email->setTo($user->email);
@@ -271,14 +274,15 @@ class Authentication
             $emailBody = view($this->config->passwordResetVerficationViewPath, [
                 'user' => $user,
                 'resetUrl' => $resetUrl,
-                'expiry' => $this->config->passwordReset['tokenExpiry'] / 3600
+                'expiry' => $this->config->passwordReset['tokenExpiry'] / 3600,
             ]);
 
             $this->email->setMessage($emailBody);
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Password reset email failed: ' . $e->getMessage());
+            log_message('error', 'Password reset email failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -294,7 +298,7 @@ class Authentication
 
             $this->email->clear();
             $this->email->setFrom(
-                $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+                $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
                 $this->config->email['fromName'] ?? 'Your Application'
             );
             $this->email->setTo($user->email);
@@ -303,14 +307,15 @@ class Authentication
             $emailBody = view($this->config->emailVerificationViewPath, [
                 'user' => $user,
                 'verificationUrl' => $verificationUrl,
-                'expiry' => $this->config->emailVerification['tokenExpiry'] / 3600
+                'expiry' => $this->config->emailVerification['tokenExpiry'] / 3600,
             ]);
 
             $this->email->setMessage($emailBody);
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Email verification failed: ' . $e->getMessage());
+            log_message('error', 'Email verification failed: '.$e->getMessage());
+
             return false;
         }
     }

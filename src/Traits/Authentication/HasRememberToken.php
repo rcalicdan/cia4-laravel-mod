@@ -12,7 +12,7 @@ trait HasRememberToken
     public function generateRememberToken(): string
     {
         $token = Str::random(60);
-        
+
         $this->update([
             'remember_token' => hash('sha256', $token),
         ]);
@@ -35,7 +35,7 @@ trait HasRememberToken
      */
     public function isValidRememberToken(string $token): bool
     {
-        if (!$this->remember_token) {
+        if (! $this->remember_token) {
             return false;
         }
 

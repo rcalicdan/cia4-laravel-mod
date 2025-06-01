@@ -2,9 +2,9 @@
 
 namespace Rcalicdan\Ci4Larabridge\Traits\Authentication;
 
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Config\Services;
+use Illuminate\Support\Str;
 
 trait HasPasswordReset
 {
@@ -15,7 +15,7 @@ trait HasPasswordReset
     {
         $token = Str::random(60);
         $config = Services::config('LarabridgeAuthentication');
-        
+
         $this->update([
             'password_reset_token' => hash('sha256', $token),
             'password_reset_expires_at' => Carbon::now()->addSeconds($config->passwordReset['tokenExpiry']),
@@ -42,7 +42,7 @@ trait HasPasswordReset
      */
     public function isPasswordResetTokenExpired(): bool
     {
-        if (!$this->password_reset_expires_at) {
+        if (! $this->password_reset_expires_at) {
             return true;
         }
 
@@ -54,7 +54,7 @@ trait HasPasswordReset
      */
     public function isValidPasswordResetToken(string $token): bool
     {
-        if (!$this->password_reset_token || $this->isPasswordResetTokenExpired()) {
+        if (! $this->password_reset_token || $this->isPasswordResetTokenExpired()) {
             return false;
         }
 
@@ -66,7 +66,7 @@ trait HasPasswordReset
      */
     public function resetPasswordWithToken(string $token, string $newPassword): bool
     {
-        if (!$this->isValidPasswordResetToken($token)) {
+        if (! $this->isValidPasswordResetToken($token)) {
             return false;
         }
 
@@ -86,7 +86,7 @@ trait HasPasswordReset
      */
     public function canRequestPasswordReset(): bool
     {
-        if (!$this->password_reset_created_at) {
+        if (! $this->password_reset_created_at) {
             return true;
         }
 

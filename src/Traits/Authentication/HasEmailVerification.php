@@ -2,9 +2,9 @@
 
 namespace Rcalicdan\Ci4Larabridge\Traits\Authentication;
 
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Config\Services;
+use Illuminate\Support\Str;
 
 trait HasEmailVerification
 {
@@ -13,7 +13,7 @@ trait HasEmailVerification
      */
     public function hasVerifiedEmail(): bool
     {
-        return !is_null($this->email_verified_at);
+        return ! is_null($this->email_verified_at);
     }
 
     /**
@@ -35,7 +35,7 @@ trait HasEmailVerification
     {
         $token = Str::random(60);
         $config = Services::config('LarabridgeAuthentication');
-        
+
         $this->update([
             'email_verification_token' => hash('sha256', $token),
             'email_verification_expires_at' => Carbon::now()->addSeconds($config->emailVerification['tokenExpiry']),
@@ -49,7 +49,7 @@ trait HasEmailVerification
      */
     public function isEmailVerificationTokenExpired(): bool
     {
-        if (!$this->email_verification_expires_at) {
+        if (! $this->email_verification_expires_at) {
             return true;
         }
 

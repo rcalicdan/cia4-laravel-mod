@@ -11,17 +11,17 @@ trait FilePublisherTrait
     /**
      * Publishes files from source to destination directory
      *
-     * @param string $sourcePath Source directory path
-     * @param string $destinationPath Destination directory path
+     * @param  string  $sourcePath  Source directory path
+     * @param  string  $destinationPath  Destination directory path
      * @return bool Success status
      */
     protected function publishFiles(string $sourcePath, string $destinationPath): bool
     {
-        if (!$this->validateSourceDirectory($sourcePath)) {
+        if (! $this->validateSourceDirectory($sourcePath)) {
             return false;
         }
 
-        if (!$this->ensureDestinationDirectory($destinationPath)) {
+        if (! $this->ensureDestinationDirectory($destinationPath)) {
             return false;
         }
 
@@ -30,9 +30,6 @@ trait FilePublisherTrait
 
     /**
      * Validates that source directory exists
-     *
-     * @param string $sourcePath
-     * @return bool
      */
     private function validateSourceDirectory(string $sourcePath): bool
     {
@@ -41,14 +38,12 @@ trait FilePublisherTrait
         }
 
         CLI::error("Source directory not found: {$sourcePath}");
+
         return false;
     }
 
     /**
      * Ensures destination directory exists, creates if necessary
-     *
-     * @param string $destinationPath
-     * @return bool
      */
     private function ensureDestinationDirectory(string $destinationPath): bool
     {
@@ -61,15 +56,12 @@ trait FilePublisherTrait
         }
 
         CLI::error("Failed to create destination directory: {$destinationPath}");
+
         return false;
     }
 
     /**
      * Copies files recursively using SPL iterators (more efficient and cleaner)
-     *
-     * @param string $source
-     * @param string $destination
-     * @return bool
      */
     private function copyFilesRecursively(string $source, string $destination): bool
     {
@@ -81,7 +73,7 @@ trait FilePublisherTrait
 
             foreach ($iterator as $item) {
                 $relativePath = $iterator->getSubPathName();
-                $destinationItem = $destination . DIRECTORY_SEPARATOR . $relativePath;
+                $destinationItem = $destination.DIRECTORY_SEPARATOR.$relativePath;
 
                 if ($item->isDir()) {
                     $this->createDirectoryIfNotExists($destinationItem);
@@ -92,31 +84,24 @@ trait FilePublisherTrait
 
             return true;
         } catch (\Exception $e) {
-            CLI::error("Error during file copying: " . $e->getMessage());
+            CLI::error('Error during file copying: '.$e->getMessage());
+
             return false;
         }
     }
 
     /**
      * Creates directory if it doesn't exist
-     *
-     * @param string $directory
-     * @return void
      */
     private function createDirectoryIfNotExists(string $directory): void
     {
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
     }
 
     /**
      * Copies a single file and provides feedback
-     *
-     * @param string $source
-     * @param string $destination
-     * @param string $filename
-     * @return void
      */
     private function copyFile(string $source, string $destination, string $filename): void
     {

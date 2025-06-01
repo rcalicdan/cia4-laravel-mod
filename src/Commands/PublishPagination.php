@@ -46,8 +46,7 @@ class PublishPagination extends BaseCommand
     /**
      * Executes the command to publish pagination templates
      *
-     * @param array $params Command parameters
-     * @return void
+     * @param  array  $params  Command parameters
      */
     public function run(array $params): void
     {
@@ -61,21 +60,17 @@ class PublishPagination extends BaseCommand
 
     /**
      * Gets the source path for pagination templates
-     *
-     * @return string
      */
     private function getSourcePath(): string
     {
-        return __DIR__ . '/../Views/pagination';
+        return __DIR__.'/../Views/pagination';
     }
 
     /**
      * Gets the destination path for pagination templates
-     *
-     * @return string
      */
     private function getDestinationPath(): string
     {
-        return APPPATH . 'Views/pagination';
+        return APPPATH.'Views/pagination';
     }
 }

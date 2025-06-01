@@ -40,11 +40,10 @@ class PublishAuthenticationEmails extends BaseCommand
      */
     protected $options = [];
 
-     /**
+    /**
      * Executes the command to publish email templates
      *
-     * @param array $params Command parameters
-     * @return void
+     * @param  array  $params  Command parameters
      */
     public function run(array $params): void
     {
@@ -58,21 +57,17 @@ class PublishAuthenticationEmails extends BaseCommand
 
     /**
      * Gets the source path for email templates
-     *
-     * @return string
      */
     private function getSourcePath(): string
     {
-        return __DIR__ . '/../Views/emails';
+        return __DIR__.'/../Views/emails';
     }
 
     /**
      * Gets the destination path for email templates
-     *
-     * @return string
      */
     private function getDestinationPath(): string
     {
-        return APPPATH . 'Views/emails';
+        return APPPATH.'Views/emails';
     }
 }

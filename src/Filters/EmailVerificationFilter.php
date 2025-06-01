@@ -16,7 +16,7 @@ class EmailVerificationFilter implements FilterInterface
     {
         $config = Services::config('LarabridgeAuthentication');
 
-        if (!$config->emailVerification['required']) {
+        if (! $config->emailVerification['required']) {
             return;
         }
 
@@ -25,9 +25,10 @@ class EmailVerificationFilter implements FilterInterface
         }
 
         $user = Auth::user();
-        if (!$user->hasVerifiedEmail()) {
+        if (! $user->hasVerifiedEmail()) {
             return redirect()->to($config->verificationUrl ?? self::EMAIL_VERIFICATION_URL)
-                ->with('error', 'Please verify your email address');
+                ->with('error', 'Please verify your email address')
+            ;
         }
     }
 
