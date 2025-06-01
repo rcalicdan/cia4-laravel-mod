@@ -89,8 +89,8 @@ EOD;
 $1$2
         'auth'     => \Rcalicdan\Ci4Larabridge\Filters\AuthFilter::class,
         'guest'    => \Rcalicdan\Ci4Larabridge\Filters\GuestFilter::class,
-        'throttle' => \Rcalicdan\Ci4Larabridge\Filters\ThrottleFilter::class,
-        'email_verified' => \Rcalicdan\Ci4Larabridge\Filters\EmailVerifiedFilter::class,
+        'throttle' => \Rcalicdan\Ci4Larabridge\Filters\ThrottleFilter::class;
+        'email_verified' => \Rcalicdan\Ci4Larabridge\Filters\EmailVerificationFilter::class,
 $3
 EOD;
 
