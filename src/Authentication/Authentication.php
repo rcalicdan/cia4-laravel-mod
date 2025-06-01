@@ -4,8 +4,8 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use Config\Services;
 use Illuminate\Support\Carbon;
+use Rcalicdan\Ci4Larabridge\Exceptions\UnverifiedEmailException;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
-use UnverifiedEmailException;
 
 class Authentication
 {
