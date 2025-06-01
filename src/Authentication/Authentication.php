@@ -2,6 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Authentication;
 
+use Config\LarabridgeAuthentication;
 use Config\Services;
 use Illuminate\Support\Carbon;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
@@ -18,7 +19,7 @@ class Authentication
 
     public function __construct()
     {
-        $this->config = Services::config('LarabridgeAuthentication');
+        $this->config = Services::config(LarabridgeAuthentication::class);
 
         $this->userModel = class_exists(\App\Models\User::class)
             ? \App\Models\User::class

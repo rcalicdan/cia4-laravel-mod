@@ -5,6 +5,7 @@ namespace Rcalicdan\Ci4Larabridge\Filters;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
+use Config\LarabridgeAuthentication;
 use Config\Services;
 use Rcalicdan\Ci4Larabridge\Facades\Auth;
 
@@ -14,7 +15,7 @@ class EmailVerificationFilter implements FilterInterface
 
     public function before(RequestInterface $request, $arguments = null)
     {
-        $config = Services::config('LarabridgeAuthentication');
+        $config = Services::config(LarabridgeAuthentication::class);
 
         if (! $config->emailVerification['required']) {
             return;
