@@ -53,7 +53,7 @@ class Vite implements Htmlable
      *
      * @var string
      */
-    protected $manifestFilename = 'manifest.json';
+    protected $manifestFilename = '.vite/manifest.json';
 
     /**
      * The custom asset path resolver.
