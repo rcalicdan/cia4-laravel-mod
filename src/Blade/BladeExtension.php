@@ -187,26 +187,17 @@ class BladeExtension
         $blade->directive('vite', function ($expression) {
             $expression = trim($expression, "()");
 
-            return "<?php 
-            use Rcalicdan\Ci4Larabridge\Facades\Vite;
-            echo Vite::make({$expression}); 
-        ?>";
+            return "<?php echo \\Rcalicdan\\Ci4Larabridge\\Facades\\Vite::make({$expression}); ?>";
         });
 
         $blade->directive('viteReactRefresh', function () {
-            return "<?php 
-            use Rcalicdan\Ci4Larabridge\Facades\Vite;
-            echo Vite::reactRefresh(); 
-        ?>";
+            return "<?php echo \\Rcalicdan\\Ci4Larabridge\\Facades\\Vite::reactRefresh(); ?>";
         });
 
         $blade->directive('viteAsset', function ($expression) {
             $expression = trim($expression, "()");
 
-            return "<?php 
-            use Rcalicdan\Ci4Larabridge\Facades\Vite;
-            echo Vite::asset({$expression}); 
-        ?>";
+            return "<?php echo \\Rcalicdan\\Ci4Larabridge\\Facades\\Vite::asset({$expression}); ?>";
         });
     }
 }
