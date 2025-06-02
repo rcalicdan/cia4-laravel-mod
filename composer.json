@@ -18,7 +18,8 @@
             "src/Helpers/url_params.php",
             "src/Helpers/bcrypt_helper.php",
             "src/Helpers/session_redirect_helper.php",
-            "src/Helpers/path_helper_constant.php"
+            "src/Helpers/path_helper_constant.php",
+            "src/Helpers/asset_helper.php"
         ],
         "exclude-from-classmap": [
             "**/Database/Eloquent-Migrations/**"
