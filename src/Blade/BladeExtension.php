@@ -188,14 +188,14 @@ class BladeExtension
             $expression = trim($expression, "()");
 
             return "<?php 
-            use App\Libraries\Vite;
+            use Rcalicdan\Facades\Vite;
             echo Vite::make({$expression}); 
         ?>";
         });
 
         $blade->directive('viteReactRefresh', function () {
             return "<?php 
-            use App\Libraries\Vite;
+            use Rcalicdan\Facades\Vite;
             echo Vite::reactRefresh(); 
         ?>";
         });
@@ -204,7 +204,7 @@ class BladeExtension
             $expression = trim($expression, "()");
 
             return "<?php 
-            use App\Libraries\Vite;
+            use Rcalicdan\Facades\Vite;
             echo Vite::asset({$expression}); 
         ?>";
         });
