@@ -101,7 +101,6 @@ class LaravelSetup extends BaseCommand
         $systemHandler->setupEvents();
         $systemHandler->setupFilters();
         $authHandler->copyUserModel();
-        // $authHandler->copyAuthServiceProvider();
         $toolbarHandler->setupToolbar();
     }
 }

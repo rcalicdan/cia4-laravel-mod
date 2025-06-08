@@ -19,8 +19,6 @@ class AuthServiceProvider
      *
      * This array maps model classes to their corresponding policy classes.
      * Example: 'App\Models\User::class => App\Policies\UserPolicy::class'
-     *
-     * @var array
      */
     protected array $policies;
 

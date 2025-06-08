@@ -9,14 +9,14 @@ class Vite
     /**
      * The Vite instance.
      *
-     * @var \Rcalicdan\Ci4Larabridge\Vite\Vite|null
+     * @var ViteRoot|null
      */
     protected static $instance = null;
 
     /**
      * Get the Vite instance.
      *
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @return ViteRoot
      */
     protected static function getInstance()
     {
@@ -30,7 +30,7 @@ class Vite
     /**
      * Set a custom Vite instance.
      *
-     * @param \Rcalicdan\Ci4Larabridge\Vite\Vite $instance
+     * @param  ViteRoot  $instance
      * @return void
      */
     public static function setInstance(Vite $instance)
@@ -51,8 +51,8 @@ class Vite
     /**
      * Generate Vite tags for entrypoints.
      *
-     * @param string|string[] $entrypoints
-     * @param string|null $buildDirectory
+     * @param  string|string[]  $entrypoints
+     * @param  string|null  $buildDirectory
      * @return \Illuminate\Support\HtmlString
      */
     public function __invoke($entrypoints, $buildDirectory = null)
@@ -63,8 +63,8 @@ class Vite
     /**
      * Generate Vite tags for entrypoints.
      *
-     * @param string|string[] $entrypoints
-     * @param string|null $buildDirectory
+     * @param  string|string[]  $entrypoints
+     * @param  string|null  $buildDirectory
      * @return \Illuminate\Support\HtmlString
      */
     public static function make($entrypoints, $buildDirectory = null)
@@ -95,7 +95,7 @@ class Vite
     /**
      * Generate or set a Content Security Policy nonce to apply to all generated tags.
      *
-     * @param string|null $nonce
+     * @param  string|null  $nonce
      * @return string
      */
     public static function useCspNonce($nonce = null)
@@ -106,8 +106,8 @@ class Vite
     /**
      * Use the given key to detect integrity hashes in the manifest.
      *
-     * @param string|false $key
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  string|false  $key
+     * @return ViteRoot
      */
     public static function useIntegrityKey($key)
     {
@@ -117,8 +117,8 @@ class Vite
     /**
      * Set the Vite entry points.
      *
-     * @param array $entryPoints
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  array  $entryPoints
+     * @return ViteRoot
      */
     public static function withEntryPoints($entryPoints)
     {
@@ -128,8 +128,8 @@ class Vite
     /**
      * Merge additional Vite entry points with the current set.
      *
-     * @param array $entryPoints
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  array  $entryPoints
+     * @return ViteRoot
      */
     public static function mergeEntryPoints($entryPoints)
     {
@@ -139,8 +139,8 @@ class Vite
     /**
      * Set the filename for the manifest file.
      *
-     * @param string $filename
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  string  $filename
+     * @return ViteRoot
      */
     public static function useManifestFilename($filename)
     {
@@ -150,8 +150,8 @@ class Vite
     /**
      * Resolve asset paths using the provided resolver.
      *
-     * @param callable|null $resolver
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  callable|null  $resolver
+     * @return ViteRoot
      */
     public static function createAssetPathsUsing($resolver)
     {
@@ -171,8 +171,8 @@ class Vite
     /**
      * Set the Vite "hot" file path.
      *
-     * @param string $path
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  string  $path
+     * @return ViteRoot
      */
     public static function useHotFile($path)
     {
@@ -182,8 +182,8 @@ class Vite
     /**
      * Set the Vite build directory.
      *
-     * @param string $path
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  string  $path
+     * @return ViteRoot
      */
     public static function useBuildDirectory($path)
     {
@@ -193,8 +193,8 @@ class Vite
     /**
      * Use the given callback to resolve attributes for script tags.
      *
-     * @param (callable(string, string, ?array, ?array): array)|array $attributes
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  (callable(string, string, ?array, ?array): array)|array  $attributes
+     * @return ViteRoot
      */
     public static function useScriptTagAttributes($attributes)
     {
@@ -204,8 +204,8 @@ class Vite
     /**
      * Use the given callback to resolve attributes for style tags.
      *
-     * @param (callable(string, string, ?array, ?array): array)|array $attributes
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  (callable(string, string, ?array, ?array): array)|array  $attributes
+     * @return ViteRoot
      */
     public static function useStyleTagAttributes($attributes)
     {
@@ -215,8 +215,8 @@ class Vite
     /**
      * Use the given callback to resolve attributes for preload tags.
      *
-     * @param (callable(string, string, ?array, ?array): (array|false))|array|false $attributes
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  (callable(string, string, ?array, ?array): (array|false))|array|false  $attributes
+     * @return ViteRoot
      */
     public static function usePreloadTagAttributes($attributes)
     {
@@ -226,9 +226,9 @@ class Vite
     /**
      * Eagerly prefetch assets.
      *
-     * @param int|null $concurrency
-     * @param string $event
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  int|null  $concurrency
+     * @param  string  $event
+     * @return ViteRoot
      */
     public static function prefetch($concurrency = null, $event = 'load')
     {
@@ -238,8 +238,8 @@ class Vite
     /**
      * Use the "waterfall" prefetching strategy.
      *
-     * @param int|null $concurrency
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  int|null  $concurrency
+     * @return ViteRoot
      */
     public static function useWaterfallPrefetching($concurrency = null)
     {
@@ -249,7 +249,7 @@ class Vite
     /**
      * Use the "aggressive" prefetching strategy.
      *
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @return ViteRoot
      */
     public static function useAggressivePrefetching()
     {
@@ -259,9 +259,9 @@ class Vite
     /**
      * Set the prefetching strategy.
      *
-     * @param 'waterfall'|'aggressive'|null $strategy
-     * @param array $config
-     * @return \Rcalicdan\Ci4Larabridge\Vite\Vite
+     * @param  'waterfall'|'aggressive'|null  $strategy
+     * @param  array  $config
+     * @return ViteRoot
      */
     public static function usePrefetchStrategy($strategy, $config = [])
     {
@@ -281,8 +281,8 @@ class Vite
     /**
      * Get the URL for an asset.
      *
-     * @param string $asset
-     * @param string|null $buildDirectory
+     * @param  string  $asset
+     * @param  string|null  $buildDirectory
      * @return string
      */
     public static function asset($asset, $buildDirectory = null)
@@ -293,8 +293,8 @@ class Vite
     /**
      * Get the content of a given asset.
      *
-     * @param string $asset
-     * @param string|null $buildDirectory
+     * @param  string  $asset
+     * @param  string|null  $buildDirectory
      * @return string
      */
     public static function content($asset, $buildDirectory = null)
@@ -305,7 +305,7 @@ class Vite
     /**
      * Get a unique hash representing the current manifest, or null if there is no manifest.
      *
-     * @param string|null $buildDirectory
+     * @param  string|null  $buildDirectory
      * @return string|null
      */
     public static function manifestHash($buildDirectory = null)
@@ -346,8 +346,8 @@ class Vite
     /**
      * Handle dynamic static method calls.
      *
-     * @param string $method
-     * @param array $args
+     * @param  string  $method
+     * @param  array  $args
      * @return mixed
      */
     public static function __callStatic($method, $args)

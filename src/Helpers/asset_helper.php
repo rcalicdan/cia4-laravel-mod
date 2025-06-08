@@ -1,29 +1,29 @@
 <?php
 
-if (!function_exists('asset')) {
+if (! function_exists('asset')) {
     /**
      * Generate an asset URL for the application.
      *
-     * @param string $path
-     * @return string
+     * @param  string  $path
      */
     function asset($path): string
     {
         $path = ltrim($path, '/');
+
         return base_url($path);
     }
 }
 
-if (!function_exists('public_path')) {
+if (! function_exists('public_path')) {
     /**
      * Get the path to the public folder.
      *
-     * @param string $path
-     * @return string
+     * @param  string  $path
      */
     function public_path($path = ''): string
     {
         $path = ltrim($path, '/');
-        return FCPATH . $path;
+
+        return FCPATH.$path;
     }
 }

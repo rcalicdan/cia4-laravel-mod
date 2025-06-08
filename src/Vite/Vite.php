@@ -363,7 +363,7 @@ class Vite implements Htmlable
      *
      * @param  string|string[]  $entrypoints
      * @param  string|null  $buildDirectory
-     * @return \Illuminate\Support\HtmlString
+     * @return HtmlString
      *
      * @throws \Exception
      */
@@ -453,7 +453,8 @@ class Vite implements Htmlable
 
         $preloads = $preloads->unique()
             ->sortByDesc(fn ($args) => $this->isCssPath($args[1]))
-            ->map(fn ($args) => $this->makePreloadTagForChunk(...$args));
+            ->map(fn ($args) => $this->makePreloadTagForChunk(...$args))
+        ;
 
         $base = $preloads->join('').$stylesheets->join('').$scripts->join('');
 
@@ -479,12 +480,15 @@ class Vite implements Htmlable
                         ->reduce(
                             fn ($chunks, $import) => $chunks->merge(
                                 $f($manifest[$import])
-                            ), new Collection([$chunk]))
+                            ),
+                            new Collection([$chunk])
+                        )
                         ->merge((new Collection($chunk['css'] ?? []))->map(
                             fn ($css) => (new Collection($manifest))->first(fn ($chunk) => $chunk['file'] === $css) ?? [
                                 'file' => $css,
                             ],
-                        ));
+                        ))
+                    ;
                 })
                 ->map(function ($chunk) use ($buildDirectory, $manifest) {
                     return (new Collection([
@@ -570,7 +574,8 @@ class Vite implements Htmlable
                          }))
                     </script>
                     HTML),
-            }));
+            }))
+        ;
     }
 
     /**
@@ -816,13 +821,14 @@ class Vite implements Htmlable
             ->flatMap(fn ($value, $key) => $value === true ? [$key] : [$key => $value])
             ->map(fn ($value, $key) => is_int($key) ? $value : $key.'="'.$value.'"')
             ->values()
-            ->all();
+            ->all()
+        ;
     }
 
     /**
      * Generate React refresh runtime script.
      *
-     * @return \Illuminate\Support\HtmlString|void
+     * @return HtmlString|void
      */
     public function reactRefresh()
     {
@@ -993,7 +999,7 @@ class Vite implements Htmlable
     /**
      * Get the nonce attribute for the prefetch script tags.
      *
-     * @return \Illuminate\Support\HtmlString
+     * @return HtmlString
      */
     protected function nonceAttribute()
     {

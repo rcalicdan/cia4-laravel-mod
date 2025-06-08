@@ -152,7 +152,8 @@ class Authentication
 
         $user = $model::where('password_reset_token', $hashedToken)
             ->where('password_reset_expires_at', '>', Carbon::now())
-            ->first();
+            ->first()
+        ;
 
         if (! $user) {
             return false;
@@ -191,7 +192,8 @@ class Authentication
 
         $user = $model::where('email_verification_token', $hashedToken)
             ->where('email_verification_expires_at', '>', Carbon::now())
-            ->first();
+            ->first()
+        ;
 
         if (! $user) {
             return false;
@@ -236,7 +238,8 @@ class Authentication
         $model = $this->userModel;
         $user = $model::where('id', $userId)
             ->where('remember_token', hash('sha256', $token))
-            ->first();
+            ->first()
+        ;
 
         if ($user) {
             $this->login($user);
@@ -265,7 +268,7 @@ class Authentication
 
             $this->email->clear();
             $this->email->setFrom(
-                $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+                $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
                 $this->config->email['fromName'] ?? 'Your Application'
             );
             $this->email->setTo($user->email);
@@ -281,7 +284,7 @@ class Authentication
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Password reset email failed: ' . $e->getMessage());
+            log_message('error', 'Password reset email failed: '.$e->getMessage());
 
             return false;
         }
@@ -298,7 +301,7 @@ class Authentication
 
             $this->email->clear();
             $this->email->setFrom(
-                $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+                $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
                 $this->config->email['fromName'] ?? 'Your Application'
             );
             $this->email->setTo($user->email);
@@ -314,7 +317,7 @@ class Authentication
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Email verification failed: ' . $e->getMessage());
+            log_message('error', 'Email verification failed: '.$e->getMessage());
 
             return false;
         }
