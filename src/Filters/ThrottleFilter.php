@@ -26,6 +26,7 @@ class ThrottleFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
+        log_message('info', 'ThrottleFilter called for: ' . $request->getUri());
         $config = $this->parseArguments($arguments);
         $key = $this->generateKey($request, $config['keyType']);
         $throttleData = $this->getThrottleData($key, $config['timeWindow']);
@@ -78,14 +79,14 @@ class ThrottleFilter implements FilterInterface
             case 'user':
                 $userId = $this->getUserId();
 
-                return 'throttle_user_'.$userId;
+                return 'throttle_user_' . $userId;
 
             case 'route':
-                return 'throttle_route_'.md5($request->getUri()->getPath());
+                return 'throttle_route_' . md5($request->getUri()->getPath());
 
             case 'ip':
             default:
-                return 'throttle_ip_'.md5($request->getIPAddress());
+                return 'throttle_ip_' . md5($request->getIPAddress());
         }
     }
 
@@ -169,12 +170,12 @@ class ThrottleFilter implements FilterInterface
      */
     private function addRateLimitHeaders(int $maxAttempts, array $throttleData): void
     {
-        $response = \Config\Services::response();
+        $response = service('response');
         $remaining = max(0, $maxAttempts - $throttleData['count']);
 
-        $response->setHeader('X-RateLimit-Limit', (string) $maxAttempts);
-        $response->setHeader('X-RateLimit-Remaining', (string) $remaining);
-        $response->setHeader('X-RateLimit-Reset', (string) $throttleData['reset_time']);
+        $response->setHeader('X-RateLimit-Limit', (string) $maxAttempts)
+            ->setHeader('X-RateLimit-Remaining', (string) $remaining)
+            ->setHeader('X-RateLimit-Reset', (string) $throttleData['reset_time']);
     }
 
     /**
@@ -191,6 +192,10 @@ class ThrottleFilter implements FilterInterface
         $session = session();
 
         if ($session->has('user_id')) {
+            return (string) $session->get('user_id');
+        }
+
+        if ($session->has('auth_user_id')) {
             return (string) $session->get('auth_user_id');
         }
 
