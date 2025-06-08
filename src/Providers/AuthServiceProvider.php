@@ -2,6 +2,7 @@
 
 namespace Rcalicdan\Ci4Larabridge\Providers;
 
+use Config\Authorization;
 use Rcalicdan\Gate;
 
 /**
@@ -21,9 +22,15 @@ class AuthServiceProvider
      *
      * @var array
      */
-    protected $policies = [
-        // Register your policies here
-    ];
+    protected array $policies;
+
+    protected Authorization $gateConfig;
+
+    public function __construct()
+    {
+        $this->gateConfig = config('Authorization');
+        $this->policies = $this->gateConfig->policies;
+    }
 
     /**
      * Register all authentication and authorization services
@@ -41,6 +48,7 @@ class AuthServiceProvider
     public function register(): void
     {
         // Define your gate here
+        $this->gateConfig->gates();
         $this->registerPolicies(); // Do not delete this line, this is required for policies to work
     }
 

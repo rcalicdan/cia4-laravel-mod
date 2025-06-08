@@ -68,4 +68,17 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
 
         $this->copyAndReplace($file, $replaces);
     }
+
+    /**
+     * Copy and replace the given file
+     */
+    private function publishConfigAuthorization(): void
+    {
+        $file = 'Config/Authorization.php';
+        $replaces = [
+            'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
+        ];
+
+        $this->copyAndReplace($file, $replaces);
+    }
 }
