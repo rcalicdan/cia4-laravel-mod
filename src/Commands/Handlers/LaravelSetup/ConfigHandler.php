@@ -13,6 +13,7 @@ class ConfigHandler extends SetupHandler
         $this->publishConfigPagination();
         $this->publishConfigBlade();
         $this->publishConfigAuthentication();
+        $this->publishConfigAuthorization();
     }
 
     /**
