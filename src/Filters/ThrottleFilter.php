@@ -6,199 +6,198 @@ use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 
-/**
- * Throttle Filter
- *
- * Implements rate limiting functionality for CodeIgniter 4 routes.
- * Supports different throttling strategies: by IP, user, or route.
- *
- * Usage:
- * - In routes: ['filter' => 'throttle:60,3600,ip'] (60 requests per hour by IP)
- * - In controller: protected $filters = ['throttle:10,60,user' => ['before' => 'method']]
- */
 class ThrottleFilter implements FilterInterface
 {
+    private const DEFAULT_MAX_ATTEMPTS = 60;
+    private const DEFAULT_DECAY_MINUTES = 1;
+    private const SECONDS_PER_MINUTE = 60;
+    private const API_PATH_INDICATOR = '/api/';
+    private const JSON_CONTENT_TYPE = 'application/json';
+    
+    private const RATE_LIMIT_HEADERS = [
+        'LIMIT' => 'X-RateLimit-Limit',
+        'REMAINING' => 'X-RateLimit-Remaining', 
+        'RESET' => 'X-RateLimit-Reset'
+    ];
+
     /**
-     * Execute filter before request processing
-     *
-     * @param  array|null  $arguments  [maxAttempts, timeWindow, keyType]
-     * @return RequestInterface|ResponseInterface
+     * Executes before the controller action to handle rate limiting
+     * 
+     * @param RequestInterface $request The incoming request
+     * @param mixed $arguments Optional throttle configuration [maxAttempts, decayMinutes]
+     * @return RequestInterface|ResponseInterface Returns request if allowed, or throttle response if rate limited
      */
-    public function before(RequestInterface $request, $arguments = null)
+    public function before(RequestInterface $request, $arguments = null): RequestInterface|ResponseInterface
     {
-        log_message('info', 'ThrottleFilter called for: ' . $request->getUri());
-        $config = $this->parseArguments($arguments);
-        $key = $this->generateKey($request, $config['keyType']);
-        $throttleData = $this->getThrottleData($key, $config['timeWindow']);
-
-        if ($this->isRateLimitExceeded($throttleData, $config['maxAttempts'])) {
-            return $this->createRateLimitResponse($throttleData, $config['maxAttempts']);
+        $throttleConfig = $this->parseThrottleConfig($arguments);
+        $throttleKey = $this->generateThrottleKey($request);
+        $throttler = service('throttler');
+        
+        if (!$this->isRequestAllowed($throttler, $throttleKey, $throttleConfig)) {
+            return $this->createThrottleResponse($request, $throttler, $throttleConfig);
         }
-
-        $this->updateThrottleData($key, $throttleData, $config['timeWindow']);
-        $this->addRateLimitHeaders($config['maxAttempts'], $throttleData);
-
+        
         return $request;
     }
 
     /**
-     * Execute filter after request processing
-     *
-     * @param  array|null  $arguments
-     * @return ResponseInterface
+     * Executes after the controller action to add rate limit headers
+     * 
+     * @param RequestInterface $request The incoming request
+     * @param ResponseInterface $response The outgoing response
+     * @param mixed $arguments Optional throttle configuration [maxAttempts, decayMinutes]
+     * @return ResponseInterface Returns the modified response with rate limit headers
      */
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): ResponseInterface
     {
+        if ($this->isApiRequest($request)) {
+            $this->addRateLimitHeaders($response, $arguments);
+        }
+        
         return $response;
     }
 
     /**
-     * Parse filter arguments and set defaults
-     *
-     * @param  array|null  $arguments
-     * @return array Configuration array
+     * Parses throttle configuration from arguments
+     * 
+     * @param array|null $arguments Optional throttle configuration [maxAttempts, decayMinutes]
+     * @return array Returns parsed configuration with maxAttempts, decayMinutes and windowSeconds
      */
-    private function parseArguments($arguments): array
+    private function parseThrottleConfig(?array $arguments): array
     {
         return [
-            'maxAttempts' => isset($arguments[0]) ? (int) $arguments[0] : 60,
-            'timeWindow' => isset($arguments[1]) ? (int) $arguments[1] : 60,
-            'keyType' => isset($arguments[2]) ? $arguments[2] : 'ip',
+            'maxAttempts' => isset($arguments[0]) ? (int)$arguments[0] : self::DEFAULT_MAX_ATTEMPTS,
+            'decayMinutes' => isset($arguments[1]) ? (int)$arguments[1] : self::DEFAULT_DECAY_MINUTES,
+            'windowSeconds' => (isset($arguments[1]) ? (int)$arguments[1] : self::DEFAULT_DECAY_MINUTES) * self::SECONDS_PER_MINUTE
         ];
     }
 
     /**
-     * Generate unique throttle key based on key type
-     *
-     * @param  string  $keyType  ('ip', 'user', 'route')
-     * @return string Unique cache key
+     * Generates a unique throttle key based on client IP and route
+     * 
+     * @param RequestInterface $request The incoming request
+     * @return string Returns MD5 hash of client IP and route path
      */
-    private function generateKey(RequestInterface $request, string $keyType): string
+    private function generateThrottleKey(RequestInterface $request): string
     {
-        switch ($keyType) {
-            case 'user':
-                $userId = $this->getUserId();
+        $clientIP = $request->getIPAddress();
+        $route = $request->getUri()->getPath();
+        
+        return md5("{$clientIP}_{$route}");
+    }
 
-                return 'throttle_user_' . $userId;
+    /**
+     * Checks if request is allowed based on rate limit configuration
+     * 
+     * @param mixed $throttler The throttler service instance
+     * @param string $key The throttle key
+     * @param array $config Throttle configuration
+     * @return bool Returns true if request is allowed, false if rate limited
+     */
+    private function isRequestAllowed($throttler, string $key, array $config): bool
+    {
+        return $throttler->check($key, $config['maxAttempts'], $config['windowSeconds']) !== false;
+    }
 
-            case 'route':
-                return 'throttle_route_' . md5($request->getUri()->getPath());
-
-            case 'ip':
-            default:
-                return 'throttle_ip_' . md5($request->getIPAddress());
+    /**
+     * Creates appropriate throttle response based on request type
+     * 
+     * @param RequestInterface $request The incoming request
+     * @param mixed $throttler The throttler service instance
+     * @param array $config Throttle configuration
+     * @return ResponseInterface Returns API or web throttle response
+     */
+    private function createThrottleResponse(RequestInterface $request, $throttler, array $config): ResponseInterface
+    {
+        $waitTime = $throttler->getTokentime();
+        $minutesRemaining = ceil($waitTime / self::SECONDS_PER_MINUTE);
+        
+        if ($this->isApiRequest($request)) {
+            return $this->createApiThrottleResponse($minutesRemaining, $waitTime);
         }
+        
+        return $this->createWebThrottleResponse($minutesRemaining);
     }
 
     /**
-     * Get current throttle data from cache
-     *
-     * @param  string  $key  Cache key
-     * @param  int  $timeWindow  Time window in seconds
-     * @return array Throttle data with count and reset_time
+     * Creates API throttle response with JSON format
+     * 
+     * @param int $minutesRemaining Minutes until rate limit resets
+     * @param int $waitTime Seconds until rate limit resets
+     * @return ResponseInterface Returns JSON response with 429 status
      */
-    private function getThrottleData(string $key, int $timeWindow): array
+    private function createApiThrottleResponse(int $minutesRemaining, int $waitTime): ResponseInterface
     {
-        $cache = \Config\Services::cache();
-        $data = $cache->get($key) ?: ['count' => 0, 'reset_time' => time() + $timeWindow];
-
-        // Reset if time window has passed
-        if (time() > $data['reset_time']) {
-            $data = ['count' => 0, 'reset_time' => time() + $timeWindow];
-        }
-
-        return $data;
-    }
-
-    /**
-     * Check if rate limit has been exceeded
-     *
-     * @param  array  $throttleData  Current throttle data
-     * @param  int  $maxAttempts  Maximum allowed attempts
-     * @return bool True if rate limit exceeded
-     */
-    private function isRateLimitExceeded(array $throttleData, int $maxAttempts): bool
-    {
-        return $throttleData['count'] >= $maxAttempts;
-    }
-
-    /**
-     * Update throttle data in cache
-     *
-     * @param  string  $key  Cache key
-     * @param  array  $throttleData  Current throttle data
-     * @param  int  $timeWindow  Time window in seconds
-     */
-    private function updateThrottleData(string $key, array &$throttleData, int $timeWindow): void
-    {
-        $cache = \Config\Services::cache();
-        $throttleData['count']++;
-        $cache->save($key, $throttleData, $timeWindow);
-    }
-
-    /**
-     * Create rate limit exceeded response
-     *
-     * @param  array  $throttleData  Current throttle data
-     * @param  int  $maxAttempts  Maximum allowed attempts
-     * @return ResponseInterface 429 Too Many Requests response
-     */
-    private function createRateLimitResponse(array $throttleData, int $maxAttempts): ResponseInterface
-    {
-        $resetIn = $throttleData['reset_time'] - time();
-
-        return \Config\Services::response()
+        return service('response')
             ->setStatusCode(429)
-            ->setHeader('X-RateLimit-Limit', (string) $maxAttempts)
-            ->setHeader('X-RateLimit-Remaining', '0')
-            ->setHeader('X-RateLimit-Reset', (string) $throttleData['reset_time'])
-            ->setHeader('Retry-After', (string) $resetIn)
             ->setJSON([
-                'error' => 'Rate limit exceeded',
-                'message' => 'Too many requests. Please try again later.',
-                'retry_after' => $resetIn,
-                'reset_time' => $throttleData['reset_time'],
-            ])
-        ;
+                'error' => 'Too Many Requests',
+                'message' => "Rate limit exceeded. Try again in {$minutesRemaining} minute(s).",
+                'retry_after' => $waitTime
+            ]);
     }
 
     /**
-     * Add rate limit headers to response
-     *
-     * @param  int  $maxAttempts  Maximum allowed attempts
-     * @param  array  $throttleData  Current throttle data
+     * Creates web throttle response with flash message
+     * 
+     * @param int $minutesRemaining Minutes until rate limit resets
+     * @return ResponseInterface Returns redirect response with flash message
      */
-    private function addRateLimitHeaders(int $maxAttempts, array $throttleData): void
+    private function createWebThrottleResponse(int $minutesRemaining): ResponseInterface
     {
-        $response = service('response');
-        $remaining = max(0, $maxAttempts - $throttleData['count']);
-
-        $response->setHeader('X-RateLimit-Limit', (string) $maxAttempts)
-            ->setHeader('X-RateLimit-Remaining', (string) $remaining)
-            ->setHeader('X-RateLimit-Reset', (string) $throttleData['reset_time']);
+        $errorMessage = "Too many attempts. Please try again in {$minutesRemaining} minute(s).";
+        session()->setFlashdata('error', $errorMessage);
+        
+        return redirect()->back()->withInput();
     }
 
     /**
-     * Get user ID for user-based throttling
-     *
-     * @return string User ID or 'anonymous' if not authenticated
+     * Adds rate limit headers to API responses
+     * 
+     * @param ResponseInterface $response The outgoing response
+     * @param array|null $arguments Optional throttle configuration [maxAttempts, decayMinutes]
      */
-    private function getUserId(): string
+    private function addRateLimitHeaders(ResponseInterface $response, ?array $arguments): void
     {
-        if (function_exists('auth') && auth()->check()) {
-            return (string) auth()->user()->id();
-        }
+        $maxAttempts = isset($arguments[0]) ? (int)$arguments[0] : self::DEFAULT_MAX_ATTEMPTS;
+        $decayMinutes = isset($arguments[1]) ? (int)$arguments[1] : self::DEFAULT_DECAY_MINUTES;
+        $response->setHeader(self::RATE_LIMIT_HEADERS['LIMIT'], $maxAttempts);
+        $resetTime = time() + $decayMinutes * self::SECONDS_PER_MINUTE;
+        $response->setHeader(self::RATE_LIMIT_HEADERS['RESET'], $resetTime);
+    }
 
-        $session = session();
+    /**
+     * Determines if request is an API request
+     * 
+     * @param RequestInterface $request The incoming request
+     * @return bool Returns true if API path, JSON accept header or AJAX request
+     */
+    private function isApiRequest(RequestInterface $request): bool
+    {
+        return $this->hasApiPath($request) || 
+               $this->hasJsonAcceptHeader($request) || 
+               $request->isAJAX();
+    }
 
-        if ($session->has('user_id')) {
-            return (string) $session->get('user_id');
-        }
+    /**
+     * Checks if request path contains API indicator
+     * 
+     * @param RequestInterface $request The incoming request
+     * @return bool Returns true if path contains API indicator
+     */
+    private function hasApiPath(RequestInterface $request): bool
+    {
+        return str_contains($request->getUri()->getPath(), self::API_PATH_INDICATOR);
+    }
 
-        if ($session->has('auth_user_id')) {
-            return (string) $session->get('auth_user_id');
-        }
-
-        return 'anonymous';
+    /**
+     * Checks if request accepts JSON response
+     * 
+     * @param RequestInterface $request The incoming request
+     * @return bool Returns true if Accept header contains application/json
+     */
+    private function hasJsonAcceptHeader(RequestInterface $request): bool
+    {
+        return str_contains($request->getHeaderLine('Accept'), self::JSON_CONTENT_TYPE);
     }
 }
