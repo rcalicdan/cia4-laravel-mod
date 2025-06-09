@@ -5,7 +5,7 @@ use Rcalicdan\Ci4Larabridge\Authentication\RememberTokenHandler;
 /**
  * Get the authentication instance
  */
-if (!function_exists('auth')) {
+if (! function_exists('auth')) {
     function auth()
     {
         return Rcalicdan\Ci4Larabridge\Facades\Auth::getInstance();
@@ -15,7 +15,7 @@ if (!function_exists('auth')) {
 /**
  * Get remember token handler
  */
-if (!function_exists('rememberToken')) {
+if (! function_exists('rememberToken')) {
     function rememberToken(): RememberTokenHandler
     {
         return auth()->getRememberTokenHandler();
@@ -25,7 +25,7 @@ if (!function_exists('rememberToken')) {
 /**
  * Check if remember me is enabled
  */
-if (!function_exists('isRememberMeEnabled')) {
+if (! function_exists('isRememberMeEnabled')) {
     function isRememberMeEnabled(): bool
     {
         return rememberToken()->isEnabled();
@@ -35,7 +35,7 @@ if (!function_exists('isRememberMeEnabled')) {
 /**
  * Manually set remember token for user
  */
-if (!function_exists('setRememberToken')) {
+if (! function_exists('setRememberToken')) {
     function setRememberToken($user): void
     {
         rememberToken()->setRememberToken($user);
@@ -45,7 +45,7 @@ if (!function_exists('setRememberToken')) {
 /**
  * Clear remember token
  */
-if (!function_exists('clearRememberToken')) {
+if (! function_exists('clearRememberToken')) {
     function clearRememberToken(): void
     {
         rememberToken()->clearCookie();
@@ -55,7 +55,7 @@ if (!function_exists('clearRememberToken')) {
 /**
  * Get email handler
  */
-if (!function_exists('authEmail')) {
+if (! function_exists('authEmail')) {
     function authEmail()
     {
         return auth()->getEmailHandler();

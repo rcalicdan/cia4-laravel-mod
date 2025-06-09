@@ -21,7 +21,7 @@ class Authentication
         $this->config = config('LarabridgeAuthentication');
         $this->userModel = $this->resolveUserModel();
         $this->session = Services::session();
-        
+
         $this->emailHandler = new EmailHandler($this->config);
         $this->rememberTokenHandler = new RememberTokenHandler($this->config, $this->userModel);
 
@@ -34,8 +34,8 @@ class Authentication
      */
     protected function resolveUserModel(): string
     {
-        return class_exists(\App\Models\User::class) 
-            ? \App\Models\User::class 
+        return class_exists(\App\Models\User::class)
+            ? \App\Models\User::class
             : BridgeUser::class;
     }
 
@@ -49,11 +49,12 @@ class Authentication
         }
 
         $userId = $this->session->get('auth_user_id');
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
         $this->user = $this->userModel::find($userId);
+
         return $this->user;
     }
 
@@ -70,7 +71,7 @@ class Authentication
      */
     public function guest(): bool
     {
-        return !$this->check();
+        return ! $this->check();
     }
 
     /**
@@ -79,8 +80,8 @@ class Authentication
     public function attempt(array $credentials, bool $remember = false): bool
     {
         $user = $this->findUserByCredentials($credentials);
-        
-        if (!$user || !$this->validatePassword($credentials['password'], $user->password)) {
+
+        if (! $user || ! $this->validatePassword($credentials['password'], $user->password)) {
             return false;
         }
 
@@ -95,7 +96,7 @@ class Authentication
     public function login($user, bool $remember = false): bool
     {
         $this->setUserSession($user);
-        
+
         if ($remember) {
             $this->rememberTokenHandler->setRememberToken($user);
         }
@@ -110,7 +111,7 @@ class Authentication
     {
         $this->clearUserData();
         $this->clearSession();
-        
+
         return true;
     }
 
@@ -120,8 +121,8 @@ class Authentication
     public function sendPasswordResetLink(string $email): bool
     {
         $user = $this->findUserByEmail($email);
-        
-        if (!$user) {
+
+        if (! $user) {
             return true; // Don't reveal if email exists
         }
 
@@ -137,8 +138,8 @@ class Authentication
     public function resetPassword(string $token, string $password): bool
     {
         $user = $this->findUserByResetToken($token);
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
 
@@ -158,6 +159,7 @@ class Authentication
         }
 
         $token = $user->generateEmailVerificationToken();
+
         return $this->emailHandler->sendVerificationEmail($user, $token);
     }
 
@@ -167,8 +169,8 @@ class Authentication
     public function verifyEmail(string $token): bool
     {
         $user = $this->findUserByVerificationToken($token);
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
 
@@ -196,12 +198,14 @@ class Authentication
     protected function findUserByCredentials(array $credentials): ?object
     {
         $model = $this->userModel;
+
         return $model::where('email', $credentials['email'])->first();
     }
 
     protected function findUserByEmail(string $email): ?object
     {
         $model = $this->userModel;
+
         return $model::where('email', $email)->first();
     }
 
@@ -212,7 +216,8 @@ class Authentication
 
         return $model::where('password_reset_token', $hashedToken)
             ->where('password_reset_expires_at', '>', Carbon::now())
-            ->first();
+            ->first()
+        ;
     }
 
     protected function findUserByVerificationToken(string $token): ?object
@@ -222,7 +227,8 @@ class Authentication
 
         return $model::where('email_verification_token', $hashedToken)
             ->where('email_verification_expires_at', '>', Carbon::now())
-            ->first();
+            ->first()
+        ;
     }
 
     protected function validatePassword(string $password, string $hashedPassword): bool
@@ -232,7 +238,7 @@ class Authentication
 
     protected function validateEmailVerification($user): void
     {
-        if ($this->config->emailVerification['required'] && !$user->hasVerifiedEmail()) {
+        if ($this->config->emailVerification['required'] && ! $user->hasVerifiedEmail()) {
             throw new UnverifiedEmailException('Email verification required');
         }
     }
@@ -252,7 +258,7 @@ class Authentication
         if ($this->user) {
             $this->user->clearRememberToken();
         }
-        
+
         $this->rememberTokenHandler->clearCookie();
         $this->user = null;
     }

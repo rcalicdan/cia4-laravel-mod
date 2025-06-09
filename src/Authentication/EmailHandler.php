@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use Config\Services;
-use Illuminate\Support\Carbon;
 
 /**
  * Handles all email-related authentication operations
@@ -26,7 +25,7 @@ class EmailHandler
     {
         try {
             $resetUrl = $this->generatePasswordResetUrl($token);
-            
+
             $this->prepareEmail(
                 $user->email,
                 'Password Reset Request',
@@ -40,7 +39,8 @@ class EmailHandler
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Password reset email failed: ' . $e->getMessage());
+            log_message('error', 'Password reset email failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -52,7 +52,7 @@ class EmailHandler
     {
         try {
             $verificationUrl = $this->generateEmailVerificationUrl($token);
-            
+
             $this->prepareEmail(
                 $user->email,
                 'Verify Your Email Address',
@@ -66,7 +66,8 @@ class EmailHandler
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Email verification failed: ' . $e->getMessage());
+            log_message('error', 'Email verification failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -78,12 +79,12 @@ class EmailHandler
     {
         $this->email->clear();
         $this->email->setFrom(
-            $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
+            $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
             $this->config->email['fromName'] ?? 'Your Application'
         );
         $this->email->setTo($to);
         $this->email->setSubject($subject);
-        
+
         $emailBody = view($viewPath, $data);
         $this->email->setMessage($emailBody);
     }

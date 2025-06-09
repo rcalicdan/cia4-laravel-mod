@@ -28,8 +28,8 @@ class Auth
      */
     public static function getInstance(): Authentication
     {
-        if (!self::$instance) {
-            self::$instance = new Authentication();
+        if (! self::$instance) {
+            self::$instance = new Authentication;
         }
 
         return self::$instance;
@@ -46,8 +46,8 @@ class Auth
     /**
      * Handles dynamic static method calls to the Authentication library.
      *
-     * @param string $method The method name to call.
-     * @param array $args The arguments to pass to the method.
+     * @param  string  $method  The method name to call.
+     * @param  array  $args  The arguments to pass to the method.
      * @return mixed The result of the method call.
      */
     public static function __callStatic($method, $args)
@@ -90,8 +90,8 @@ class Auth
     /**
      * Attempts to authenticate a user with the given credentials.
      *
-     * @param array $credentials The user credentials to authenticate.
-     * @param bool $remember Whether to remember the user.
+     * @param  array  $credentials  The user credentials to authenticate.
+     * @param  bool  $remember  Whether to remember the user.
      * @return bool True if authentication is successful, false otherwise.
      */
     public static function attempt(array $credentials, bool $remember = false): bool
@@ -102,8 +102,8 @@ class Auth
     /**
      * Logs in a user.
      *
-     * @param \Illuminate\Database\Eloquent\Model $user The user to log in.
-     * @param bool $remember Whether to remember the user.
+     * @param  \Illuminate\Database\Eloquent\Model  $user  The user to log in.
+     * @param  bool  $remember  Whether to remember the user.
      * @return bool True if the login is successful, false otherwise.
      */
     public static function login($user, bool $remember = false): bool
@@ -126,7 +126,7 @@ class Auth
     /**
      * Send a password reset link to the given email address.
      *
-     * @param string $email The email address to send the reset link to.
+     * @param  string  $email  The email address to send the reset link to.
      * @return bool True if the email was sent successfully, false otherwise.
      */
     public static function sendPasswordResetLink(string $email): bool
@@ -137,8 +137,8 @@ class Auth
     /**
      * Reset the user's password using the given token.
      *
-     * @param string $token The password reset token.
-     * @param string $password The new password.
+     * @param  string  $token  The password reset token.
+     * @param  string  $password  The new password.
      * @return bool True if the password was reset successfully, false otherwise.
      */
     public static function resetPassword(string $token, string $password): bool
@@ -151,7 +151,7 @@ class Auth
     /**
      * Send an email verification link to the given user.
      *
-     * @param \Illuminate\Database\Eloquent\Model $user The user to send the verification email to.
+     * @param  \Illuminate\Database\Eloquent\Model  $user  The user to send the verification email to.
      * @return bool True if the email was sent successfully, false otherwise.
      */
     public static function sendEmailVerification($user): bool
@@ -162,7 +162,7 @@ class Auth
     /**
      * Verify the user's email using the given token.
      *
-     * @param string $token The email verification token.
+     * @param  string  $token  The email verification token.
      * @return bool True if the email was verified successfully, false otherwise.
      */
     public static function verifyEmail(string $token): bool
@@ -202,6 +202,7 @@ class Auth
     public static function id()
     {
         $user = self::user();
+
         return $user?->id;
     }
 
@@ -218,7 +219,7 @@ class Auth
     /**
      * Manually set remember token for the given user.
      *
-     * @param \Illuminate\Database\Eloquent\Model $user The user to set the remember token for.
+     * @param  \Illuminate\Database\Eloquent\Model  $user  The user to set the remember token for.
      */
     public static function setRememberToken($user): void
     {
@@ -238,8 +239,8 @@ class Auth
     /**
      * Alias for attempt() method.
      *
-     * @param array $credentials The user credentials to authenticate.
-     * @param bool $remember Whether to remember the user.
+     * @param  array  $credentials  The user credentials to authenticate.
+     * @param  bool  $remember  Whether to remember the user.
      * @return bool True if authentication is successful, false otherwise.
      */
     public static function validate(array $credentials, bool $remember = false): bool
@@ -250,16 +251,16 @@ class Auth
     /**
      * Alias for login() method.
      *
-     * @param \Illuminate\Database\Eloquent\Model $user The user to log in.
-     * @param bool $remember Whether to remember the user.
+     * @param  \Illuminate\Database\Eloquent\Model  $user  The user to log in.
+     * @param  bool  $remember  Whether to remember the user.
      * @return bool True if the login is successful, false otherwise.
      */
     public static function loginUsingId($userId, bool $remember = false): bool
     {
         $userModel = self::getInstance()->userModel;
         $user = $userModel::find($userId);
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
 
@@ -274,8 +275,8 @@ class Auth
     public static function viaRemember(): bool
     {
         $user = self::rememberTokenHandler()->checkRememberToken();
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
 
@@ -287,7 +288,7 @@ class Auth
     /**
      * Set a user as authenticated (useful for testing).
      *
-     * @param \Illuminate\Database\Eloquent\Model $user The user to authenticate.
+     * @param  \Illuminate\Database\Eloquent\Model  $user  The user to authenticate.
      */
     public static function actingAs($user): void
     {
@@ -298,14 +299,14 @@ class Auth
     /**
      * Check if the current user has a specific role (if implemented in User model).
      *
-     * @param string $role The role to check for.
+     * @param  string  $role  The role to check for.
      * @return bool True if the user has the role, false otherwise.
      */
     public static function hasRole(string $role): bool
     {
         $user = self::user();
-        
-        if (!$user || !method_exists($user, 'hasRole')) {
+
+        if (! $user || ! method_exists($user, 'hasRole')) {
             return false;
         }
 
@@ -315,14 +316,14 @@ class Auth
     /**
      * Check if the current user has a specific permission (if implemented in User model).
      *
-     * @param string $permission The permission to check for.
+     * @param  string  $permission  The permission to check for.
      * @return bool True if the user has the permission, false otherwise.
      */
     public static function hasPermission(string $permission): bool
     {
         $user = self::user();
-        
-        if (!$user || !method_exists($user, 'hasPermission')) {
+
+        if (! $user || ! method_exists($user, 'hasPermission')) {
             return false;
         }
 
@@ -332,13 +333,13 @@ class Auth
     /**
      * Check if the current user can perform a specific ability (integration with Gate).
      *
-     * @param string $ability The ability to check.
-     * @param mixed ...$arguments Additional arguments for the ability check.
+     * @param  string  $ability  The ability to check.
+     * @param  mixed  ...$arguments  Additional arguments for the ability check.
      * @return bool True if the user can perform the ability, false otherwise.
      */
     public static function can(string $ability, ...$arguments): bool
     {
-        if (!function_exists('gate')) {
+        if (! function_exists('gate')) {
             return false;
         }
 
@@ -348,12 +349,12 @@ class Auth
     /**
      * Check if the current user cannot perform a specific ability (integration with Gate).
      *
-     * @param string $ability The ability to check.
-     * @param mixed ...$arguments Additional arguments for the ability check.
+     * @param  string  $ability  The ability to check.
+     * @param  mixed  ...$arguments  Additional arguments for the ability check.
      * @return bool True if the user cannot perform the ability, false otherwise.
      */
     public static function cannot(string $ability, ...$arguments): bool
     {
-        return !self::can($ability, ...$arguments);
+        return ! self::can($ability, ...$arguments);
     }
 }

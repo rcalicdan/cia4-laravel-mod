@@ -36,7 +36,7 @@ class RememberTokenHandler implements RememberTokenHandlerInterface
      */
     public function setRememberToken($user): void
     {
-        if (!$this->isEnabled()) {
+        if (! $this->isEnabled()) {
             return;
         }
 
@@ -50,24 +50,26 @@ class RememberTokenHandler implements RememberTokenHandlerInterface
      */
     public function checkRememberToken(): ?object
     {
-        if (!$this->isEnabled()) {
+        if (! $this->isEnabled()) {
             return null;
         }
 
         $cookieValue = $this->getCookieValue();
-        if (!$cookieValue) {
+        if (! $cookieValue) {
             return null;
         }
 
         $userData = $this->parseCookieValue($cookieValue);
-        if (!$userData) {
+        if (! $userData) {
             $this->clearCookie();
+
             return null;
         }
 
         $user = $this->findUserByToken($userData['userId'], $userData['token']);
-        if (!$user) {
+        if (! $user) {
             $this->clearCookie();
+
             return null;
         }
 
@@ -111,14 +113,14 @@ class RememberTokenHandler implements RememberTokenHandlerInterface
     protected function parseCookieValue(string $cookieValue): ?array
     {
         $parts = explode('|', $cookieValue, 2);
-        
+
         if (count($parts) !== 2) {
             return null;
         }
 
         return [
             'userId' => $parts[0],
-            'token' => $parts[1]
+            'token' => $parts[1],
         ];
     }
 
@@ -128,9 +130,10 @@ class RememberTokenHandler implements RememberTokenHandlerInterface
     protected function findUserByToken(string $userId, string $token): ?object
     {
         $model = $this->userModel;
-        
+
         return $model::where('id', $userId)
             ->where('remember_token', hash('sha256', $token))
-            ->first();
+            ->first()
+        ;
     }
 }
