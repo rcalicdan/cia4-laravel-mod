@@ -95,11 +95,11 @@ class Authentication
      */
     public function login($user, bool $remember = false): bool
     {
-        $this->setUserSession($user);
-
         if ($remember) {
             $this->rememberTokenHandler->setRememberToken($user);
         }
+
+        $this->setUserSession($user);
 
         return true;
     }

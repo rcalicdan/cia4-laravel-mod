@@ -90,13 +90,17 @@ class RememberTokenHandler implements RememberTokenHandlerInterface
      */
     protected function setCookie(int $userId, string $token): void
     {
-        $this->response->setCookie([
+        $cookieConfig = [
             'name' => $this->config->rememberMe['cookieName'],
             'value' => "{$userId}|{$token}",
             'expire' => $this->config->rememberMe['tokenExpiry'],
             'secure' => $this->config->rememberMe['cookieSecure'],
             'httponly' => $this->config->rememberMe['cookieHttpOnly'],
-        ]);
+            'samesite' => 'Lax'
+        ];
+
+        helper('cookie');
+        set_cookie($cookieConfig);
     }
 
     /**
