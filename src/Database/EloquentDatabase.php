@@ -6,6 +6,8 @@ use Config\Eloquent;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Hashing\HashManager;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
@@ -191,6 +193,20 @@ class EloquentDatabase
         $this->registerPaginationRenderer();
         $this->configurePagination();
         $this->registerDatabaseService();
+        $this->registerEventDispatcher();
+        $this->bootEloquentModels();
+    }
+
+    /**
+     * Register the event dispatcher for Eloquent events
+     */
+    protected function registerEventDispatcher(): void
+    {
+        $this->container->singleton('events', function ($app) {
+            return new Dispatcher($app);
+        });
+
+        $this->capsule->setEventDispatcher($this->container['events']);
     }
 
     /**
@@ -198,7 +214,7 @@ class EloquentDatabase
      */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', fn () => new Repository([
+        $this->container->singleton('config', fn() => new Repository([
             'hashing' => [
                 'driver' => 'bcrypt',
                 'bcrypt' => ['rounds' => 10],
@@ -211,7 +227,7 @@ class EloquentDatabase
      */
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
     }
 
     /**
@@ -219,7 +235,7 @@ class EloquentDatabase
      */
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn ($app) => new HashManager($app));
+        $this->container->singleton('hash', fn($app) => new HashManager($app));
     }
 
     /**
@@ -229,12 +245,77 @@ class EloquentDatabase
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn () => new PaginationRenderer
+            fn() => new PaginationRenderer
         );
         $this->container->alias(
             PaginationRenderer::class,
             'paginator.renderer'
         );
+    }
+
+    /**
+     * Boot all Eloquent models in the application
+     */
+    protected function bootEloquentModels(): void
+    {
+        $this->discoverAndBootModels();
+    }
+
+    /**
+     * Discover and boot all Eloquent models
+     */
+    protected function discoverAndBootModels(): void
+    {
+        $modelPaths = [
+            APPPATH . 'Models/',
+            APPPATH . 'Entities/',
+        ];
+
+        foreach ($modelPaths as $path) {
+            if (!is_dir($path)) {
+                continue;
+            }
+
+            $files = glob($path . '*.php');
+            foreach ($files as $file) {
+                $className = $this->getClassNameFromFile($file, $path);
+
+                if ($className && $this->isEloquentModel($className)) {
+                    $className::boot();
+                }
+            }
+        }
+    }
+
+    /**
+     * Get class name from file path
+     */
+    protected function getClassNameFromFile(string $file, string $basePath): ?string
+    {
+        $relativePath = str_replace($basePath, '', $file);
+        $className = str_replace(['/', '.php'], ['\\', ''], $relativePath);
+
+        if (strpos($basePath, 'Models') !== false) {
+            $fullClassName = 'App\\Models\\' . $className;
+        } elseif (strpos($basePath, 'Entities') !== false) {
+            $fullClassName = 'App\\Entities\\' . $className;
+        } else {
+            return null;
+        }
+
+        return class_exists($fullClassName) ? $fullClassName : null;
+    }
+
+    /**
+     * Check if class is an Eloquent model
+     */
+    protected function isEloquentModel(string $className): bool
+    {
+        try {
+            return is_subclass_of($className, Model::class);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -256,22 +337,22 @@ class EloquentDatabase
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
-            fn () => $this->container->get('paginator.renderer')
+            fn() => $this->container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn ($pageName = 'page') => ($page = $request->getVar($pageName))
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int) $page >= 1
                 ? (int) $page
                 : 1
         );
 
-        Paginator::currentPathResolver(fn () => $currentUrl);
-        Paginator::queryStringResolver(fn () => $uri->getQuery());
+        Paginator::currentPathResolver(fn() => $currentUrl);
+        Paginator::queryStringResolver(fn() => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn ($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
 }
