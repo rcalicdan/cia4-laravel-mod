@@ -24,55 +24,80 @@ class EloquentDatabase
 {
     protected Container $container;
     protected Capsule $capsule;
-    protected PaginationConfig $paginationConfig;
-    protected Eloquent $eloquentConfig;
     protected static bool $observersRegistered = false;
+    protected static bool $paginationConfigured = false;
+    
+    // Cache for expensive operations
+    private static ?array $databaseConfig = null;
+    private static ?array $eloquentModels = null;
+    private static ?PaginationConfig $paginationConfig = null;
+    private static ?Eloquent $eloquentConfig = null;
 
     public function __construct()
     {
-        $this->loadConfigs();
         $this->initializeDatabase();
         $this->initializeContainer();
         $this->initializeServices();
     }
 
     /**
-     * Load our Eloquent and Pagination config instances.
+     * Load configs with lazy loading and caching
      */
-    protected function loadConfigs(): void
+    protected function getPaginationConfig(): PaginationConfig
     {
-        $this->paginationConfig = config(PaginationConfig::class);
-        $this->eloquentConfig = config(Eloquent::class);
+        return self::$paginationConfig ??= config(PaginationConfig::class);
     }
 
-    /**
-     * Boot Eloquent: set up Capsule, create and attach PDO, enable logging, then boot.
-     */
+    protected function getEloquentConfig(): Eloquent
+    {
+        return self::$eloquentConfig ??= config(Eloquent::class);
+    }
+
     protected function initializeDatabase(): void
     {
         $config = $this->getDatabaseInformation();
-
         $this->initCapsule($config);
-
-        $pdo = $this->createPdo($config);
-        $this->attachPdo($pdo);
+        
+        // Use existing CI4 database connection if available to avoid duplicate PDO
+        if ($this->canReuseExistingConnection()) {
+            $this->reuseExistingConnection();
+        } else {
+            $pdo = $this->createPdo($config);
+            $this->attachPdo($pdo);
+        }
 
         $this->configureQueryLogging();
         $this->bootEloquent();
     }
 
     /**
-     * Instantiate Capsule and add our connection config.
+     * Check if we can reuse CI4's existing database connection
      */
+    protected function canReuseExistingConnection(): bool
+    {
+        try {
+            $db = \Config\Database::connect();
+            return $db->connID instanceof PDO;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Reuse CI4's existing PDO connection
+     */
+    protected function reuseExistingConnection(): void
+    {
+        $db = \Config\Database::connect();
+        $this->attachPdo($db->connID);
+    }
+
     protected function initCapsule(array $config): void
     {
         $this->capsule = new Capsule;
         $this->capsule->addConnection($config);
     }
 
-    /**
-     * Build a native PDO instance according to our config.
-     */
     protected function createPdo(array $config): PDO
     {
         $dsn = $this->buildDsn($config);
@@ -86,9 +111,6 @@ class EloquentDatabase
         );
     }
 
-    /**
-     * Assemble the DSN string for PDO.
-     */
     protected function buildDsn(array $config): string
     {
         return sprintf(
@@ -101,9 +123,6 @@ class EloquentDatabase
         );
     }
 
-    /**
-     * Return PDO options array, toggling emulation per environment.
-     */
     protected function getPdoOptions(): array
     {
         return [
@@ -117,9 +136,6 @@ class EloquentDatabase
         ];
     }
 
-    /**
-     * Swap our PDO into Eloquent's connection object.
-     */
     protected function attachPdo(PDO $pdo): void
     {
         $conn = $this->capsule->getConnection();
@@ -127,22 +143,13 @@ class EloquentDatabase
         $conn->setReadPdo($pdo);
     }
 
-    /**
-     * Enable query logging outside of production.
-     */
     protected function configureQueryLogging(): void
     {
         if (ENVIRONMENT !== 'production') {
-            $this->capsule
-                ->getConnection()
-                ->enableQueryLog()
-            ;
+            $this->capsule->getConnection()->enableQueryLog();
         }
     }
 
-    /**
-     * Make Capsule globally available and boot Eloquent.
-     */
     protected function bootEloquent(): void
     {
         $this->capsule->setAsGlobal();
@@ -150,45 +157,38 @@ class EloquentDatabase
     }
 
     /**
-     * Build (once) and return the DB config array Eloquent expects.
+     * Optimized database config with better caching
      */
     public function getDatabaseInformation(): array
     {
-        static $cached = null;
-        if ($cached !== null) {
-            return $cached;
+        if (self::$databaseConfig !== null) {
+            return self::$databaseConfig;
         }
 
-        $cfg = $this->eloquentConfig;
-        $cached = [
-            'driver' => env('database.default.DBDriver',   env('DB_DBDRIVER',   $cfg->databaseDriver)),
-            'host' => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
-            'database' => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
-            'username' => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
-            'password' => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
-            'charset' => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
-            'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
-            'prefix' => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
-            'port' => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
+        $cfg = $this->getEloquentConfig();
+        
+        return self::$databaseConfig = [
+            'driver' => env('database.default.DBDriver', env('DB_DBDRIVER', $cfg->databaseDriver)),
+            'host' => env('database.default.hostname', env('DB_HOST', $cfg->databaseHost)),
+            'database' => env('database.default.database', env('DB_DATABASE', $cfg->databaseName)),
+            'username' => env('database.default.username', env('DB_USERNAME', $cfg->databaseUsername)),
+            'password' => env('database.default.password', env('DB_PASSWORD', $cfg->databasePassword)),
+            'charset' => env('database.default.DBCharset', env('DB_CHARSET', $cfg->databaseCharset)),
+            'collation' => env('database.default.DBCollat', env('DB_COLLATION', $cfg->databaseCollation)),
+            'prefix' => env('database.default.DBPrefix', env('DB_PREFIX', $cfg->databasePrefix)),
+            'port' => env('database.default.port', env('DB_PORT', $cfg->databasePort)),
         ];
-
-        return $cached;
     }
 
-    /**
-     * Initialize the IoC container and set it for Facades.
-     */
     protected function initializeContainer(): void
     {
         $this->container = new Container;
         Facade::setFacadeApplication($this->container);
     }
 
-    /**
-     * Register config, hash, and pagination services.
-     */
     protected function initializeServices(): void
     {
+        // Register services lazily to avoid unnecessary instantiation
         $this->registerConfigService();
         $this->registerDatabaseService();
         $this->registerEventDispatcher();
@@ -198,9 +198,6 @@ class EloquentDatabase
         $this->configurePagination();
     }
 
-    /**
-     * Register observers for Eloquent models
-     */
     protected function registerObservers(): void
     {
         if (self::$observersRegistered) {
@@ -208,83 +205,72 @@ class EloquentDatabase
         }
 
         $observersConfig = config('Observers');
-
         $this->registerManualObservers($observersConfig);
         $this->registerAttributeObservers($observersConfig);
-
+        
         self::$observersRegistered = true;
     }
 
-    /**
-     * Register observers manually defined in boot() method
-     */
     protected function registerManualObservers(object $config): void
     {
         $config->boot();
     }
 
-    /**
-     * Register observers using PHP 8 attributes
-     */
     protected function registerAttributeObservers(object $config): void
     {
         if (!$config->useAttributes) {
             return;
         }
 
-        $models = $this->getEloquentModels();
-
-        foreach ($models as $modelClass) {
+        foreach ($this->getEloquentModels() as $modelClass) {
             $this->processModelAttributes($modelClass);
         }
     }
 
     /**
-     * Get all Eloquent models from the Models directory
+     * Optimized model discovery with caching and early filtering
      */
     protected function getEloquentModels(): array
     {
-        $modelPath = APPPATH . 'Models/';
-
-        if (!is_dir($modelPath)) {
-            return [];
+        if (self::$eloquentModels !== null) {
+            return self::$eloquentModels;
         }
 
-        $modelFiles = glob($modelPath . '*.php');
+        $modelPath = APPPATH . 'Models/';
+        if (!is_dir($modelPath)) {
+            return self::$eloquentModels = [];
+        }
+
+        // Use iterator for memory efficiency with large directories
+        $iterator = new \DirectoryIterator($modelPath);
         $models = [];
 
-        foreach ($modelFiles as $file) {
-            $modelClass = $this->getModelClassFromFile($file);
+        foreach ($iterator as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
 
+            $modelClass = $this->getModelClassFromFile($file->getPathname());
             if ($this->isValidEloquentModel($modelClass)) {
                 $models[] = $modelClass;
             }
         }
 
-        return $models;
+        return self::$eloquentModels = $models;
     }
 
-    /**
-     * Extract model class name from file path
-     */
     protected function getModelClassFromFile(string $file): string
     {
         $modelName = basename($file, '.php');
         return "App\\Models\\{$modelName}";
     }
 
-    /**
-     * Check if class is a valid Eloquent model
-     */
     protected function isValidEloquentModel(string $class): bool
     {
-        return class_exists($class) &&
-            is_subclass_of($class, Model::class);
+        return class_exists($class, false) && // Don't autoload unnecessarily
+            is_subclass_of($class, Model::class, false);
     }
 
-    /**
-     * Process attributes for a specific model
-     */
     protected function processModelAttributes(string $modelClass): void
     {
         $reflection = new \ReflectionClass($modelClass);
@@ -293,17 +279,17 @@ class EloquentDatabase
         foreach ($attributes as $attribute) {
             $this->registerObserversFromAttribute($modelClass, $attribute);
         }
+        
+        // Free reflection memory
+        unset($reflection);
     }
 
-    /**
-     * Register observers from a single attribute instance
-     */
     protected function registerObserversFromAttribute(string $modelClass, \ReflectionAttribute $attribute): void
     {
         $observedBy = $attribute->newInstance();
 
         foreach ($observedBy->observers as $observer) {
-            if (class_exists($observer)) {
+            if (class_exists($observer, false)) { // Don't autoload
                 $modelClass::observe($observer);
             }
         }
@@ -316,71 +302,53 @@ class EloquentDatabase
         });
 
         $this->capsule->setEventDispatcher($this->container['events']);
-
         Model::setEventDispatcher($this->container['events']);
     }
 
-    /**
-     * Register the configuration repository.
-     */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', fn() => new Repository([
-            'hashing' => [
-                'driver' => 'bcrypt',
-                'bcrypt' => ['rounds' => 10],
-            ],
-        ]));
+        $this->container->singleton('config', function() {
+            return new Repository([
+                'hashing' => [
+                    'driver' => 'bcrypt',
+                    'bcrypt' => ['rounds' => 10],
+                ],
+            ]);
+        });
     }
 
-    /**
-     * Register the database manager service.
-     */
     protected function registerDatabaseService(): void
     {
         $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
     }
 
-    /**
-     * Register the hash manager.
-     */
     protected function registerHashService(): void
     {
         $this->container->singleton('hash', fn($app) => new HashManager($app));
     }
 
-    /**
-     * Bind the PaginationRenderer into the container.
-     */
     protected function registerPaginationRenderer(): void
     {
         $this->container->singleton(
             PaginationRenderer::class,
             fn() => new PaginationRenderer
         );
-        $this->container->alias(
-            PaginationRenderer::class,
-            'paginator.renderer'
-        );
+        $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
 
-    /**
-     * One-time registration of pagination resolvers.
-     */
     protected function configurePagination(): void
     {
-        static $configured = false;
-        if ($configured) {
+        if (self::$paginationConfigured) {
             return;
         }
-        $configured = true;
+        self::$paginationConfigured = true;
 
         $request = service('request');
         $uri = service('uri');
-        $currentUrl = current_url();
+        $paginationConfig = $this->getPaginationConfig();
 
-        Paginator::$defaultView = $this->paginationConfig->defaultView;
-        Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
+        Paginator::$defaultView = $paginationConfig->defaultView;
+        Paginator::$defaultSimpleView = $paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
             fn() => $this->container->get('paginator.renderer')
@@ -394,11 +362,20 @@ class EloquentDatabase
                 : 1
         );
 
-        Paginator::currentPathResolver(fn() => $currentUrl);
+        Paginator::currentPathResolver(fn() => current_url());
         Paginator::queryStringResolver(fn() => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
             fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
+    }
+    
+    /**
+     * Clean up resources when needed
+     */
+    public function __destruct()
+    {
+        // Help GC by breaking circular references
+        unset($this->container, $this->capsule);
     }
 }
