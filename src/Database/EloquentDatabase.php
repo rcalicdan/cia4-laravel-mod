@@ -26,6 +26,7 @@ class EloquentDatabase
     protected Capsule $capsule;
     protected PaginationConfig $paginationConfig;
     protected Eloquent $eloquentConfig;
+    protected static bool $observersRegistered = false;
 
     public function __construct()
     {
@@ -189,14 +190,12 @@ class EloquentDatabase
     protected function initializeServices(): void
     {
         $this->registerConfigService();
-        $this->registerHashService();
-        $this->registerPaginationRenderer();
-        $this->configurePagination();
         $this->registerDatabaseService();
         $this->registerEventDispatcher();
-        $this->bootEloquentModels();
+        $this->registerHashService();
         $this->registerObservers();
-        $this->registerObservers();
+        $this->registerPaginationRenderer();
+        $this->configurePagination();
     }
 
     /**
@@ -204,11 +203,16 @@ class EloquentDatabase
      */
     protected function registerObservers(): void
     {
+        if (self::$observersRegistered) {
+            return;
+        }
+
         $observersConfig = config('Observers');
 
         $this->registerManualObservers($observersConfig);
         $this->registerAttributeObservers($observersConfig);
-        $this->registerAutoDiscoveredObservers($observersConfig);
+
+        self::$observersRegistered = true;
     }
 
     /**
@@ -232,22 +236,6 @@ class EloquentDatabase
 
         foreach ($models as $modelClass) {
             $this->processModelAttributes($modelClass);
-        }
-    }
-
-    /**
-     * Auto-discover and register observers based on naming convention
-     */
-    protected function registerAutoDiscoveredObservers(object $config): void
-    {
-        if (!$config->autoDiscover) {
-            return;
-        }
-
-        $models = $this->getEloquentModels();
-
-        foreach ($models as $modelClass) {
-            $this->registerObserverByConvention($modelClass, $config);
         }
     }
 
@@ -321,30 +309,6 @@ class EloquentDatabase
         }
     }
 
-    /**
-     * Register observer using naming convention
-     */
-    protected function registerObserverByConvention(string $modelClass, object $config): void
-    {
-        $observerClass = $this->buildObserverClassName($modelClass, $config);
-
-        if (class_exists($observerClass)) {
-            $modelClass::observe($observerClass);
-        }
-    }
-
-    /**
-     * Build observer class name from model class using convention
-     */
-    protected function buildObserverClassName(string $modelClass, object $config): string
-    {
-        $modelName = class_basename($modelClass);
-        return "{$config->observerNamespace}\\{$modelName}{$config->observerSuffix}";
-    }
-
-    /**
-     * Register the event dispatcher for Eloquent events
-     */
     protected function registerEventDispatcher(): void
     {
         $this->container->singleton('events', function ($app) {
@@ -352,6 +316,8 @@ class EloquentDatabase
         });
 
         $this->capsule->setEventDispatcher($this->container['events']);
+
+        Model::setEventDispatcher($this->container['events']);
     }
 
     /**
@@ -396,59 +362,6 @@ class EloquentDatabase
             PaginationRenderer::class,
             'paginator.renderer'
         );
-    }
-
-    /**
-     * Boot all Eloquent models in the application
-     */
-    protected function bootEloquentModels(): void
-    {
-        $this->discoverAndBootModels();
-    }
-
-    /**
-     * Discover and boot all Eloquent models
-     */
-    protected function discoverAndBootModels(): void
-    {
-        $modelPath = APPPATH . 'Models/';
-
-        if (! is_dir($modelPath)) {
-            return;
-        }
-
-        $files = glob("{$modelPath}*.php");
-        foreach ($files as $file) {
-            $className = $this->getClassNameFromFile($file, $modelPath);
-
-            if ($className && $this->isEloquentModel($className)) {
-                $className::boot();
-            }
-        }
-    }
-
-    /**
-     * Get class name from file path
-     */
-    protected function getClassNameFromFile(string $file, string $basePath): ?string
-    {
-        $relativePath = str_replace($basePath, '', $file);
-        $className = str_replace(['/', '.php'], ['\\', ''], $relativePath);
-        $fullClassName = "App\\Models\\{$className}";
-
-        return class_exists($fullClassName) ? $fullClassName : null;
-    }
-
-    /**
-     * Check if class is an Eloquent model
-     */
-    protected function isEloquentModel(string $className): bool
-    {
-        try {
-            return is_subclass_of($className, Model::class);
-        } catch (\Throwable $e) {
-            return false;
-        }
     }
 
     /**
