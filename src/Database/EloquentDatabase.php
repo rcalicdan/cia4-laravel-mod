@@ -272,7 +272,7 @@ class EloquentDatabase
             return;
         }
 
-        $files = glob($modelPath . '*.php');
+        $files = glob("{$modelPath}*.php");
         foreach ($files as $file) {
             $className = $this->getClassNameFromFile($file, $modelPath);
 
@@ -289,7 +289,7 @@ class EloquentDatabase
     {
         $relativePath = str_replace($basePath, '', $file);
         $className = str_replace(['/', '.php'], ['\\', ''], $relativePath);
-        $fullClassName = 'App\\Models\\' . $className;
+        $fullClassName = "App\\Models\\{$className}";
 
         return class_exists($fullClassName) ? $fullClassName : null;
     }
