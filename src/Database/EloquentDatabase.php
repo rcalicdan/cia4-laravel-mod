@@ -266,23 +266,18 @@ class EloquentDatabase
      */
     protected function discoverAndBootModels(): void
     {
-        $modelPaths = [
-            APPPATH . 'Models/',
-            APPPATH . 'Entities/',
-        ];
+        $modelPath = APPPATH . 'Models/';
 
-        foreach ($modelPaths as $path) {
-            if (!is_dir($path)) {
-                continue;
-            }
+        if (!is_dir($modelPath)) {
+            return;
+        }
 
-            $files = glob($path . '*.php');
-            foreach ($files as $file) {
-                $className = $this->getClassNameFromFile($file, $path);
+        $files = glob($modelPath . '*.php');
+        foreach ($files as $file) {
+            $className = $this->getClassNameFromFile($file, $modelPath);
 
-                if ($className && $this->isEloquentModel($className)) {
-                    $className::boot();
-                }
+            if ($className && $this->isEloquentModel($className)) {
+                $className::boot();
             }
         }
     }
@@ -294,14 +289,7 @@ class EloquentDatabase
     {
         $relativePath = str_replace($basePath, '', $file);
         $className = str_replace(['/', '.php'], ['\\', ''], $relativePath);
-
-        if (strpos($basePath, 'Models') !== false) {
-            $fullClassName = 'App\\Models\\' . $className;
-        } elseif (strpos($basePath, 'Entities') !== false) {
-            $fullClassName = 'App\\Entities\\' . $className;
-        } else {
-            return null;
-        }
+        $fullClassName = 'App\\Models\\' . $className;
 
         return class_exists($fullClassName) ? $fullClassName : null;
     }
