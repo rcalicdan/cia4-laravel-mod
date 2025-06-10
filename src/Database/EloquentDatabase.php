@@ -222,14 +222,14 @@ class EloquentDatabase
      */
     protected function autoDiscoverObservers($config): void
     {
-        $modelPath = APPPATH . 'Models/';
-        $observerPath = APPPATH . 'Observers/';
+        $modelPath = APPPATH.'Models/';
+        $observerPath = APPPATH.'Observers/';
 
-        if (!is_dir($modelPath) || !is_dir($observerPath)) {
+        if (! is_dir($modelPath) || ! is_dir($observerPath)) {
             return;
         }
 
-        $modelFiles = glob($modelPath . '*.php');
+        $modelFiles = glob($modelPath.'*.php');
 
         foreach ($modelFiles as $file) {
             $modelName = basename($file, '.php');
@@ -263,7 +263,7 @@ class EloquentDatabase
      */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', fn() => new Repository([
+        $this->container->singleton('config', fn () => new Repository([
             'hashing' => [
                 'driver' => 'bcrypt',
                 'bcrypt' => ['rounds' => 10],
@@ -276,7 +276,7 @@ class EloquentDatabase
      */
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
     }
 
     /**
@@ -284,7 +284,7 @@ class EloquentDatabase
      */
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn($app) => new HashManager($app));
+        $this->container->singleton('hash', fn ($app) => new HashManager($app));
     }
 
     /**
@@ -294,7 +294,7 @@ class EloquentDatabase
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn() => new PaginationRenderer
+            fn () => new PaginationRenderer
         );
         $this->container->alias(
             PaginationRenderer::class,
@@ -315,9 +315,9 @@ class EloquentDatabase
      */
     protected function discoverAndBootModels(): void
     {
-        $modelPath = APPPATH . 'Models/';
+        $modelPath = APPPATH.'Models/';
 
-        if (!is_dir($modelPath)) {
+        if (! is_dir($modelPath)) {
             return;
         }
 
@@ -374,22 +374,22 @@ class EloquentDatabase
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
-            fn() => $this->container->get('paginator.renderer')
+            fn () => $this->container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn($pageName = 'page') => ($page = $request->getVar($pageName))
+            fn ($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int) $page >= 1
                 ? (int) $page
                 : 1
         );
 
-        Paginator::currentPathResolver(fn() => $currentUrl);
-        Paginator::queryStringResolver(fn() => $uri->getQuery());
+        Paginator::currentPathResolver(fn () => $currentUrl);
+        Paginator::queryStringResolver(fn () => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+            fn ($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
 }

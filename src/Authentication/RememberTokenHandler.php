@@ -104,13 +104,12 @@ class RememberTokenHandler implements RememberTokenHandlerInterface
             $expire,
             $domain,
             $path,
-            '', 
+            '',
             $secure,
             $httponly,
-            'Lax' 
-        )->send(); 
+            'Lax'
+        )->send();
     }
-
 
     /**
      * Get cookie value

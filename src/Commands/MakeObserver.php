@@ -11,11 +11,11 @@ class MakeObserver extends BaseCommand
     protected $name = 'make:observer';
     protected $description = 'Creates a new Eloquent model observer class.';
     protected $usage = 'make:observer <name> [options]';
-    
+
     protected $arguments = [
         'name' => 'The observer class name.',
     ];
-    
+
     protected $options = [
         '--model' => 'The model class that the observer applies to.',
         '--force' => 'Force overwrite existing file.',
@@ -24,7 +24,9 @@ class MakeObserver extends BaseCommand
     public function run(array $params)
     {
         $name = $this->getObserverName($params);
-        if (!$name) return;
+        if (! $name) {
+            return;
+        }
 
         $model = $this->getModelFromArguments();
         $force = $this->hasForceFlag();
@@ -36,9 +38,10 @@ class MakeObserver extends BaseCommand
     protected function getObserverName(array $params): ?string
     {
         $name = array_shift($params) ?: CLI::prompt('Observer name');
-        
+
         if (empty($name)) {
             CLI::error('You must provide an observer name.');
+
             return null;
         }
 
@@ -48,7 +51,7 @@ class MakeObserver extends BaseCommand
     protected function getModelFromArguments(): ?string
     {
         global $argv;
-        
+
         foreach ($argv as $arg) {
             if (str_starts_with($arg, '--model=')) {
                 return substr($arg, 8);
@@ -61,19 +64,20 @@ class MakeObserver extends BaseCommand
     protected function hasForceFlag(): bool
     {
         global $argv;
+
         return in_array('--force', $argv);
     }
 
     protected function normalizeObserverName(string $name): string
     {
-        return str_ends_with($name, 'Observer') ? $name : $name . 'Observer';
+        return str_ends_with($name, 'Observer') ? $name : $name.'Observer';
     }
 
     protected function createObserver(string $name, ?string $model, bool $force): void
     {
         $filePath = $this->getObserverFilePath($name);
-        
-        if (!$this->canCreateFile($filePath, $force)) {
+
+        if (! $this->canCreateFile($filePath, $force)) {
             return;
         }
 
@@ -87,23 +91,24 @@ class MakeObserver extends BaseCommand
 
     protected function getObserverFilePath(string $name): string
     {
-        return APPPATH . 'Observers/' . $name . '.php';
+        return APPPATH.'Observers/'.$name.'.php';
     }
 
     protected function canCreateFile(string $filePath, bool $force): bool
     {
-        if (!file_exists($filePath) || $force) {
+        if (! file_exists($filePath) || $force) {
             return true;
         }
 
-        CLI::error("Observer already exists. Use --force to overwrite.");
+        CLI::error('Observer already exists. Use --force to overwrite.');
+
         return false;
     }
 
     protected function ensureObserverDirectory(): void
     {
-        $observerPath = APPPATH . 'Observers/';
-        if (!is_dir($observerPath)) {
+        $observerPath = APPPATH.'Observers/';
+        if (! is_dir($observerPath)) {
             mkdir($observerPath, 0755, true);
         }
     }
@@ -115,12 +120,13 @@ class MakeObserver extends BaseCommand
         }
 
         CLI::error("Failed to create observer: {$filePath}");
+
         return false;
     }
 
     protected function generateObserverContent(string $observerName, ?string $model): string
     {
-        if (!$model) {
+        if (! $model) {
             return $this->getGenericObserverTemplate($observerName);
         }
 
@@ -134,7 +140,7 @@ class MakeObserver extends BaseCommand
         $events = $this->getObserverEvents();
 
         $methods = array_map(
-            fn($event) => $this->generateObserverMethod($event, $modelName, $modelVariable),
+            fn ($event) => $this->generateObserverMethod($event, $modelName, $modelVariable),
             $events
         );
 
@@ -156,13 +162,14 @@ class MakeObserver extends BaseCommand
         return [
             'retrieved', 'creating', 'created', 'updating', 'updated',
             'saving', 'saved', 'deleting', 'deleted', 'restoring',
-            'restored', 'forceDeleted'
+            'restored', 'forceDeleted',
         ];
     }
 
     protected function generateObserverMethod(string $event, string $modelName, string $modelVariable): string
     {
         $eventTitle = ucfirst($event);
+
         return <<<METHOD
     public function {$event}({$modelName} \${$modelVariable}): void
     {
@@ -192,10 +199,10 @@ TEMPLATE;
 
     protected function showSuccessMessage(string $filePath, string $observerName, ?string $model): void
     {
-        CLI::write("Observer created: " . CLI::color($filePath, 'green'));
+        CLI::write('Observer created: '.CLI::color($filePath, 'green'));
         CLI::newLine();
         CLI::write(CLI::color('Next steps:', 'yellow'));
-        
+
         $this->showRegistrationInstructions($observerName, $model);
         CLI::newLine();
     }
