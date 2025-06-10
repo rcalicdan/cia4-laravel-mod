@@ -78,12 +78,10 @@ class MakeObserver extends BaseCommand
         $model = CLI::getOption('model');
         $force = CLI::getOption('force');
 
-        // Ensure the name ends with 'Observer'
         if (!str_ends_with($name, 'Observer')) {
             $name .= 'Observer';
         }
 
-        // Create the observer
         $this->createObserver($name, $model, $force);
     }
 
@@ -99,25 +97,19 @@ class MakeObserver extends BaseCommand
         $observerPath = APPPATH . 'Observers/';
         $observerFile = $observerPath . $name . '.php';
 
-        // Create directory if it doesn't exist
         if (!is_dir($observerPath)) {
             mkdir($observerPath, 0755, true);
         }
 
-        // Check if file already exists
         if (file_exists($observerFile) && !$force) {
             CLI::error("Observer {$name} already exists. Use --force to overwrite.");
             return;
         }
 
-        // Generate the observer content
         $content = $this->generateObserverContent($name, $model);
 
-        // Write the file
         if (file_put_contents($observerFile, $content)) {
             CLI::write("Observer created: " . CLI::color($observerFile, 'green'));
-            
-            // Show instruction to register the observer
             $this->showRegistrationInstructions($name, $model);
         } else {
             CLI::error("Failed to create observer: {$observerFile}");
