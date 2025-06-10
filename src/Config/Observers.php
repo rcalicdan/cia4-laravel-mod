@@ -7,23 +7,14 @@ use CodeIgniter\Config\BaseConfig;
 /**
  * Observer Configuration
  *
- * This file contains the mapping of Eloquent models to their observers.
- * Observers will be automatically registered when the application boots.
+ * This file contains the configuration for Eloquent model observers.
+ * Observers can be registered in multiple ways:
+ * 1. Manual registration in the boot() method
+ * 2. Using PHP 8 attributes on models
+ * 3. Auto-discovery based on naming convention
  */
 class Observers extends BaseConfig
 {
-    /**
-     * Model to Observer mappings
-     *
-     * Format: 'ModelClass' => 'ObserverClass'
-     * Example: \App\Models\User::class => \App\Observers\UserObserver::class,
-     *
-     * @var array<string, string>
-     */
-    public array $observers = [
-        //
-    ];
-
     /**
      * Auto-discover observers based on naming convention
      * If true, will automatically look for observers in App\Observers
@@ -40,4 +31,19 @@ class Observers extends BaseConfig
      * Observer suffix for auto-discovery
      */
     public string $observerSuffix = 'Observer';
+
+    /**
+     * Enable attribute-based observer registration
+     * If true, will scan models for #[ObservedBy] attributes
+     */
+    public bool $useAttributes = true;
+
+    /**
+     * Manual observer registration
+     * Override this method to manually register observers
+     */
+    public function boot(): void
+    {
+      //
+    }
 }

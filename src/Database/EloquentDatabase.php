@@ -291,7 +291,7 @@ class EloquentDatabase
     protected function isValidEloquentModel(string $class): bool
     {
         return class_exists($class) &&
-            is_subclass_of($class, \Illuminate\Database\Eloquent\Model::class);
+            is_subclass_of($class, Model::class);
     }
 
     /**
