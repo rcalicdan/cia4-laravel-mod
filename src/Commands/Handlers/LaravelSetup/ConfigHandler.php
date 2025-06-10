@@ -14,6 +14,7 @@ class ConfigHandler extends SetupHandler
         $this->publishConfigBlade();
         $this->publishConfigAuthentication();
         $this->publishConfigAuthorization();
+        $this->publishConfigObservers();
     }
 
     /**
@@ -76,6 +77,19 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as BasePagination;',
     private function publishConfigAuthorization(): void
     {
         $file = 'Config/Authorization.php';
+        $replaces = [
+            'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
+        ];
+
+        $this->copyAndReplace($file, $replaces);
+    }
+
+     /**
+     * Copy and replace the given file
+     */
+    private function publishConfigObservers(): void
+    {
+        $file = 'Config/Observers.php';
         $replaces = [
             'namespace Rcalicdan\Ci4Larabridge\Config' => 'namespace Config',
         ];
