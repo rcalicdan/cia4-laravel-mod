@@ -70,7 +70,7 @@ class MakeObserver extends BaseCommand
 
     protected function normalizeObserverName(string $name): string
     {
-        return str_ends_with($name, 'Observer') ? $name : $name.'Observer';
+        return str_ends_with($name, 'Observer') ? $name : $name . 'Observer';
     }
 
     protected function createObserver(string $name, ?string $model, bool $force): void
@@ -91,7 +91,7 @@ class MakeObserver extends BaseCommand
 
     protected function getObserverFilePath(string $name): string
     {
-        return APPPATH.'Observers/'.$name.'.php';
+        return APPPATH . 'Observers/' . $name . '.php';
     }
 
     protected function canCreateFile(string $filePath, bool $force): bool
@@ -107,7 +107,7 @@ class MakeObserver extends BaseCommand
 
     protected function ensureObserverDirectory(): void
     {
-        $observerPath = APPPATH.'Observers/';
+        $observerPath = APPPATH . 'Observers/';
         if (! is_dir($observerPath)) {
             mkdir($observerPath, 0755, true);
         }
@@ -140,7 +140,7 @@ class MakeObserver extends BaseCommand
         $events = $this->getObserverEvents();
 
         $methods = array_map(
-            fn ($event) => $this->generateObserverMethod($event, $modelName, $modelVariable),
+            fn($event) => $this->generateObserverMethod($event, $modelName, $modelVariable),
             $events
         );
 
@@ -160,9 +160,18 @@ class MakeObserver extends BaseCommand
     protected function getObserverEvents(): array
     {
         return [
-            'retrieved', 'creating', 'created', 'updating', 'updated',
-            'saving', 'saved', 'deleting', 'deleted', 'restoring',
-            'restored', 'forceDeleted',
+            'retrieved',
+            'creating',
+            'created',
+            'updating',
+            'updated',
+            'saving',
+            'saved',
+            'deleting',
+            'deleted',
+            'restoring',
+            'restored',
+            'forceDeleted',
         ];
     }
 
@@ -199,23 +208,6 @@ TEMPLATE;
 
     protected function showSuccessMessage(string $filePath, string $observerName, ?string $model): void
     {
-        CLI::write('Observer created: '.CLI::color($filePath, 'green'));
-        CLI::newLine();
-        CLI::write(CLI::color('Next steps:', 'yellow'));
-
-        $this->showRegistrationInstructions($observerName, $model);
-        CLI::newLine();
-    }
-
-    protected function showRegistrationInstructions(string $observerName, ?string $model): void
-    {
-        if ($model) {
-            $instruction = "\\App\\Models\\{$model}::class => \\App\\Observers\\{$observerName}::class,";
-        } else {
-            $instruction = "\\App\\Models\\YourModel::class => \\App\\Observers\\{$observerName}::class,";
-        }
-
-        CLI::write('Add to app/Config/Observers.php:');
-        CLI::write(CLI::color("   {$instruction}", 'cyan'));
+        CLI::write('Observer created: ' . CLI::color($filePath, 'green'));
     }
 }
