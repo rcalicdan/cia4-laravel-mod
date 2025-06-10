@@ -204,7 +204,7 @@ class EloquentDatabase
      */
     protected function registerObservers(): void
     {
-        $observersConfig = config(\Config\Observers::class);
+        $observersConfig = config('Observers');
 
         $this->registerManualObservers($observersConfig);
         $this->registerAttributeObservers($observersConfig);
