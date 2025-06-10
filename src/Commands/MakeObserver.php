@@ -1,282 +1,214 @@
 <?php
 
-namespace App\Commands;
+namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 
-/**
- * Creates a new Eloquent model observer class.
- */
 class MakeObserver extends BaseCommand
 {
-    /**
-     * The Command's Group
-     *
-     * @var string
-     */
     protected $group = 'Generators';
-
-    /**
-     * The Command's Name
-     *
-     * @var string
-     */
     protected $name = 'make:observer';
-
-    /**
-     * The Command's Description
-     *
-     * @var string
-     */
     protected $description = 'Creates a new Eloquent model observer class.';
-
-    /**
-     * The Command's Usage
-     *
-     * @var string
-     */
     protected $usage = 'make:observer <name> [options]';
-
-    /**
-     * The Command's Arguments
-     *
-     * @var array
-     */
+    
     protected $arguments = [
         'name' => 'The observer class name.',
     ];
-
-    /**
-     * The Command's Options
-     *
-     * @var array
-     */
+    
     protected $options = [
         '--model' => 'The model class that the observer applies to.',
         '--force' => 'Force overwrite existing file.',
     ];
 
-    /**
-     * Actually execute a command.
-     *
-     * @param array $params
-     */
     public function run(array $params)
     {
-        $name = array_shift($params);
+        $name = $this->getObserverName($params);
+        if (!$name) return;
 
-        if (empty($name)) {
-            $name = CLI::prompt('Observer name');
-        }
+        $model = $this->getModelFromArguments();
+        $force = $this->hasForceFlag();
 
+        $observerName = $this->normalizeObserverName($name);
+        $this->createObserver($observerName, $model, $force);
+    }
+
+    protected function getObserverName(array $params): ?string
+    {
+        $name = array_shift($params) ?: CLI::prompt('Observer name');
+        
         if (empty($name)) {
             CLI::error('You must provide an observer name.');
+            return null;
+        }
+
+        return $name;
+    }
+
+    protected function getModelFromArguments(): ?string
+    {
+        global $argv;
+        
+        foreach ($argv as $arg) {
+            if (str_starts_with($arg, '--model=')) {
+                return substr($arg, 8);
+            }
+        }
+
+        return null;
+    }
+
+    protected function hasForceFlag(): bool
+    {
+        global $argv;
+        return in_array('--force', $argv);
+    }
+
+    protected function normalizeObserverName(string $name): string
+    {
+        return str_ends_with($name, 'Observer') ? $name : $name . 'Observer';
+    }
+
+    protected function createObserver(string $name, ?string $model, bool $force): void
+    {
+        $filePath = $this->getObserverFilePath($name);
+        
+        if (!$this->canCreateFile($filePath, $force)) {
             return;
         }
 
-        $model = CLI::getOption('model');
-        $force = CLI::getOption('force');
+        $this->ensureObserverDirectory();
+        $content = $this->generateObserverContent($name, $model);
 
-        if (!str_ends_with($name, 'Observer')) {
-            $name .= 'Observer';
+        if ($this->writeObserverFile($filePath, $content)) {
+            $this->showSuccessMessage($filePath, $name, $model);
         }
-
-        $this->createObserver($name, $model, $force);
     }
 
-    /**
-     * Create the observer file
-     *
-     * @param string $name
-     * @param string|null $model
-     * @param bool $force
-     */
-    protected function createObserver(string $name, ?string $model = null, bool $force = false): void
+    protected function getObserverFilePath(string $name): string
+    {
+        return APPPATH . 'Observers/' . $name . '.php';
+    }
+
+    protected function canCreateFile(string $filePath, bool $force): bool
+    {
+        if (!file_exists($filePath) || $force) {
+            return true;
+        }
+
+        CLI::error("Observer already exists. Use --force to overwrite.");
+        return false;
+    }
+
+    protected function ensureObserverDirectory(): void
     {
         $observerPath = APPPATH . 'Observers/';
-        $observerFile = $observerPath . $name . '.php';
-
         if (!is_dir($observerPath)) {
             mkdir($observerPath, 0755, true);
         }
-
-        if (file_exists($observerFile) && !$force) {
-            CLI::error("Observer {$name} already exists. Use --force to overwrite.");
-            return;
-        }
-
-        $content = $this->generateObserverContent($name, $model);
-
-        if (file_put_contents($observerFile, $content)) {
-            CLI::write("Observer created: " . CLI::color($observerFile, 'green'));
-            $this->showRegistrationInstructions($name, $model);
-        } else {
-            CLI::error("Failed to create observer: {$observerFile}");
-        }
     }
 
-    /**
-     * Generate the observer class content
-     *
-     * @param string $name
-     * @param string|null $model
-     * @return string
-     */
-    protected function generateObserverContent(string $name, ?string $model = null): string
+    protected function writeObserverFile(string $filePath, string $content): bool
     {
-        $modelName = $model ? $this->getModelName($model) : 'Model';
-        $modelClass = $model ? "\\App\\Models\\{$model}" : 'Model';
-        $modelVariable = strtolower($modelName);
+        if (file_put_contents($filePath, $content)) {
+            return true;
+        }
 
-        $template = <<<EOT
+        CLI::error("Failed to create observer: {$filePath}");
+        return false;
+    }
+
+    protected function generateObserverContent(string $observerName, ?string $model): string
+    {
+        if (!$model) {
+            return $this->getGenericObserverTemplate($observerName);
+        }
+
+        return $this->getModelSpecificObserverTemplate($observerName, $model);
+    }
+
+    protected function getModelSpecificObserverTemplate(string $observerName, string $model): string
+    {
+        $modelName = $this->extractModelName($model);
+        $modelVariable = strtolower($modelName);
+        $events = $this->getObserverEvents();
+
+        $methods = array_map(
+            fn($event) => $this->generateObserverMethod($event, $modelName, $modelVariable),
+            $events
+        );
+
+        return $this->buildObserverClass($observerName, $modelName, $methods);
+    }
+
+    protected function getGenericObserverTemplate(string $observerName): string
+    {
+        return $this->buildObserverClass($observerName, 'Model', []);
+    }
+
+    protected function extractModelName(string $model): string
+    {
+        return str_ends_with($model, 'Model') ? substr($model, 0, -5) : $model;
+    }
+
+    protected function getObserverEvents(): array
+    {
+        return [
+            'retrieved', 'creating', 'created', 'updating', 'updated',
+            'saving', 'saved', 'deleting', 'deleted', 'restoring',
+            'restored', 'forceDeleted'
+        ];
+    }
+
+    protected function generateObserverMethod(string $event, string $modelName, string $modelVariable): string
+    {
+        $eventTitle = ucfirst($event);
+        return <<<METHOD
+    public function {$event}({$modelName} \${$modelVariable}): void
+    {
+        //
+    }
+METHOD;
+    }
+
+    protected function buildObserverClass(string $observerName, string $modelName, array $methods): string
+    {
+        $useStatement = $modelName !== 'Model' ? "use App\\Models\\{$modelName};" : '';
+        $methodsString = implode("\n\n", $methods);
+
+        return <<<TEMPLATE
 <?php
 
 namespace App\Observers;
 
-/**
- * {$name}
- * 
- * Observer for {$modelClass}
- */
-class {$name}
+{$useStatement}
+
+class {$observerName}
 {
-    /**
-     * Handle the {$modelName} "retrieved" event.
-     */
-    public function retrieved({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "creating" event.
-     */
-    public function creating({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "created" event.
-     */
-    public function created({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "updating" event.
-     */
-    public function updating({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "updated" event.
-     */
-    public function updated({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "saving" event.
-     */
-    public function saving({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "saved" event.
-     */
-    public function saved({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "deleting" event.
-     */
-    public function deleting({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "deleted" event.
-     */
-    public function deleted({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "restoring" event.
-     */
-    public function restoring({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "restored" event.
-     */
-    public function restored({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
-
-    /**
-     * Handle the {$modelName} "force deleted" event.
-     */
-    public function forceDeleted({$modelName} \${$modelVariable}): void
-    {
-        //
-    }
+{$methodsString}
 }
-EOT;
-
-        return $template;
+TEMPLATE;
     }
 
-    /**
-     * Get the model name from the model class
-     *
-     * @param string $model
-     * @return string
-     */
-    protected function getModelName(string $model): string
+    protected function showSuccessMessage(string $filePath, string $observerName, ?string $model): void
     {
-        if (str_ends_with($model, 'Model')) {
-            return substr($model, 0, -5);
-        }
-
-        return $model;
-    }
-
-    /**
-     * Show instructions for registering the observer
-     *
-     * @param string $name
-     * @param string|null $model
-     */
-    protected function showRegistrationInstructions(string $name, ?string $model = null): void
-    {
+        CLI::write("Observer created: " . CLI::color($filePath, 'green'));
         CLI::newLine();
         CLI::write(CLI::color('Next steps:', 'yellow'));
         
-        if ($model) {
-            CLI::write('1. Add the following to your app/Config/Observers.php:');
-            CLI::write(CLI::color("   \\App\\Models\\{$model}::class => \\App\\Observers\\{$name}::class,", 'cyan'));
-        } else {
-            CLI::write('1. Add your observer to app/Config/Observers.php');
-            CLI::write(CLI::color("   \\App\\Models\\YourModel::class => \\App\\Observers\\{$name}::class,", 'cyan'));
-        }
-        
-        CLI::write('2. The observer will be automatically registered when your application boots.');
+        $this->showRegistrationInstructions($observerName, $model);
         CLI::newLine();
+    }
+
+    protected function showRegistrationInstructions(string $observerName, ?string $model): void
+    {
+        if ($model) {
+            $instruction = "\\App\\Models\\{$model}::class => \\App\\Observers\\{$observerName}::class,";
+        } else {
+            $instruction = "\\App\\Models\\YourModel::class => \\App\\Observers\\{$observerName}::class,";
+        }
+
+        CLI::write('Add to app/Config/Observers.php:');
+        CLI::write(CLI::color("   {$instruction}", 'cyan'));
     }
 }
