@@ -195,6 +195,55 @@ class EloquentDatabase
         $this->registerDatabaseService();
         $this->registerEventDispatcher();
         $this->bootEloquentModels();
+        $this->registerObservers();
+        $this->registerObservers();
+    }
+
+    /**
+     * Register observers for Eloquent models
+     */
+    protected function registerObservers(): void
+    {
+        $observersConfig = config(\Config\Observers::class);
+
+        foreach ($observersConfig->observers as $model => $observer) {
+            if (class_exists($model) && class_exists($observer)) {
+                $model::observe($observer);
+            }
+        }
+
+        if ($observersConfig->autoDiscover) {
+            $this->autoDiscoverObservers($observersConfig);
+        }
+    }
+
+    /**
+     * Auto-discover and register observers based on naming convention
+     */
+    protected function autoDiscoverObservers($config): void
+    {
+        $modelPath = APPPATH . 'Models/';
+        $observerPath = APPPATH . 'Observers/';
+
+        if (!is_dir($modelPath) || !is_dir($observerPath)) {
+            return;
+        }
+
+        $modelFiles = glob($modelPath . '*.php');
+
+        foreach ($modelFiles as $file) {
+            $modelName = basename($file, '.php');
+            $modelClass = "App\\Models\\{$modelName}";
+            $observerClass = "{$config->observerNamespace}\\{$modelName}{$config->observerSuffix}";
+
+            if (
+                class_exists($modelClass) &&
+                class_exists($observerClass) &&
+                is_subclass_of($modelClass, Model::class)
+            ) {
+                $modelClass::observe($observerClass);
+            }
+        }
     }
 
     /**
