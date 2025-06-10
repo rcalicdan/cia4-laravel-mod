@@ -206,44 +206,140 @@ class EloquentDatabase
     {
         $observersConfig = config(\Config\Observers::class);
 
-        foreach ($observersConfig->observers as $model => $observer) {
-            if (class_exists($model) && class_exists($observer)) {
-                $model::observe($observer);
-            }
+        $this->registerManualObservers($observersConfig);
+        $this->registerAttributeObservers($observersConfig);
+        $this->registerAutoDiscoveredObservers($observersConfig);
+    }
+
+    /**
+     * Register observers manually defined in boot() method
+     */
+    protected function registerManualObservers(object $config): void
+    {
+        $config->boot();
+    }
+
+    /**
+     * Register observers using PHP 8 attributes
+     */
+    protected function registerAttributeObservers(object $config): void
+    {
+        if (!$config->useAttributes) {
+            return;
         }
 
-        if ($observersConfig->autoDiscover) {
-            $this->autoDiscoverObservers($observersConfig);
+        $models = $this->getEloquentModels();
+
+        foreach ($models as $modelClass) {
+            $this->processModelAttributes($modelClass);
         }
     }
 
     /**
      * Auto-discover and register observers based on naming convention
      */
-    protected function autoDiscoverObservers($config): void
+    protected function registerAutoDiscoveredObservers(object $config): void
     {
-        $modelPath = APPPATH.'Models/';
-        $observerPath = APPPATH.'Observers/';
-
-        if (! is_dir($modelPath) || ! is_dir($observerPath)) {
+        if (!$config->autoDiscover) {
             return;
         }
 
-        $modelFiles = glob($modelPath.'*.php');
+        $models = $this->getEloquentModels();
+
+        foreach ($models as $modelClass) {
+            $this->registerObserverByConvention($modelClass, $config);
+        }
+    }
+
+    /**
+     * Get all Eloquent models from the Models directory
+     */
+    protected function getEloquentModels(): array
+    {
+        $modelPath = APPPATH . 'Models/';
+
+        if (!is_dir($modelPath)) {
+            return [];
+        }
+
+        $modelFiles = glob($modelPath . '*.php');
+        $models = [];
 
         foreach ($modelFiles as $file) {
-            $modelName = basename($file, '.php');
-            $modelClass = "App\\Models\\{$modelName}";
-            $observerClass = "{$config->observerNamespace}\\{$modelName}{$config->observerSuffix}";
+            $modelClass = $this->getModelClassFromFile($file);
 
-            if (
-                class_exists($modelClass) &&
-                class_exists($observerClass) &&
-                is_subclass_of($modelClass, Model::class)
-            ) {
-                $modelClass::observe($observerClass);
+            if ($this->isValidEloquentModel($modelClass)) {
+                $models[] = $modelClass;
             }
         }
+
+        return $models;
+    }
+
+    /**
+     * Extract model class name from file path
+     */
+    protected function getModelClassFromFile(string $file): string
+    {
+        $modelName = basename($file, '.php');
+        return "App\\Models\\{$modelName}";
+    }
+
+    /**
+     * Check if class is a valid Eloquent model
+     */
+    protected function isValidEloquentModel(string $class): bool
+    {
+        return class_exists($class) &&
+            is_subclass_of($class, \Illuminate\Database\Eloquent\Model::class);
+    }
+
+    /**
+     * Process attributes for a specific model
+     */
+    protected function processModelAttributes(string $modelClass): void
+    {
+        $reflection = new \ReflectionClass($modelClass);
+        $attributes = $reflection->getAttributes(\Rcalicdan\Ci4Larabridge\Attributes\ObservedBy::class);
+
+        foreach ($attributes as $attribute) {
+            $this->registerObserversFromAttribute($modelClass, $attribute);
+        }
+    }
+
+    /**
+     * Register observers from a single attribute instance
+     */
+    protected function registerObserversFromAttribute(string $modelClass, \ReflectionAttribute $attribute): void
+    {
+        $observedBy = $attribute->newInstance();
+
+        foreach ($observedBy->observers as $observer) {
+            if (class_exists($observer)) {
+                $modelClass::observe($observer);
+            }
+        }
+    }
+
+    /**
+     * Register observer using naming convention
+     */
+    protected function registerObserverByConvention(string $modelClass, object $config): void
+    {
+        $observerClass = $this->buildObserverClassName($modelClass, $config);
+
+        if (class_exists($observerClass)) {
+            $modelClass::observe($observerClass);
+        }
+    }
+
+    /**
+     * Build observer class name from model class using convention
+     */
+    protected function buildObserverClassName(string $modelClass, object $config): string
+    {
+        $modelName = class_basename($modelClass);
+        return "{$config->observerNamespace}\\{$modelName}{$config->observerSuffix}";
     }
 
     /**
@@ -263,7 +359,7 @@ class EloquentDatabase
      */
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', fn () => new Repository([
+        $this->container->singleton('config', fn() => new Repository([
             'hashing' => [
                 'driver' => 'bcrypt',
                 'bcrypt' => ['rounds' => 10],
@@ -276,7 +372,7 @@ class EloquentDatabase
      */
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
     }
 
     /**
@@ -284,7 +380,7 @@ class EloquentDatabase
      */
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn ($app) => new HashManager($app));
+        $this->container->singleton('hash', fn($app) => new HashManager($app));
     }
 
     /**
@@ -294,7 +390,7 @@ class EloquentDatabase
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn () => new PaginationRenderer
+            fn() => new PaginationRenderer
         );
         $this->container->alias(
             PaginationRenderer::class,
@@ -315,7 +411,7 @@ class EloquentDatabase
      */
     protected function discoverAndBootModels(): void
     {
-        $modelPath = APPPATH.'Models/';
+        $modelPath = APPPATH . 'Models/';
 
         if (! is_dir($modelPath)) {
             return;
@@ -374,22 +470,22 @@ class EloquentDatabase
         Paginator::$defaultSimpleView = $this->paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
-            fn () => $this->container->get('paginator.renderer')
+            fn() => $this->container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn ($pageName = 'page') => ($page = $request->getVar($pageName))
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int) $page >= 1
                 ? (int) $page
                 : 1
         );
 
-        Paginator::currentPathResolver(fn () => $currentUrl);
-        Paginator::queryStringResolver(fn () => $uri->getQuery());
+        Paginator::currentPathResolver(fn() => $currentUrl);
+        Paginator::queryStringResolver(fn() => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn ($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
 }
