@@ -103,22 +103,14 @@ class EloquentDatabase
 
         $cfg = $this->getEloquentConfig();
         $connectionName = $connection ?? $this->getDefaultConnection();
-        
-        // Get base configuration from Eloquent config
         $baseConfig = $cfg->connections[$connectionName] ?? $cfg->connections['mysql'];
-        
-        // Apply environment variable overrides with CodeIgniter compatibility
         $config = $this->applyEnvironmentOverrides($baseConfig, $connectionName);
-        
-        // Add PDO options
         $config['options'] = $this->getPdoOptions();
-        
-        // Handle SQLite database path
+
         if ($config['driver'] === 'sqlite') {
             $config['database'] = $this->resolveSqlitePath($config['database']);
         }
 
-        // Cache the default connection config
         if ($connection === null) {
             self::$databaseConfig = $config;
         }
@@ -143,7 +135,6 @@ class EloquentDatabase
         $isDefaultConnection = ($connectionName === $this->getDefaultConnection());
 
         if ($isDefaultConnection) {
-            // For default connection, use Laravel env vars first, then CodeIgniter format as fallback
             return [
                 'driver' => env('DB_DRIVER', env('DB_DBDRIVER', env('database.default.DBDriver', $config['driver']))),
                 'host' => env('DB_HOST', env('database.default.hostname', $config['host'])),
@@ -190,24 +181,21 @@ class EloquentDatabase
             return WRITEPATH . 'database.sqlite';
         }
 
-        // If it's already an absolute path, return as-is
         if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
             return $database;
         }
 
-        // If it contains 'database_path()' reference, resolve it
         if (str_contains($database, 'database_path')) {
             return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
         }
 
-        // Default to WRITEPATH
         return WRITEPATH . $database;
     }
 
     /**
      * Add support for multiple database connections
      */
-    public function addConnection(string $name, array $config = null): void
+    public function addConnection(string $name, ?array $config = null): void
     {
         if ($config === null) {
             $config = $this->getDatabaseInformation($name);
