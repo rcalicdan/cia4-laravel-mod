@@ -27,3 +27,21 @@ if (! function_exists('public_path')) {
         return FCPATH.$path;
     }
 }
+
+if (!function_exists('base_path')) {
+    function base_path($path = '') {
+        return ROOTPATH . ($path ? DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR) : '');
+    }
+}
+
+if (!function_exists('database_path')) {
+    function database_path($path = '') {
+        return WRITEPATH . 'database' . ($path ? DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR) : '');
+    }
+}
+
+if (!function_exists('storage_path')) {
+    function storage_path($path = '') {
+        return WRITEPATH . ($path ? DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR) : '');
+    }
+}
