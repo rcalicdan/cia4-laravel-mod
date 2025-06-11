@@ -26,8 +26,7 @@ class EloquentDatabase
     protected Capsule $capsule;
     protected static bool $observersRegistered = false;
     protected static bool $paginationConfigured = false;
-    
-    // Cache for expensive operations
+
     private static ?array $databaseConfig = null;
     private static ?array $eloquentModels = null;
     private static ?PaginationConfig $paginationConfig = null;
@@ -57,70 +56,14 @@ class EloquentDatabase
     {
         $config = $this->getDatabaseInformation();
         $this->initCapsule($config);
-        
-        // Use existing CI4 database connection if available to avoid duplicate PDO
-        if ($this->canReuseExistingConnection()) {
-            $this->reuseExistingConnection();
-        } else {
-            $pdo = $this->createPdo($config);
-            $this->attachPdo($pdo);
-        }
-
         $this->configureQueryLogging();
         $this->bootEloquent();
-    }
-
-    /**
-     * Check if we can reuse CI4's existing database connection
-     */
-    protected function canReuseExistingConnection(): bool
-    {
-        try {
-            $db = \Config\Database::connect();
-            return $db->connID instanceof PDO;
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
-    /**
-     * Reuse CI4's existing PDO connection
-     */
-    protected function reuseExistingConnection(): void
-    {
-        $db = \Config\Database::connect();
-        $this->attachPdo($db->connID);
     }
 
     protected function initCapsule(array $config): void
     {
         $this->capsule = new Capsule;
         $this->capsule->addConnection($config);
-    }
-
-    protected function createPdo(array $config): PDO
-    {
-        $dsn = $this->buildDsn($config);
-        $options = $this->getPdoOptions();
-
-        return new PDO(
-            $dsn,
-            $config['username'],
-            $config['password'],
-            $options
-        );
-    }
-
-    protected function buildDsn(array $config): string
-    {
-        return sprintf(
-            '%s:host=%s;port=%s;dbname=%s;charset=%s',
-            $config['driver'],
-            $config['host'],
-            $config['port'],
-            $config['database'],
-            $config['charset']
-        );
     }
 
     protected function getPdoOptions(): array
@@ -134,13 +77,6 @@ class EloquentDatabase
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', env('database.default.persistent', true)),
         ];
-    }
-
-    protected function attachPdo(PDO $pdo): void
-    {
-        $conn = $this->capsule->getConnection();
-        $conn->setPdo($pdo);
-        $conn->setReadPdo($pdo);
     }
 
     protected function configureQueryLogging(): void
@@ -157,7 +93,7 @@ class EloquentDatabase
     }
 
     /**
-     * Optimized database config with better caching
+     * Optimized database config with better caching and PDO options
      */
     public function getDatabaseInformation(): array
     {
@@ -166,17 +102,18 @@ class EloquentDatabase
         }
 
         $cfg = $this->getEloquentConfig();
-        
+
         return self::$databaseConfig = [
-            'driver' => env('database.default.DBDriver', env('DB_DBDRIVER', $cfg->databaseDriver)),
-            'host' => env('database.default.hostname', env('DB_HOST', $cfg->databaseHost)),
-            'database' => env('database.default.database', env('DB_DATABASE', $cfg->databaseName)),
-            'username' => env('database.default.username', env('DB_USERNAME', $cfg->databaseUsername)),
-            'password' => env('database.default.password', env('DB_PASSWORD', $cfg->databasePassword)),
-            'charset' => env('database.default.DBCharset', env('DB_CHARSET', $cfg->databaseCharset)),
-            'collation' => env('database.default.DBCollat', env('DB_COLLATION', $cfg->databaseCollation)),
-            'prefix' => env('database.default.DBPrefix', env('DB_PREFIX', $cfg->databasePrefix)),
-            'port' => env('database.default.port', env('DB_PORT', $cfg->databasePort)),
+            'driver' => env('DB_DBDRIVER', env('database.default.DBDriver', $cfg->databaseDriver)),
+            'host' => env('DB_HOST', env('database.default.hostname', $cfg->databaseHost)),
+            'database' => env('DB_DATABASE', env('database.default.database', $cfg->databaseName)),
+            'username' => env('DB_USERNAME', env('database.default.username', $cfg->databaseUsername)),
+            'password' => env('DB_PASSWORD', env('database.default.password', $cfg->databasePassword)),
+            'charset' => env('DB_CHARSET', env('database.default.DBCharset', $cfg->databaseCharset)),
+            'collation' => env('DB_COLLATION', env('database.default.DBCollat', $cfg->databaseCollation)),
+            'prefix' => env('DB_PREFIX', env('database.default.DBPrefix', $cfg->databasePrefix)),
+            'port' => env('DB_PORT', env('database.default.port', $cfg->databasePort)),
+            'options' => $this->getPdoOptions(),
         ];
     }
 
@@ -188,7 +125,6 @@ class EloquentDatabase
 
     protected function initializeServices(): void
     {
-        // Register services lazily to avoid unnecessary instantiation
         $this->registerConfigService();
         $this->registerDatabaseService();
         $this->registerEventDispatcher();
@@ -207,7 +143,7 @@ class EloquentDatabase
         $observersConfig = config('Observers');
         $this->registerManualObservers($observersConfig);
         $this->registerAttributeObservers($observersConfig);
-        
+
         self::$observersRegistered = true;
     }
 
@@ -241,7 +177,6 @@ class EloquentDatabase
             return self::$eloquentModels = [];
         }
 
-        // Use iterator for memory efficiency with large directories
         $iterator = new \DirectoryIterator($modelPath);
         $models = [];
 
@@ -267,7 +202,7 @@ class EloquentDatabase
 
     protected function isValidEloquentModel(string $class): bool
     {
-        return class_exists($class, false) && // Don't autoload unnecessarily
+        return class_exists($class, false) &&
             is_subclass_of($class, Model::class, false);
     }
 
@@ -279,8 +214,7 @@ class EloquentDatabase
         foreach ($attributes as $attribute) {
             $this->registerObserversFromAttribute($modelClass, $attribute);
         }
-        
-        // Free reflection memory
+
         unset($reflection);
     }
 
@@ -289,7 +223,7 @@ class EloquentDatabase
         $observedBy = $attribute->newInstance();
 
         foreach ($observedBy->observers as $observer) {
-            if (class_exists($observer, false)) { // Don't autoload
+            if (class_exists($observer, false)) {
                 $modelClass::observe($observer);
             }
         }
@@ -307,7 +241,7 @@ class EloquentDatabase
 
     protected function registerConfigService(): void
     {
-        $this->container->singleton('config', function() {
+        $this->container->singleton('config', function () {
             return new Repository([
                 'hashing' => [
                     'driver' => 'bcrypt',
@@ -369,13 +303,12 @@ class EloquentDatabase
             fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
-    
+
     /**
      * Clean up resources when needed
      */
     public function __destruct()
     {
-        // Help GC by breaking circular references
         unset($this->container, $this->capsule);
     }
 }
