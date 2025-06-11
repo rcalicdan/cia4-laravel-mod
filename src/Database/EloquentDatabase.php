@@ -172,13 +172,10 @@ class EloquentDatabase
         return $config;
     }
 
-    /**
-     * Resolve SQLite database path
-     */
     protected function resolveSqlitePath(string $database): string
     {
         if (empty($database)) {
-            return WRITEPATH.'database.sqlite';
+            return WRITEPATH . 'database.sqlite';
         }
 
         if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
@@ -186,10 +183,14 @@ class EloquentDatabase
         }
 
         if (str_contains($database, 'database_path')) {
-            return WRITEPATH.str_replace('database_path(\'', '', str_replace('\')', '', $database));
+            return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
         }
 
-        return WRITEPATH.$database;
+        if (!str_ends_with($database, '.sqlite')) {
+            $database .= '.sqlite';
+        }
+
+        return WRITEPATH . $database;
     }
 
     /**
@@ -212,7 +213,6 @@ class EloquentDatabase
         return $this->getDatabaseInformation($connection);
     }
 
-    // ... rest of your existing methods remain the same
     protected function initializeContainer(): void
     {
         $this->container = new Container;
@@ -269,7 +269,7 @@ class EloquentDatabase
             return self::$eloquentModels;
         }
 
-        $modelPath = APPPATH.'Models/';
+        $modelPath = APPPATH . 'Models/';
         if (! is_dir($modelPath)) {
             return self::$eloquentModels = [];
         }
@@ -351,19 +351,19 @@ class EloquentDatabase
 
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
     }
 
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn ($app) => new HashManager($app));
+        $this->container->singleton('hash', fn($app) => new HashManager($app));
     }
 
     protected function registerPaginationRenderer(): void
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn () => new PaginationRenderer
+            fn() => new PaginationRenderer
         );
         $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
@@ -383,22 +383,22 @@ class EloquentDatabase
         Paginator::$defaultSimpleView = $paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
-            fn () => $this->container->get('paginator.renderer')
+            fn() => $this->container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn ($pageName = 'page') => ($page = $request->getVar($pageName))
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int) $page >= 1
                 ? (int) $page
                 : 1
         );
 
-        Paginator::currentPathResolver(fn () => current_url());
-        Paginator::queryStringResolver(fn () => $uri->getQuery());
+        Paginator::currentPathResolver(fn() => current_url());
+        Paginator::queryStringResolver(fn() => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn ($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
 
