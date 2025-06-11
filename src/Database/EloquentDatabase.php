@@ -92,9 +92,6 @@ class EloquentDatabase
         $this->capsule->bootEloquent();
     }
 
-    /**
-     * Get database configuration with backward compatibility
-     */
     public function getDatabaseInformation(?string $connection = null): array
     {
         if (self::$databaseConfig !== null && $connection === null) {
@@ -108,7 +105,13 @@ class EloquentDatabase
         $config['options'] = $this->getPdoOptions();
 
         if ($config['driver'] === 'sqlite') {
-            $config['database'] = $this->resolveSqlitePath($config['database']);
+            $dbPath = $config['database'];
+            $config['database'] = !$this->isAbsolutePath($dbPath) ? WRITEPATH . $dbPath : $dbPath;
+            $dir = dirname($config['database']);
+
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
         }
 
         if ($connection === null) {
@@ -116,6 +119,11 @@ class EloquentDatabase
         }
 
         return $config;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return strpos($path, '/') === 0 || strpos($path, ':\\') === 1;
     }
 
     /**
@@ -135,7 +143,7 @@ class EloquentDatabase
         $isDefaultConnection = ($connectionName === $this->getDefaultConnection());
 
         if ($isDefaultConnection) {
-            return [
+            $overriddenConfig = [
                 'driver' => env('DB_DRIVER', env('DB_DBDRIVER', env('database.default.DBDriver', $config['driver']))),
                 'host' => env('DB_HOST', env('database.default.hostname', $config['host'])),
                 'port' => env('DB_PORT', env('database.default.port', $config['port'])),
@@ -157,9 +165,14 @@ class EloquentDatabase
                 'journal_mode' => $config['journal_mode'] ?? null,
                 'synchronous' => $config['synchronous'] ?? null,
             ];
+
+            if ($overriddenConfig['driver'] === 'sqlite' && !$this->isAbsolutePath($overriddenConfig['database'])) {
+                $overriddenConfig['database'] = WRITEPATH . $overriddenConfig['database'];
+            }
+
+            return $overriddenConfig;
         }
 
-        // For named connections, use connection-specific env variables
         $upperConnection = strtoupper($connectionName);
         $config['host'] = env("DB_{$upperConnection}_HOST", env("database.{$connectionName}.hostname", $config['host']));
         $config['port'] = env("DB_{$upperConnection}_PORT", env("database.{$connectionName}.port", $config['port']));
@@ -168,6 +181,10 @@ class EloquentDatabase
         $config['password'] = env("DB_{$upperConnection}_PASSWORD", env("database.{$connectionName}.password", $config['password']));
         $config['charset'] = env("DB_{$upperConnection}_CHARSET", env("database.{$connectionName}.DBCharset", $config['charset']));
         $config['prefix'] = env("DB_{$upperConnection}_PREFIX", env("database.{$connectionName}.DBPrefix", $config['prefix']));
+
+        if ($config['driver'] === 'sqlite' && !$this->isAbsolutePath($config['database'])) {
+            $config['database'] = WRITEPATH . $config['database'];
+        }
 
         return $config;
     }
