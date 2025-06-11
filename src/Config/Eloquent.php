@@ -5,74 +5,129 @@ namespace Config;
 use CodeIgniter\Config\BaseConfig;
 
 /**
- * Default Eloquent Configuration
+ * Eloquent Database Configuration
  *
- * Contains default database connection settings for integrating Eloquent ORM
- * with CodeIgniter 4. These settings map to the default database configuration
- * in CodeIgniter.
+ * Laravel-style database configuration for integrating Eloquent ORM
+ * with CodeIgniter 4. Supports multiple database connections and
+ * maintains backward compatibility with CodeIgniter's database format.
  */
 class Eloquent extends BaseConfig
 {
     /**
-     * Default Database hostname or IP address
-     *
-     * @var string
+     * Default Database Connection Name
      */
-    public $databaseHost = 'localhost';
+    public string $default = 'mysql';
 
     /**
-     * Default Database driver to use
-     *
-     * @var string
+     * Database Connections
      */
-    public $databaseDriver = 'mysql';
+    public array $connections = [
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'url' => null,
+            'database' => 'database.sqlite',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+        ],
+
+        'mysql' => [
+            'driver' => 'mysql',
+            'url' => null,
+            'host' => 'localhost',
+            'port' => '3306',
+            'database' => '',
+            'username' => 'root',
+            'password' => '',
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+        'mariadb' => [
+            'driver' => 'mariadb',
+            'url' => null,
+            'host' => 'localhost',
+            'port' => '3306',
+            'database' => '',
+            'username' => 'root',
+            'password' => '',
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+        'pgsql' => [
+            'driver' => 'pgsql',
+            'url' => null,
+            'host' => 'localhost',
+            'port' => '5432',
+            'database' => '',
+            'username' => 'root',
+            'password' => '',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
+        'sqlsrv' => [
+            'driver' => 'sqlsrv',
+            'url' => null,
+            'host' => 'localhost',
+            'port' => '1433',
+            'database' => '',
+            'username' => 'root',
+            'password' => '',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+    ];
 
     /**
-     * Default Database name to connect to
-     *
-     * @var string
+     * Migration Repository Table
      */
-    public $databaseName = '';
+    public array $migrations = [
+        'table' => 'migrations',
+        'update_date_on_publish' => true,
+    ];
 
     /**
-     * Default Database username for authentication
-     *
-     * @var string
+     * Redis Configuration (optional)
      */
-    public $databaseUsername = 'root';
-
-    /**
-     * Default Database password for authentication
-     *
-     * @var string
-     */
-    public $databasePassword = '';
-
-    /**
-     * Default Database connection character set
-     *
-     * @var string
-     */
-    public $databaseCharset = 'utf8';
-
-    /**
-     * Default Database collation setting
-     *
-     * @var string
-     */
-    public $databaseCollation = 'utf8_general_ci';
-
-    /**
-     * Default Table prefix for database connections
-     *
-     * @var string
-     */
-    public $databasePrefix = '';
-
-    /**
-     * Default Database connection port
-     *
-     * @var string
-     */
-    public $databasePort = '3306';
+    public array $redis = [
+        'client' => 'phpredis',
+        'options' => [
+            'cluster' => 'redis',
+            'prefix' => 'ci4_larabridge_',
+        ],
+        'default' => [
+            'url' => null,
+            'host' => '127.0.0.1',
+            'username' => null,
+            'password' => null,
+            'port' => '6379',
+            'database' => '0',
+        ],
+        'cache' => [
+            'url' => null,
+            'host' => '127.0.0.1',
+            'username' => null,
+            'password' => null,
+            'port' => '6379',
+            'database' => '1',
+        ],
+    ];
 }

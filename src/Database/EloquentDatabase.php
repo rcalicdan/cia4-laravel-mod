@@ -93,30 +93,138 @@ class EloquentDatabase
     }
 
     /**
-     * Optimized database config with better caching and PDO options
+     * Get database configuration with backward compatibility
      */
-    public function getDatabaseInformation(): array
+    public function getDatabaseInformation(?string $connection = null): array
     {
-        if (self::$databaseConfig !== null) {
+        if (self::$databaseConfig !== null && $connection === null) {
             return self::$databaseConfig;
         }
 
         $cfg = $this->getEloquentConfig();
+        $connectionName = $connection ?? $this->getDefaultConnection();
+        
+        // Get base configuration from Eloquent config
+        $baseConfig = $cfg->connections[$connectionName] ?? $cfg->connections['mysql'];
+        
+        // Apply environment variable overrides with CodeIgniter compatibility
+        $config = $this->applyEnvironmentOverrides($baseConfig, $connectionName);
+        
+        // Add PDO options
+        $config['options'] = $this->getPdoOptions();
+        
+        // Handle SQLite database path
+        if ($config['driver'] === 'sqlite') {
+            $config['database'] = $this->resolveSqlitePath($config['database']);
+        }
 
-        return self::$databaseConfig = [
-            'driver' => env('DB_DBDRIVER', env('database.default.DBDriver', $cfg->databaseDriver)),
-            'host' => env('DB_HOST', env('database.default.hostname', $cfg->databaseHost)),
-            'database' => env('DB_DATABASE', env('database.default.database', $cfg->databaseName)),
-            'username' => env('DB_USERNAME', env('database.default.username', $cfg->databaseUsername)),
-            'password' => env('DB_PASSWORD', env('database.default.password', $cfg->databasePassword)),
-            'charset' => env('DB_CHARSET', env('database.default.DBCharset', $cfg->databaseCharset)),
-            'collation' => env('DB_COLLATION', env('database.default.DBCollat', $cfg->databaseCollation)),
-            'prefix' => env('DB_PREFIX', env('database.default.DBPrefix', $cfg->databasePrefix)),
-            'port' => env('DB_PORT', env('database.default.port', $cfg->databasePort)),
-            'options' => $this->getPdoOptions(),
-        ];
+        // Cache the default connection config
+        if ($connection === null) {
+            self::$databaseConfig = $config;
+        }
+
+        return $config;
     }
 
+    /**
+     * Get the default connection name
+     */
+    protected function getDefaultConnection(): string
+    {
+        return env('DB_CONNECTION', env('database.default.connection', $this->getEloquentConfig()->default));
+    }
+
+    /**
+     * Apply environment variable overrides with CodeIgniter compatibility
+     */
+    protected function applyEnvironmentOverrides(array $config, string $connectionName): array
+    {
+        $cfg = $this->getEloquentConfig();
+        $isDefaultConnection = ($connectionName === $this->getDefaultConnection());
+
+        if ($isDefaultConnection) {
+            // For default connection, use Laravel env vars first, then CodeIgniter format as fallback
+            return [
+                'driver' => env('DB_DRIVER', env('DB_DBDRIVER', env('database.default.DBDriver', $config['driver']))),
+                'host' => env('DB_HOST', env('database.default.hostname', $config['host'])),
+                'port' => env('DB_PORT', env('database.default.port', $config['port'])),
+                'database' => env('DB_DATABASE', env('database.default.database', $config['database'])),
+                'username' => env('DB_USERNAME', env('database.default.username', $config['username'])),
+                'password' => env('DB_PASSWORD', env('database.default.password', $config['password'])),
+                'charset' => env('DB_CHARSET', env('database.default.DBCharset', $config['charset'])),
+                'collation' => env('DB_COLLATION', env('database.default.DBCollat', $config['collation'])),
+                'prefix' => env('DB_PREFIX', env('database.default.DBPrefix', $config['prefix'])),
+                'unix_socket' => env('DB_SOCKET', env('database.default.socket', $config['unix_socket'] ?? '')),
+                'url' => env('DB_URL', $config['url'] ?? null),
+                'strict' => env('DB_STRICT', $config['strict'] ?? true),
+                'engine' => env('DB_ENGINE', $config['engine'] ?? null),
+                'prefix_indexes' => $config['prefix_indexes'] ?? true,
+                'search_path' => $config['search_path'] ?? 'public',
+                'sslmode' => $config['sslmode'] ?? 'prefer',
+                'foreign_key_constraints' => env('DB_FOREIGN_KEYS', $config['foreign_key_constraints'] ?? true),
+                'busy_timeout' => $config['busy_timeout'] ?? null,
+                'journal_mode' => $config['journal_mode'] ?? null,
+                'synchronous' => $config['synchronous'] ?? null,
+            ];
+        }
+
+        // For named connections, use connection-specific env variables
+        $upperConnection = strtoupper($connectionName);
+        $config['host'] = env("DB_{$upperConnection}_HOST", env("database.{$connectionName}.hostname", $config['host']));
+        $config['port'] = env("DB_{$upperConnection}_PORT", env("database.{$connectionName}.port", $config['port']));
+        $config['database'] = env("DB_{$upperConnection}_DATABASE", env("database.{$connectionName}.database", $config['database']));
+        $config['username'] = env("DB_{$upperConnection}_USERNAME", env("database.{$connectionName}.username", $config['username']));
+        $config['password'] = env("DB_{$upperConnection}_PASSWORD", env("database.{$connectionName}.password", $config['password']));
+        $config['charset'] = env("DB_{$upperConnection}_CHARSET", env("database.{$connectionName}.DBCharset", $config['charset']));
+        $config['prefix'] = env("DB_{$upperConnection}_PREFIX", env("database.{$connectionName}.DBPrefix", $config['prefix']));
+
+        return $config;
+    }
+
+    /**
+     * Resolve SQLite database path
+     */
+    protected function resolveSqlitePath(string $database): string
+    {
+        if (empty($database)) {
+            return WRITEPATH . 'database.sqlite';
+        }
+
+        // If it's already an absolute path, return as-is
+        if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
+            return $database;
+        }
+
+        // If it contains 'database_path()' reference, resolve it
+        if (str_contains($database, 'database_path')) {
+            return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
+        }
+
+        // Default to WRITEPATH
+        return WRITEPATH . $database;
+    }
+
+    /**
+     * Add support for multiple database connections
+     */
+    public function addConnection(string $name, array $config = null): void
+    {
+        if ($config === null) {
+            $config = $this->getDatabaseInformation($name);
+        }
+        
+        $this->capsule->addConnection($config, $name);
+    }
+
+    /**
+     * Get connection configuration for a specific connection
+     */
+    public function getConnectionConfig(string $connection): array
+    {
+        return $this->getDatabaseInformation($connection);
+    }
+
+    // ... rest of your existing methods remain the same
     protected function initializeContainer(): void
     {
         $this->container = new Container;
@@ -141,20 +249,24 @@ class EloquentDatabase
         }
 
         $observersConfig = config('Observers');
-        $this->registerManualObservers($observersConfig);
-        $this->registerAttributeObservers($observersConfig);
+        if ($observersConfig) {
+            $this->registerManualObservers($observersConfig);
+            $this->registerAttributeObservers($observersConfig);
+        }
 
         self::$observersRegistered = true;
     }
 
     protected function registerManualObservers(object $config): void
     {
-        $config->boot();
+        if (method_exists($config, 'boot')) {
+            $config->boot();
+        }
     }
 
     protected function registerAttributeObservers(object $config): void
     {
-        if (!$config->useAttributes) {
+        if (!property_exists($config, 'useAttributes') || !$config->useAttributes) {
             return;
         }
 
@@ -163,9 +275,6 @@ class EloquentDatabase
         }
     }
 
-    /**
-     * Optimized model discovery with caching and early filtering
-     */
     protected function getEloquentModels(): array
     {
         if (self::$eloquentModels !== null) {
@@ -304,9 +413,6 @@ class EloquentDatabase
         );
     }
 
-    /**
-     * Clean up resources when needed
-     */
     public function __destruct()
     {
         unset($this->container, $this->capsule);

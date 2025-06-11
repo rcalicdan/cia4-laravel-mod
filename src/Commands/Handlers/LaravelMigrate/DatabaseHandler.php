@@ -3,17 +3,26 @@
 namespace Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate;
 
 use CodeIgniter\CLI\CLI;
+use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 use PDO;
 use PDOException;
 
 class DatabaseHandler
 {
+    protected EloquentDatabase $eloquentDatabase;
+
+    public function __construct()
+    {
+        $this->eloquentDatabase = new EloquentDatabase();
+    }
+
     /**
      * Check if the specified database exists
      */
-    public function checkDatabaseExists(array $dbConfig): bool
+    public function checkDatabaseExists(?string $connection = null): bool
     {
         try {
+            $dbConfig = $this->eloquentDatabase->getConnectionConfig($connection);
             $driver = strtolower($dbConfig['driver']);
 
             return match ($driver) {
@@ -24,7 +33,7 @@ class DatabaseHandler
                 default => $this->handleUnsupportedDriver($driver, 'checking')
             };
         } catch (PDOException $e) {
-            CLI::error('Database connection error: '.$e->getMessage());
+            CLI::error('Database connection error: ' . $e->getMessage());
             exit(1);
         }
     }
@@ -32,9 +41,10 @@ class DatabaseHandler
     /**
      * Create database based on configuration
      */
-    public function createDatabase(array $dbConfig): void
+    public function createDatabase(?string $connection = null): void
     {
         try {
+            $dbConfig = $this->eloquentDatabase->getConnectionConfig($connection);
             $driver = strtolower($dbConfig['driver']);
             $database = $dbConfig['database'];
 
@@ -47,8 +57,8 @@ class DatabaseHandler
             };
 
             CLI::write("Database '$database' created successfully.", 'green');
-        } catch (PDOException|\Exception $e) {
-            CLI::error('Failed to create database: '.$e->getMessage());
+        } catch (PDOException | \Exception $e) {
+            CLI::error('Failed to create database: ' . $e->getMessage());
             exit(1);
         }
     }
