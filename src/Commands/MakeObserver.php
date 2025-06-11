@@ -25,14 +25,12 @@ class MakeObserver extends BaseCommand
      *
      * @var string
      */
-
     protected $description = 'Creates a new Eloquent model observer class.';
     /**
      * The command's usage.
      *
      * @var string
      */
-    
     protected $usage = 'make:observer <name> [options]';
 
     /**

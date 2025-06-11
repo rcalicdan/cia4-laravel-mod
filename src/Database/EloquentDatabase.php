@@ -178,7 +178,7 @@ class EloquentDatabase
     protected function resolveSqlitePath(string $database): string
     {
         if (empty($database)) {
-            return WRITEPATH . 'database.sqlite';
+            return WRITEPATH.'database.sqlite';
         }
 
         if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
@@ -186,10 +186,10 @@ class EloquentDatabase
         }
 
         if (str_contains($database, 'database_path')) {
-            return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
+            return WRITEPATH.str_replace('database_path(\'', '', str_replace('\')', '', $database));
         }
 
-        return WRITEPATH . $database;
+        return WRITEPATH.$database;
     }
 
     /**
@@ -200,7 +200,7 @@ class EloquentDatabase
         if ($config === null) {
             $config = $this->getDatabaseInformation($name);
         }
-        
+
         $this->capsule->addConnection($config, $name);
     }
 
@@ -254,7 +254,7 @@ class EloquentDatabase
 
     protected function registerAttributeObservers(object $config): void
     {
-        if (!property_exists($config, 'useAttributes') || !$config->useAttributes) {
+        if (! property_exists($config, 'useAttributes') || ! $config->useAttributes) {
             return;
         }
 
@@ -269,8 +269,8 @@ class EloquentDatabase
             return self::$eloquentModels;
         }
 
-        $modelPath = APPPATH . 'Models/';
-        if (!is_dir($modelPath)) {
+        $modelPath = APPPATH.'Models/';
+        if (! is_dir($modelPath)) {
             return self::$eloquentModels = [];
         }
 
@@ -278,7 +278,7 @@ class EloquentDatabase
         $models = [];
 
         foreach ($iterator as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php') {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
 
@@ -294,6 +294,7 @@ class EloquentDatabase
     protected function getModelClassFromFile(string $file): string
     {
         $modelName = basename($file, '.php');
+
         return "App\\Models\\{$modelName}";
     }
 
@@ -350,19 +351,19 @@ class EloquentDatabase
 
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
     }
 
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn($app) => new HashManager($app));
+        $this->container->singleton('hash', fn ($app) => new HashManager($app));
     }
 
     protected function registerPaginationRenderer(): void
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn() => new PaginationRenderer
+            fn () => new PaginationRenderer
         );
         $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
@@ -382,22 +383,22 @@ class EloquentDatabase
         Paginator::$defaultSimpleView = $paginationConfig->defaultSimpleView;
 
         Paginator::viewFactoryResolver(
-            fn() => $this->container->get('paginator.renderer')
+            fn () => $this->container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn($pageName = 'page') => ($page = $request->getVar($pageName))
+            fn ($pageName = 'page') => ($page = $request->getVar($pageName))
                 && filter_var($page, FILTER_VALIDATE_INT)
                 && (int) $page >= 1
                 ? (int) $page
                 : 1
         );
 
-        Paginator::currentPathResolver(fn() => current_url());
-        Paginator::queryStringResolver(fn() => $uri->getQuery());
+        Paginator::currentPathResolver(fn () => current_url());
+        Paginator::queryStringResolver(fn () => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+            fn ($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
         );
     }
 

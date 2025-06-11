@@ -4,10 +4,10 @@ namespace Rcalicdan\Ci4Larabridge\Commands;
 
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
-use Config\Eloquent;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\DatabaseHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\MigrationHandler as LaravelMigrateMigrationHandler;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\OutputHandler;
+use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 
 /**
  * Command to run Laravel migrations within a CodeIgniter 4 application.
@@ -45,7 +45,7 @@ class LaravelMigrate extends BaseCommand
      *
      * @var string
      */
-    protected $usage = 'eloquent:migrate [up|down|refresh|status|fresh]';
+    protected $usage = 'eloquent:migrate [up|down|refresh|status|fresh] [options]';
 
     /**
      * Available arguments for the command.
@@ -63,6 +63,7 @@ class LaravelMigrate extends BaseCommand
      */
     protected $options = [
         '-f' => 'Force the operation without confirmation, even in production',
+        '--connection' => 'Database connection to use (default: default connection)',
     ];
 
     /**
@@ -87,18 +88,18 @@ class LaravelMigrate extends BaseCommand
     protected $outputHandler;
 
     /**
-     * Database configuration array.
+     * Eloquent Database instance.
      *
-     * @var array
+     * @var EloquentDatabase
      */
-    protected $dbConfig = [];
+    protected $eloquentDatabase;
 
     /**
-     * Eloquent configuration instance.
+     * Database connection name.
      *
-     * @var Eloquent
+     * @var string|null
      */
-    protected $eloquentConfig;
+    protected $connection;
 
     /**
      * Executes the specified migration action.
@@ -116,17 +117,14 @@ class LaravelMigrate extends BaseCommand
     public function run(array $params)
     {
         try {
-            $this->dbHandler = new DatabaseHandler;
-            $this->migrationHandler = new LaravelMigrateMigrationHandler;
-            $this->outputHandler = new OutputHandler;
+            $this->initializeHandlers();
+            $this->connection = CLI::getOption('connection');
 
-            $this->loadDatabaseConfig();
-
-            if (! $this->dbHandler->checkDatabaseExists($this->dbConfig)) {
+            if (! $this->dbHandler->checkDatabaseExists($this->connection)) {
                 $this->promptAndCreateDatabase();
             }
 
-            $this->migrationHandler->setupEnvironment($this->dbConfig);
+            $this->migrationHandler->setupEnvironment($this->connection);
 
             $action = $params[0] ?? 'up';
             $this->executeAction($action);
@@ -142,34 +140,16 @@ class LaravelMigrate extends BaseCommand
     }
 
     /**
-     * Loads database configuration from environment variables or Eloquent config.
-     *
-     * Populates the dbConfig property with database connection details. Exits with
-     * an error if the database name is not defined.
+     * Initialize all handlers and database connection.
      *
      * @return void
      */
-    private function loadDatabaseConfig()
+    private function initializeHandlers()
     {
-        $this->eloquentConfig = config('Eloquent');
-        $cfg = $this->eloquentConfig;
-        $this->dbConfig = [
-            'driver' => env('database.default.DBDriver',   env('DB_DRIVER',   $cfg->databaseDriver)),
-            'host' => env('database.default.hostname',   env('DB_HOST',       $cfg->databaseHost)),
-            'database' => env('database.default.database',   env('DB_DATABASE',   $cfg->databaseName)),
-            'username' => env('database.default.username',   env('DB_USERNAME',   $cfg->databaseUsername)),
-            'password' => env('database.default.password',   env('DB_PASSWORD',   $cfg->databasePassword)),
-            'charset' => env('database.default.DBCharset',  env('DB_CHARSET',    $cfg->databaseCharset)),
-            'collation' => env('database.default.DBCollat',   env('DB_COLLATION',  $cfg->databaseCollation)),
-            'prefix' => env('database.default.DBPrefix',   env('DB_PREFIX',     $cfg->databasePrefix)),
-            'port' => env('database.default.port',       env('DB_PORT',       $cfg->databasePort)),
-        ];
-
-        if (empty($this->dbConfig['database'])) {
-            CLI::error('Could not determine database name from environment. Please check your .env file.');
-            CLI::write('Ensure you have set database.default.database in your .env file.', 'yellow');
-            exit(1);
-        }
+        $this->eloquentDatabase = new EloquentDatabase;
+        $this->dbHandler = new DatabaseHandler;
+        $this->migrationHandler = new LaravelMigrateMigrationHandler;
+        $this->outputHandler = new OutputHandler;
     }
 
     /**
@@ -182,20 +162,27 @@ class LaravelMigrate extends BaseCommand
      */
     private function promptAndCreateDatabase()
     {
-        $dbName = $this->dbConfig['database'] ?? '(undefined)';
-        CLI::write("Database '{$dbName}' does not exist.", 'yellow');
+        try {
+            $dbConfig = $this->eloquentDatabase->getDatabaseInformation($this->connection);
+            $dbName = $dbConfig['database'] ?? '(undefined)';
 
-        if (! isset($this->dbConfig['database']) || empty($this->dbConfig['database'])) {
-            CLI::error('Database name is not defined in your configuration. Please check your .env file or database configuration.');
-            exit(1);
-        }
+            CLI::write("Database '{$dbName}' does not exist.", 'yellow');
 
-        $confirm = CLI::prompt('Would you like to create it?', ['y', 'n']);
+            if (empty($dbConfig['database'])) {
+                CLI::error('Database name is not defined in your configuration. Please check your .env file or database configuration.');
+                exit(1);
+            }
 
-        if ($confirm === 'y') {
-            $this->dbHandler->createDatabase($this->dbConfig);
-        } else {
-            CLI::error('Database is required to continue. Aborting.');
+            $confirm = CLI::prompt('Would you like to create it?', ['y', 'n']);
+
+            if ($confirm === 'y') {
+                $this->dbHandler->createDatabase($this->connection);
+            } else {
+                CLI::error('Database is required to continue. Aborting.');
+                exit(1);
+            }
+        } catch (\Exception $e) {
+            CLI::error('Failed to get database configuration: '.$e->getMessage());
             exit(1);
         }
     }
@@ -262,23 +249,19 @@ class LaravelMigrate extends BaseCommand
     {
         $destructiveActions = ['down', 'refresh', 'fresh'];
 
-        // If not a destructive action or not in production, no confirmation needed
         if (! in_array($action, $destructiveActions) || ENVIRONMENT !== 'production') {
             return true;
         }
 
-        // Check if force flag is set
         $force = (bool) CLI::getOption('f');
         if ($force) {
             return true;
         }
 
-        // Show warning and get basic confirmation
         if (! $this->showWarningAndConfirm($action)) {
             return false;
         }
 
-        // For fresh action, require additional confirmation
         if ($action === 'fresh' && ! $this->confirmFreshAction()) {
             return false;
         }
@@ -348,7 +331,7 @@ class LaravelMigrate extends BaseCommand
         $this->dbHandler->dropAllTables($connection);
 
         CLI::write('Recreating migrations table...', 'yellow');
-        $this->migrationHandler->setupEnvironment($this->dbConfig);
+        $this->migrationHandler->setupEnvironment($this->connection);
 
         CLI::write('Running all migrations...', 'yellow');
         $migrations = $this->migrationHandler->runMigrations();

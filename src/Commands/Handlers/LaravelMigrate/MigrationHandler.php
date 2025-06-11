@@ -8,6 +8,7 @@ use Illuminate\Database\Migrations\DatabaseMigrationRepository;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Facade;
+use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 
 class MigrationHandler
 {
@@ -15,12 +16,19 @@ class MigrationHandler
     protected $repository;
     protected $migrator;
     protected $migrationPath;
+    protected EloquentDatabase $eloquentDatabase;
+
+    public function __construct()
+    {
+        $this->eloquentDatabase = new EloquentDatabase;
+    }
 
     /**
      * Setup the Laravel environment
      */
-    public function setupEnvironment(array $dbConfig)
+    public function setupEnvironment(?string $connection = null)
     {
+        $dbConfig = $this->eloquentDatabase->getDatabaseInformation($connection);
         $this->setupDatabase($dbConfig);
         $this->setupRepository();
         $this->setupMigrator();

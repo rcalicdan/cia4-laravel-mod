@@ -23,13 +23,13 @@ class Observers extends BaseConfig
     /**
      * Manual observer registration
      * Register your observers here following Laravel's convention:
-     * 
+     *
      * Example:
      * User::observe(UserObserver::class);
      * Post::observe(PostObserver::class);
      */
     public function boot(): void
     {
-       //
+        //
     }
 }
