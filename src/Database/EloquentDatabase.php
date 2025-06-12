@@ -109,7 +109,7 @@ class EloquentDatabase
     }
 
     /**
-     * Optimized database configuration with better caching strategy
+     * Optimized database configuration - removed SQLite string manipulation
      */
     public function getDatabaseInformation(?string $connection = null): array
     {
@@ -125,10 +125,6 @@ class EloquentDatabase
         $connections = $cfg->connections();
         $config = $connections[$connectionName] ?? $connections['mysql'];
 
-        if ($config['driver'] === 'sqlite') {
-            $config = $this->resolveSqliteConfig($config);
-        }
-
         $config['options'] = array_merge(
             $config['options'] ?? [],
             $this->getPdoOptions()
@@ -141,36 +137,6 @@ class EloquentDatabase
         }
 
         return $config;
-    }
-
-    /**
-     * Optimized SQLite path resolution with better error handling
-     */
-    protected function resolveSqliteConfig(array $config): array
-    {
-        $dbPath = $config['database'];
-
-        if (str_contains($dbPath, 'database_path(')) {
-            $dbPath = str_replace(['database_path(\'', '\')'], '', $dbPath);
-            $config['database'] = WRITEPATH . $dbPath;
-        } elseif (!$this->isAbsolutePath($dbPath)) {
-            $config['database'] = WRITEPATH . $dbPath;
-        }
-
-        $dir = dirname($config['database']);
-        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-            throw new \RuntimeException("Failed to create SQLite database directory: {$dir}");
-        }
-
-        return $config;
-    }
-
-    /**
-     * Optimized path checking
-     */
-    private function isAbsolutePath(string $path): bool
-    {
-        return $path[0] === '/' || (strlen($path) > 1 && $path[1] === ':');
     }
 
     /**

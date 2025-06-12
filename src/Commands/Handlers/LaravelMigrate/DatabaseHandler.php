@@ -22,7 +22,7 @@ class DatabaseHandler
     public function checkDatabaseExists(?string $connection = null): bool
     {
         try {
-            $dbConfig = $this->eloquentDatabase->getDatabaseInformation($connection);
+            $dbConfig = $this->getDatabaseConfigurationForMigration($connection);
             $driver = strtolower($dbConfig['driver']);
 
             return match ($driver) {
@@ -44,7 +44,7 @@ class DatabaseHandler
     public function createDatabase(?string $connection = null): void
     {
         try {
-            $dbConfig = $this->eloquentDatabase->getDatabaseInformation($connection);
+            $dbConfig = $this->getDatabaseConfigurationForMigration($connection);
             $driver = strtolower($dbConfig['driver']);
             $database = $dbConfig['database'];
 
@@ -61,6 +61,54 @@ class DatabaseHandler
             CLI::error('Failed to create database: '.$e->getMessage());
             exit(1);
         }
+    }
+
+    /**
+     * Get database configuration with SQLite path resolution for migrations
+     * This handles SQLite-specific logic that was removed from EloquentDatabase
+     */
+    protected function getDatabaseConfigurationForMigration(?string $connection = null): array
+    {
+        $config = $this->eloquentDatabase->getDatabaseInformation($connection);
+        
+        if ($config['driver'] === 'sqlite') {
+            $config = $this->resolveSqlitePathForMigration($config);
+        }
+        
+        return $config;
+    }
+
+    /**
+     * Resolve SQLite database path for migration operations
+     * Moved from EloquentDatabase to improve performance
+     */
+    protected function resolveSqlitePathForMigration(array $config): array
+    {
+        $dbPath = $config['database'];
+
+        if (str_contains($dbPath, 'database_path(')) {
+            $dbPath = str_replace(['database_path(\'', '\')'], '', $dbPath);
+            $config['database'] = WRITEPATH . $dbPath;
+        } 
+
+        elseif (!$this->isAbsolutePath($dbPath)) {
+            $config['database'] = WRITEPATH . $dbPath;
+        }
+
+        $dir = dirname($config['database']);
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            throw new \RuntimeException("Failed to create SQLite database directory: {$dir}");
+        }
+
+        return $config;
+    }
+
+    /**
+     * Check if path is absolute
+     */
+    private function isAbsolutePath(string $path): bool
+    {
+        return isset($path[0]) && ($path[0] === '/' || (strlen($path) > 1 && $path[1] === ':'));
     }
 
     /**
@@ -144,7 +192,7 @@ class DatabaseHandler
     }
 
     /**
-     * Create SQLite database
+     * Create SQLite database with enhanced directory handling
      */
     private function createSqliteDatabase(array $dbConfig): void
     {
@@ -152,11 +200,18 @@ class DatabaseHandler
         $directory = dirname($database);
 
         if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
+            if (!mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new \RuntimeException("Failed to create SQLite database directory: {$directory}");
+            }
         }
 
-        file_put_contents($database, '');
-        chmod($database, 0644);
+        if (!file_put_contents($database, '')) {
+            throw new \RuntimeException("Failed to create SQLite database file: {$database}");
+        }
+        
+        if (!chmod($database, 0644)) {
+            CLI::write("Warning: Could not set permissions for SQLite database file: {$database}", 'yellow');
+        }
     }
 
     /**
