@@ -100,24 +100,43 @@ class EloquentDatabase
 
         $cfg = $this->getEloquentConfig();
         $connectionName = $connection ?? $this->getDefaultConnection();
-        $baseConfig = $cfg->connections[$connectionName] ?? $cfg->connections['mysql'];
-        $config = $this->applyEnvironmentOverrides($baseConfig, $connectionName);
-        $config['options'] = $this->getPdoOptions();
-
+        $config = $cfg->connections[$connectionName] ?? $cfg->connections['mysql'];
+        
         if ($config['driver'] === 'sqlite') {
-            $dbPath = $config['database'];
-            $config['database'] = !$this->isAbsolutePath($dbPath) ? WRITEPATH . $dbPath : $dbPath;
-            $dir = dirname($config['database']);
-
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
+            $config = $this->resolveSqliteConfig($config);
         }
+        
+        $config['options'] = array_merge(
+            $config['options'] ?? [],
+            $this->getPdoOptions()
+        );
 
         if ($connection === null) {
             self::$databaseConfig = $config;
         }
 
+        return $config;
+    }
+
+    /**
+     * Resolve SQLite database path
+     */
+    protected function resolveSqliteConfig(array $config): array
+    {
+        $dbPath = $config['database'];
+        
+        if (str_contains($dbPath, 'database_path(')) {
+            $dbPath = str_replace(['database_path(\'', '\')'], '', $dbPath);
+            $config['database'] = WRITEPATH . $dbPath;
+        } elseif (!$this->isAbsolutePath($dbPath)) {
+            $config['database'] = WRITEPATH . $dbPath;
+        }
+        
+        $dir = dirname($config['database']);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
         return $config;
     }
 
@@ -132,82 +151,6 @@ class EloquentDatabase
     protected function getDefaultConnection(): string
     {
         return env('DB_CONNECTION', env('database.default.connection', $this->getEloquentConfig()->default));
-    }
-
-    /**
-     * Apply environment variable overrides with CodeIgniter compatibility
-     */
-    protected function applyEnvironmentOverrides(array $config, string $connectionName): array
-    {
-        $cfg = $this->getEloquentConfig();
-        $isDefaultConnection = ($connectionName === $this->getDefaultConnection());
-
-        if ($isDefaultConnection) {
-            $overriddenConfig = [
-                'driver' => env('DB_DRIVER', env('DB_DBDRIVER', env('database.default.DBDriver', $config['driver']))),
-                'host' => env('DB_HOST', env('database.default.hostname', $config['host'])),
-                'port' => env('DB_PORT', env('database.default.port', $config['port'])),
-                'database' => env('DB_DATABASE', env('database.default.database', $config['database'])),
-                'username' => env('DB_USERNAME', env('database.default.username', $config['username'])),
-                'password' => env('DB_PASSWORD', env('database.default.password', $config['password'])),
-                'charset' => env('DB_CHARSET', env('database.default.DBCharset', $config['charset'])),
-                'collation' => env('DB_COLLATION', env('database.default.DBCollat', $config['collation'])),
-                'prefix' => env('DB_PREFIX', env('database.default.DBPrefix', $config['prefix'])),
-                'unix_socket' => env('DB_SOCKET', env('database.default.socket', $config['unix_socket'] ?? '')),
-                'url' => env('DB_URL', $config['url'] ?? null),
-                'strict' => env('DB_STRICT', $config['strict'] ?? true),
-                'engine' => env('DB_ENGINE', $config['engine'] ?? null),
-                'prefix_indexes' => $config['prefix_indexes'] ?? true,
-                'search_path' => $config['search_path'] ?? 'public',
-                'sslmode' => $config['sslmode'] ?? 'prefer',
-                'foreign_key_constraints' => env('DB_FOREIGN_KEYS', $config['foreign_key_constraints'] ?? true),
-                'busy_timeout' => $config['busy_timeout'] ?? null,
-                'journal_mode' => $config['journal_mode'] ?? null,
-                'synchronous' => $config['synchronous'] ?? null,
-            ];
-
-            if ($overriddenConfig['driver'] === 'sqlite' && !$this->isAbsolutePath($overriddenConfig['database'])) {
-                $overriddenConfig['database'] = WRITEPATH . $overriddenConfig['database'];
-            }
-
-            return $overriddenConfig;
-        }
-
-        $upperConnection = strtoupper($connectionName);
-        $config['host'] = env("DB_{$upperConnection}_HOST", env("database.{$connectionName}.hostname", $config['host']));
-        $config['port'] = env("DB_{$upperConnection}_PORT", env("database.{$connectionName}.port", $config['port']));
-        $config['database'] = env("DB_{$upperConnection}_DATABASE", env("database.{$connectionName}.database", $config['database']));
-        $config['username'] = env("DB_{$upperConnection}_USERNAME", env("database.{$connectionName}.username", $config['username']));
-        $config['password'] = env("DB_{$upperConnection}_PASSWORD", env("database.{$connectionName}.password", $config['password']));
-        $config['charset'] = env("DB_{$upperConnection}_CHARSET", env("database.{$connectionName}.DBCharset", $config['charset']));
-        $config['prefix'] = env("DB_{$upperConnection}_PREFIX", env("database.{$connectionName}.DBPrefix", $config['prefix']));
-
-        if ($config['driver'] === 'sqlite' && !$this->isAbsolutePath($config['database'])) {
-            $config['database'] = WRITEPATH . $config['database'];
-        }
-
-        return $config;
-    }
-
-    protected function resolveSqlitePath(string $database): string
-    {
-        if (empty($database)) {
-            return WRITEPATH . 'database.sqlite';
-        }
-
-        if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
-            return $database;
-        }
-
-        if (str_contains($database, 'database_path')) {
-            return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
-        }
-
-        if (!str_ends_with($database, '.sqlite')) {
-            $database .= '.sqlite';
-        }
-
-        return WRITEPATH . $database;
     }
 
     /**
