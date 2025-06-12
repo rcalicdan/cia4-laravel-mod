@@ -100,12 +100,13 @@ class EloquentDatabase
 
         $cfg = $this->getEloquentConfig();
         $connectionName = $connection ?? $this->getDefaultConnection();
-        $config = $cfg->connections[$connectionName] ?? $cfg->connections['mysql'];
-        
+        $connections = $cfg->connections(); 
+        $config = $connections[$connectionName] ?? $connections['mysql'];
+
         if ($config['driver'] === 'sqlite') {
             $config = $this->resolveSqliteConfig($config);
         }
-        
+
         $config['options'] = array_merge(
             $config['options'] ?? [],
             $this->getPdoOptions()
@@ -124,19 +125,19 @@ class EloquentDatabase
     protected function resolveSqliteConfig(array $config): array
     {
         $dbPath = $config['database'];
-        
+
         if (str_contains($dbPath, 'database_path(')) {
             $dbPath = str_replace(['database_path(\'', '\')'], '', $dbPath);
             $config['database'] = WRITEPATH . $dbPath;
         } elseif (!$this->isAbsolutePath($dbPath)) {
             $config['database'] = WRITEPATH . $dbPath;
         }
-        
+
         $dir = dirname($config['database']);
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
-        
+
         return $config;
     }
 
@@ -145,12 +146,10 @@ class EloquentDatabase
         return strpos($path, '/') === 0 || strpos($path, ':\\') === 1;
     }
 
-    /**
-     * Get the default connection name
-     */
     protected function getDefaultConnection(): string
     {
-        return env('DB_CONNECTION', env('database.default.connection', $this->getEloquentConfig()->default));
+        $cfg = $this->getEloquentConfig();
+        return env('DB_CONNECTION', env('database.default.connection', $cfg->default())); // Call method
     }
 
     /**
