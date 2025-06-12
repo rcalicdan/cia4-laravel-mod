@@ -18,25 +18,19 @@ use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
 
 /**
- * Optimized Eloquent Database Manager with performance enhancements
+ * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
  */
 class EloquentDatabase
 {
     protected Container $container;
     protected Capsule $capsule;
-    
-    // Static flags for singleton behavior
     protected static bool $observersRegistered = false;
     protected static bool $paginationConfigured = false;
-    protected static bool $servicesInitialized = false;
 
-    // Cached configurations
     private static ?array $databaseConfig = null;
     private static ?array $eloquentModels = null;
     private static ?PaginationConfig $paginationConfig = null;
     private static ?Eloquent $eloquentConfig = null;
-    private static ?array $pdoOptions = null;
-    private static ?Container $sharedContainer = null;
 
     public function __construct()
     {
@@ -46,7 +40,7 @@ class EloquentDatabase
     }
 
     /**
-     * Optimized config loading with better caching
+     * Load configs with lazy loading and caching
      */
     protected function getPaginationConfig(): PaginationConfig
     {
@@ -72,32 +66,22 @@ class EloquentDatabase
         $this->capsule->addConnection($config);
     }
 
-    /**
-     * Cached PDO options for better performance
-     */
     protected function getPdoOptions(): array
     {
-        if (self::$pdoOptions !== null) {
-            return self::$pdoOptions;
-        }
-
-        return self::$pdoOptions = [
+        return [
             PDO::ATTR_CASE => PDO::CASE_NATURAL,
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_ORACLE_NULLS => PDO::NULL_NATURAL,
             PDO::ATTR_STRINGIFY_FETCHES => false,
-            PDO::ATTR_EMULATE_PREPARES => ENVIRONMENT === 'development',
+            PDO::ATTR_EMULATE_PREPARES => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_PERSISTENT => (bool) env('DB_PERSISTENT', env('database.default.persistent', true)),
+            PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', env('database.default.persistent', true)),
         ];
     }
 
-    /**
-     * Optimized query logging configuration
-     */
     protected function configureQueryLogging(): void
     {
-        if (ENVIRONMENT !== 'production' && env('DB_DEBUG', true)) {
+        if (ENVIRONMENT !== 'production') {
             $this->capsule->getConnection()->enableQueryLog();
         }
     }
@@ -108,54 +92,126 @@ class EloquentDatabase
         $this->capsule->bootEloquent();
     }
 
-    /**
-     * Optimized database configuration - removed SQLite string manipulation
-     */
     public function getDatabaseInformation(?string $connection = null): array
     {
-        $cacheKey = $connection ?? 'default';
-        static $connectionConfigs = [];
-
-        if (isset($connectionConfigs[$cacheKey])) {
-            return $connectionConfigs[$cacheKey];
+        if (self::$databaseConfig !== null && $connection === null) {
+            return self::$databaseConfig;
         }
 
         $cfg = $this->getEloquentConfig();
         $connectionName = $connection ?? $this->getDefaultConnection();
-        $connections = $cfg->connections();
-        $config = $connections[$connectionName] ?? $connections['mysql'];
+        $baseConfig = $cfg->connections[$connectionName] ?? $cfg->connections['mysql'];
+        $config = $this->applyEnvironmentOverrides($baseConfig, $connectionName);
+        $config['options'] = $this->getPdoOptions();
 
-        $config['options'] = array_merge(
-            $config['options'] ?? [],
-            $this->getPdoOptions()
-        );
+        if ($config['driver'] === 'sqlite') {
+            $dbPath = $config['database'];
+            $config['database'] = !$this->isAbsolutePath($dbPath) ? WRITEPATH . $dbPath : $dbPath;
+            $dir = dirname($config['database']);
 
-        $connectionConfigs[$cacheKey] = $config;
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+        }
 
-        if ($connection === null && self::$databaseConfig === null) {
+        if ($connection === null) {
             self::$databaseConfig = $config;
         }
 
         return $config;
     }
 
-    /**
-     * Cached default connection resolution
-     */
-    protected function getDefaultConnection(): string
+    private function isAbsolutePath(string $path): bool
     {
-        static $defaultConnection = null;
-        
-        if ($defaultConnection === null) {
-            $cfg = $this->getEloquentConfig();
-            $defaultConnection = env('DB_CONNECTION', env('database.default.connection', $cfg->default()));
-        }
-        
-        return $defaultConnection;
+        return strpos($path, '/') === 0 || strpos($path, ':\\') === 1;
     }
 
     /**
-     * Optimized connection management
+     * Get the default connection name
+     */
+    protected function getDefaultConnection(): string
+    {
+        return env('DB_CONNECTION', env('database.default.connection', $this->getEloquentConfig()->default));
+    }
+
+    /**
+     * Apply environment variable overrides with CodeIgniter compatibility
+     */
+    protected function applyEnvironmentOverrides(array $config, string $connectionName): array
+    {
+        $cfg = $this->getEloquentConfig();
+        $isDefaultConnection = ($connectionName === $this->getDefaultConnection());
+
+        if ($isDefaultConnection) {
+            $overriddenConfig = [
+                'driver' => env('DB_DRIVER', env('DB_DBDRIVER', env('database.default.DBDriver', $config['driver']))),
+                'host' => env('DB_HOST', env('database.default.hostname', $config['host'])),
+                'port' => env('DB_PORT', env('database.default.port', $config['port'])),
+                'database' => env('DB_DATABASE', env('database.default.database', $config['database'])),
+                'username' => env('DB_USERNAME', env('database.default.username', $config['username'])),
+                'password' => env('DB_PASSWORD', env('database.default.password', $config['password'])),
+                'charset' => env('DB_CHARSET', env('database.default.DBCharset', $config['charset'])),
+                'collation' => env('DB_COLLATION', env('database.default.DBCollat', $config['collation'])),
+                'prefix' => env('DB_PREFIX', env('database.default.DBPrefix', $config['prefix'])),
+                'unix_socket' => env('DB_SOCKET', env('database.default.socket', $config['unix_socket'] ?? '')),
+                'url' => env('DB_URL', $config['url'] ?? null),
+                'strict' => env('DB_STRICT', $config['strict'] ?? true),
+                'engine' => env('DB_ENGINE', $config['engine'] ?? null),
+                'prefix_indexes' => $config['prefix_indexes'] ?? true,
+                'search_path' => $config['search_path'] ?? 'public',
+                'sslmode' => $config['sslmode'] ?? 'prefer',
+                'foreign_key_constraints' => env('DB_FOREIGN_KEYS', $config['foreign_key_constraints'] ?? true),
+                'busy_timeout' => $config['busy_timeout'] ?? null,
+                'journal_mode' => $config['journal_mode'] ?? null,
+                'synchronous' => $config['synchronous'] ?? null,
+            ];
+
+            if ($overriddenConfig['driver'] === 'sqlite' && !$this->isAbsolutePath($overriddenConfig['database'])) {
+                $overriddenConfig['database'] = WRITEPATH . $overriddenConfig['database'];
+            }
+
+            return $overriddenConfig;
+        }
+
+        $upperConnection = strtoupper($connectionName);
+        $config['host'] = env("DB_{$upperConnection}_HOST", env("database.{$connectionName}.hostname", $config['host']));
+        $config['port'] = env("DB_{$upperConnection}_PORT", env("database.{$connectionName}.port", $config['port']));
+        $config['database'] = env("DB_{$upperConnection}_DATABASE", env("database.{$connectionName}.database", $config['database']));
+        $config['username'] = env("DB_{$upperConnection}_USERNAME", env("database.{$connectionName}.username", $config['username']));
+        $config['password'] = env("DB_{$upperConnection}_PASSWORD", env("database.{$connectionName}.password", $config['password']));
+        $config['charset'] = env("DB_{$upperConnection}_CHARSET", env("database.{$connectionName}.DBCharset", $config['charset']));
+        $config['prefix'] = env("DB_{$upperConnection}_PREFIX", env("database.{$connectionName}.DBPrefix", $config['prefix']));
+
+        if ($config['driver'] === 'sqlite' && !$this->isAbsolutePath($config['database'])) {
+            $config['database'] = WRITEPATH . $config['database'];
+        }
+
+        return $config;
+    }
+
+    protected function resolveSqlitePath(string $database): string
+    {
+        if (empty($database)) {
+            return WRITEPATH . 'database.sqlite';
+        }
+
+        if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
+            return $database;
+        }
+
+        if (str_contains($database, 'database_path')) {
+            return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
+        }
+
+        if (!str_ends_with($database, '.sqlite')) {
+            $database .= '.sqlite';
+        }
+
+        return WRITEPATH . $database;
+    }
+
+    /**
+     * Add support for multiple database connections
      */
     public function addConnection(string $name, ?array $config = null): void
     {
@@ -166,34 +222,22 @@ class EloquentDatabase
         $this->capsule->addConnection($config, $name);
     }
 
+    /**
+     * Get connection configuration for a specific connection
+     */
     public function getConnectionConfig(string $connection): array
     {
         return $this->getDatabaseInformation($connection);
     }
 
-    /**
-     * Shared container for better memory usage
-     */
     protected function initializeContainer(): void
     {
-        if (self::$sharedContainer !== null) {
-            $this->container = self::$sharedContainer;
-            return;
-        }
-
-        $this->container = self::$sharedContainer = new Container;
+        $this->container = new Container;
         Facade::setFacadeApplication($this->container);
     }
 
-    /**
-     * Optimized service initialization with singleton pattern
-     */
     protected function initializeServices(): void
     {
-        if (self::$servicesInitialized) {
-            return;
-        }
-
         $this->registerConfigService();
         $this->registerDatabaseService();
         $this->registerEventDispatcher();
@@ -201,27 +245,18 @@ class EloquentDatabase
         $this->registerObservers();
         $this->registerPaginationRenderer();
         $this->configurePagination();
-
-        self::$servicesInitialized = true;
     }
 
-    /**
-     * Optimized observer registration
-     */
     protected function registerObservers(): void
     {
         if (self::$observersRegistered) {
             return;
         }
 
-        try {
-            $observersConfig = config('Observers');
-            if ($observersConfig) {
-                $this->registerManualObservers($observersConfig);
-                $this->registerAttributeObservers($observersConfig);
-            }
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to register observers: ' . $e->getMessage());
+        $observersConfig = config('Observers');
+        if ($observersConfig) {
+            $this->registerManualObservers($observersConfig);
+            $this->registerAttributeObservers($observersConfig);
         }
 
         self::$observersRegistered = true;
@@ -236,7 +271,7 @@ class EloquentDatabase
 
     protected function registerAttributeObservers(object $config): void
     {
-        if (!property_exists($config, 'useAttributes') || !$config->useAttributes) {
+        if (! property_exists($config, 'useAttributes') || ! $config->useAttributes) {
             return;
         }
 
@@ -245,9 +280,6 @@ class EloquentDatabase
         }
     }
 
-    /**
-     * Optimized model discovery with better caching and error handling
-     */
     protected function getEloquentModels(): array
     {
         if (self::$eloquentModels !== null) {
@@ -255,73 +287,50 @@ class EloquentDatabase
         }
 
         $modelPath = APPPATH . 'Models/';
-        if (!is_dir($modelPath)) {
+        if (! is_dir($modelPath)) {
             return self::$eloquentModels = [];
         }
 
-        try {
-            $models = [];
-            $files = new \FilesystemIterator($modelPath, \FilesystemIterator::SKIP_DOTS);
-            
-            foreach ($files as $file) {
-                if (!$file->isFile() || $file->getExtension() !== 'php') {
-                    continue;
-                }
+        $iterator = new \DirectoryIterator($modelPath);
+        $models = [];
 
-                $modelClass = $this->getModelClassFromFile($file->getPathname());
-                if ($this->isValidEloquentModel($modelClass)) {
-                    $models[] = $modelClass;
-                }
+        foreach ($iterator as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
             }
 
-            return self::$eloquentModels = $models;
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to discover Eloquent models: ' . $e->getMessage());
-            return self::$eloquentModels = [];
+            $modelClass = $this->getModelClassFromFile($file->getPathname());
+            if ($this->isValidEloquentModel($modelClass)) {
+                $models[] = $modelClass;
+            }
         }
+
+        return self::$eloquentModels = $models;
     }
 
     protected function getModelClassFromFile(string $file): string
     {
         $modelName = basename($file, '.php');
+
         return "App\\Models\\{$modelName}";
     }
 
-    /**
-     * Optimized model validation
-     */
     protected function isValidEloquentModel(string $class): bool
     {
-        if (!class_exists($class)) {
-            return false;
-        }
-
-        static $modelCache = [];
-        
-        if (!isset($modelCache[$class])) {
-            $modelCache[$class] = is_subclass_of($class, Model::class);
-        }
-        
-        return $modelCache[$class];
+        return class_exists($class, false) &&
+            is_subclass_of($class, Model::class, false);
     }
 
-    /**
-     * Optimized attribute processing with reflection caching
-     */
     protected function processModelAttributes(string $modelClass): void
     {
-        static $reflectionCache = [];
-        
-        if (!isset($reflectionCache[$modelClass])) {
-            $reflectionCache[$modelClass] = new \ReflectionClass($modelClass);
-        }
-        
-        $reflection = $reflectionCache[$modelClass];
+        $reflection = new \ReflectionClass($modelClass);
         $attributes = $reflection->getAttributes(\Rcalicdan\Ci4Larabridge\Attributes\ObservedBy::class);
 
         foreach ($attributes as $attribute) {
             $this->registerObserversFromAttribute($modelClass, $attribute);
         }
+
+        unset($reflection);
     }
 
     protected function registerObserversFromAttribute(string $modelClass, \ReflectionAttribute $attribute): void
@@ -329,15 +338,12 @@ class EloquentDatabase
         $observedBy = $attribute->newInstance();
 
         foreach ($observedBy->observers as $observer) {
-            if (class_exists($observer)) {
+            if (class_exists($observer, false)) {
                 $modelClass::observe($observer);
             }
         }
     }
 
-    /**
-     * Optimized service registration with lazy loading
-     */
     protected function registerEventDispatcher(): void
     {
         $this->container->singleton('events', function ($app) {
@@ -354,7 +360,7 @@ class EloquentDatabase
             return new Repository([
                 'hashing' => [
                     'driver' => 'bcrypt',
-                    'bcrypt' => ['rounds' => env('HASH_ROUNDS', 10)],
+                    'bcrypt' => ['rounds' => 10],
                 ],
             ]);
         });
@@ -379,17 +385,17 @@ class EloquentDatabase
         $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
 
-    /**
-     * Optimized pagination configuration
-     */
     protected function configurePagination(): void
     {
         if (self::$paginationConfigured) {
             return;
         }
+        self::$paginationConfigured = true;
 
+        $request = service('request');
+        $uri = service('uri');
         $paginationConfig = $this->getPaginationConfig();
-        
+
         Paginator::$defaultView = $paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $paginationConfig->defaultSimpleView;
 
@@ -397,63 +403,24 @@ class EloquentDatabase
             fn() => $this->container->get('paginator.renderer')
         );
 
-        Paginator::currentPageResolver(function ($pageName = 'page') {
-            static $pageCache = [];
-            $cacheKey = $pageName;
-            
-            if (!isset($pageCache[$cacheKey])) {
-                $request = service('request');
-                $page = $request->getVar($pageName);
-                $pageCache[$cacheKey] = $page && filter_var($page, FILTER_VALIDATE_INT) && (int) $page >= 1 
-                    ? (int) $page 
-                    : 1;
-            }
-            
-            return $pageCache[$cacheKey];
-        });
+        Paginator::currentPageResolver(
+            fn($pageName = 'page') => ($page = $request->getVar($pageName))
+                && filter_var($page, FILTER_VALIDATE_INT)
+                && (int) $page >= 1
+                ? (int) $page
+                : 1
+        );
 
         Paginator::currentPathResolver(fn() => current_url());
-        
-        Paginator::queryStringResolver(function () {
-            static $queryString = null;
-            return $queryString ??= service('uri')->getQuery();
-        });
+        Paginator::queryStringResolver(fn() => $uri->getQuery());
 
-        CursorPaginator::currentCursorResolver(function ($cursorName = 'cursor') {
-            static $cursorCache = [];
-            
-            if (!isset($cursorCache[$cursorName])) {
-                $request = service('request');
-                $cursorData = $request->getVar($cursorName);
-                $cursorCache[$cursorName] = $cursorData ? Cursor::fromEncoded($cursorData) : null;
-            }
-            
-            return $cursorCache[$cursorName];
-        });
-
-        self::$paginationConfigured = true;
+        CursorPaginator::currentCursorResolver(
+            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+        );
     }
 
-    /**
-     * Optimized cleanup
-     */
     public function __destruct()
     {
-        unset($this->capsule);
-    }
-
-    /**
-     * Clear static caches for testing or memory management
-     */
-    public static function clearCaches(): void
-    {
-        self::$databaseConfig = null;
-        self::$eloquentModels = null;
-        self::$paginationConfig = null;
-        self::$eloquentConfig = null;
-        self::$pdoOptions = null;
-        self::$observersRegistered = false;
-        self::$paginationConfigured = false;
-        self::$servicesInitialized = false;
+        unset($this->container, $this->capsule);
     }
 }
