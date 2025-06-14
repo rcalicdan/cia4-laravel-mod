@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Facade;
 use PDO;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
+use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\SqliteHandler;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
@@ -26,6 +27,7 @@ class EloquentDatabase
     protected Capsule $capsule;
     protected static bool $observersRegistered = false;
     protected static bool $paginationConfigured = false;
+    protected ?SqliteHandler $sqliteHandler = null;
 
     private static ?array $databaseConfig = null;
     private static ?array $eloquentModels = null;
@@ -37,6 +39,14 @@ class EloquentDatabase
         $this->initializeDatabase();
         $this->initializeContainer();
         $this->initializeServices();
+    }
+
+    /**
+     * Get SQLite handler instance (lazy loaded)
+     */
+    protected function getSqliteHandler(): SqliteHandler
+    {
+        return $this->sqliteHandler ??= new SqliteHandler;
     }
 
     /**
@@ -104,14 +114,9 @@ class EloquentDatabase
         $config = $this->applyEnvironmentOverrides($baseConfig, $connectionName);
         $config['options'] = $this->getPdoOptions();
 
-        if ($config['driver'] === 'sqlite') {
-            $dbPath = $config['database'];
-            $config['database'] = !$this->isAbsolutePath($dbPath) ? WRITEPATH . $dbPath : $dbPath;
-            $dir = dirname($config['database']);
-
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
+        // Use SQLite handler for SQLite-specific path resolution
+        if (strtolower($config['driver']) === 'sqlite') {
+            $config = $this->getSqliteHandler()->prepareConfig($config);
         }
 
         if ($connection === null) {
@@ -119,11 +124,6 @@ class EloquentDatabase
         }
 
         return $config;
-    }
-
-    private function isAbsolutePath(string $path): bool
-    {
-        return strpos($path, '/') === 0 || strpos($path, ':\\') === 1;
     }
 
     /**
@@ -140,7 +140,7 @@ class EloquentDatabase
     protected function applyEnvironmentOverrides(array $config, string $connectionName): array
     {
         $cfg = $this->getEloquentConfig();
-        $isDefaultConnection = ($connectionName === $this->getDefaultConnection());
+        $isDefaultConnection = $connectionName === $this->getDefaultConnection();
 
         if ($isDefaultConnection) {
             $overriddenConfig = [
@@ -166,10 +166,6 @@ class EloquentDatabase
                 'synchronous' => $config['synchronous'] ?? null,
             ];
 
-            if ($overriddenConfig['driver'] === 'sqlite' && !$this->isAbsolutePath($overriddenConfig['database'])) {
-                $overriddenConfig['database'] = WRITEPATH . $overriddenConfig['database'];
-            }
-
             return $overriddenConfig;
         }
 
@@ -182,32 +178,7 @@ class EloquentDatabase
         $config['charset'] = env("DB_{$upperConnection}_CHARSET", env("database.{$connectionName}.DBCharset", $config['charset']));
         $config['prefix'] = env("DB_{$upperConnection}_PREFIX", env("database.{$connectionName}.DBPrefix", $config['prefix']));
 
-        if ($config['driver'] === 'sqlite' && !$this->isAbsolutePath($config['database'])) {
-            $config['database'] = WRITEPATH . $config['database'];
-        }
-
         return $config;
-    }
-
-    protected function resolveSqlitePath(string $database): string
-    {
-        if (empty($database)) {
-            return WRITEPATH . 'database.sqlite';
-        }
-
-        if (strpos($database, '/') === 0 || strpos($database, ':\\') === 1) {
-            return $database;
-        }
-
-        if (str_contains($database, 'database_path')) {
-            return WRITEPATH . str_replace('database_path(\'', '', str_replace('\')', '', $database));
-        }
-
-        if (!str_ends_with($database, '.sqlite')) {
-            $database .= '.sqlite';
-        }
-
-        return WRITEPATH . $database;
     }
 
     /**
