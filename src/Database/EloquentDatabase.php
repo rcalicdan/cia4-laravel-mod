@@ -22,34 +22,84 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
  * Optimized for performance with caching and lazy loading.
  */
-class EloquentDatabase
+final class EloquentDatabase
 {
     protected Container $container;
     protected Capsule $capsule;
 
-    // Shared state flags
+    /**
+     * @var bool Flag indicating if observers are registered
+     */
     protected static bool $observersRegistered = false;
+
+    /**
+     * @var bool Flag indicating if pagination is configured
+     */
     protected static bool $paginationConfigured = false;
+
+    /**
+     * @var bool Flag indicating if global bootstrapping is done
+     */
     protected static bool $globalBootstrapped = false;
 
-    // Performance optimization caches
+    /**
+     * @var array|null Cached configuration values
+     */
     private static ?array $configCache = [];
+
+    /**
+     * @var array|null Cached environment variables
+     */
     private static ?array $envCache = [];
+
+    /**
+     * @var array|null Cached database configurations
+     */
     private static ?array $databaseConfigCache = [];
+
+    /**
+     * @var array|null Cached list of Eloquent models
+     */
     private static ?array $eloquentModelsCache = null;
+
+    /**
+     * @var array|null Cached PDO options
+     */
     private static ?array $pdoOptionsCache = null;
 
-    // Shared instances for better performance
+    /**
+     * @var Container|null Shared container instance
+     */
     private static ?Container $sharedContainer = null;
+
+    /**
+     * @var Capsule|null Shared database capsule instance
+     */
     private static ?Capsule $sharedCapsule = null;
+
+    /**
+     * @var self|null Singleton instance
+     */
     private static ?self $instance = null;
 
-    // Lazy loading flags
+    /**
+     * @var bool Flag indicating if services are initialized
+     */
     private bool $servicesInitialized = false;
+
+    /**
+     * @var SqliteHandler|null SQLite handler instance
+     */
     protected ?SqliteHandler $sqliteHandler = null;
 
-    // Observer management
+    /**
+     * @var array Pending observers to be registered
+     */
     private array $pendingObservers = [];
+
+    /**
+     * @var array Models that have already been processed
+     */
     private array $processedModels = [];
 
     public function __construct()
@@ -60,7 +110,9 @@ class EloquentDatabase
     }
 
     /**
-     * Get singleton instance for better performance
+     * Get the singleton instance of EloquentDatabase
+     * 
+     * @return self The singleton instance
      */
     public static function getInstance(): self
     {
@@ -68,7 +120,10 @@ class EloquentDatabase
     }
 
     /**
-     * Get database connection (static helper for performance)
+     * Get a database connection instance
+     * 
+     * @param string|null $name Connection name
+     * @return \Illuminate\Database\Connection The database connection
      */
     public static function getConnection(?string $name = null): \Illuminate\Database\Connection
     {
@@ -76,7 +131,9 @@ class EloquentDatabase
     }
 
     /**
-     * Get database manager (static helper for performance)
+     * Get the database manager instance
+     * 
+     * @return \Illuminate\Database\DatabaseManager The database manager
      */
     public static function getDatabaseManager(): \Illuminate\Database\DatabaseManager
     {
@@ -84,7 +141,9 @@ class EloquentDatabase
     }
 
     /**
-     * Get SQLite handler instance (lazy loaded)
+     * Get the SQLite handler instance (lazy loaded)
+     * 
+     * @return SqliteHandler The SQLite handler
      */
     protected function getSqliteHandler(): SqliteHandler
     {
@@ -92,7 +151,11 @@ class EloquentDatabase
     }
 
     /**
-     * Cached environment variable access
+     * Get an environment variable with caching
+     * 
+     * @param string $key Environment variable name
+     * @param mixed $default Default value if not set
+     * @return mixed The environment variable value
      */
     protected function env(string $key, $default = null)
     {
@@ -100,7 +163,9 @@ class EloquentDatabase
     }
 
     /**
-     * Load configs with aggressive caching
+     * Get pagination configuration with caching
+     * 
+     * @return PaginationConfig The pagination configuration
      */
     protected function getPaginationConfig(): PaginationConfig
     {
@@ -256,7 +321,11 @@ class EloquentDatabase
     }
 
     /**
-     * Add support for multiple database connections
+     * Add a new database connection
+     * 
+     * @param string $name Connection name
+     * @param array|null $config Connection configuration
+     * @return void
      */
     public function addConnection(string $name, ?array $config = null): void
     {
@@ -268,7 +337,10 @@ class EloquentDatabase
     }
 
     /**
-     * Get connection configuration for a specific connection
+     * Get configuration for a specific database connection
+     * 
+     * @param string $connection Connection name
+     * @return array The connection configuration
      */
     public function getConnectionConfig(string $connection): array
     {
@@ -289,7 +361,9 @@ class EloquentDatabase
     }
 
     /**
-     * Ensure services are initialized (lazy loading)
+     * Ensure all services are initialized (lazy loading)
+     * 
+     * @return void
      */
     protected function ensureServicesInitialized(): void
     {
@@ -300,7 +374,9 @@ class EloquentDatabase
     }
 
     /**
-     * Public method to boot services when needed
+     * Boot all services when needed
+     * 
+     * @return void
      */
     public function bootServices(): void
     {
@@ -319,7 +395,9 @@ class EloquentDatabase
     }
 
     /**
-     * Prepare observers for lazy registration (performance optimization)
+     * Prepare observers for lazy registration
+     * 
+     * @return void
      */
     protected function prepareObservers(): void
     {
@@ -337,7 +415,10 @@ class EloquentDatabase
     }
 
     /**
-     * Register observers for a specific model (lazy loading)
+     * Register observers for a specific model
+     * 
+     * @param string $modelClass The model class name
+     * @return void
      */
     public function registerObserversForModel(string $modelClass): void
     {
@@ -548,7 +629,9 @@ class EloquentDatabase
     }
 
     /**
-     * Force registration of all observers (for backward compatibility)
+     * Force registration of all observers
+     * 
+     * @return void
      */
     public function forceRegisterAllObservers(): void
     {
@@ -557,7 +640,9 @@ class EloquentDatabase
     }
 
     /**
-     * Clear all caches (useful for development)
+     * Clear all cached data
+     * 
+     * @return void
      */
     public static function clearCaches(): void
     {
@@ -573,7 +658,9 @@ class EloquentDatabase
     }
 
     /**
-     * Get current cache status (for debugging)
+     * Get current cache status information
+     * 
+     * @return array Cache status information
      */
     public static function getCacheStatus(): array
     {
