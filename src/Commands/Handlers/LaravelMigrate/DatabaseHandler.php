@@ -71,6 +71,7 @@ class DatabaseHandler
     private function checkSqliteDatabaseExists(array $dbConfig): bool
     {
         $resolvedPath = $this->sqliteHandler->resolveDatabasePath($dbConfig['database']);
+
         return $this->sqliteHandler->databaseExists($resolvedPath);
     }
 
@@ -80,8 +81,8 @@ class DatabaseHandler
     private function createSqliteDatabase(array $dbConfig): void
     {
         $resolvedPath = $this->sqliteHandler->resolveDatabasePath($dbConfig['database']);
-        
-        if (!$this->sqliteHandler->createDatabase($resolvedPath)) {
+
+        if (! $this->sqliteHandler->createDatabase($resolvedPath)) {
             throw new \Exception("Failed to create SQLite database at: {$resolvedPath}");
         }
     }
@@ -212,15 +213,19 @@ class DatabaseHandler
             case 'mysql':
             case 'mariadb':
                 $connection->statement('SET FOREIGN_KEY_CHECKS=0;');
+
                 break;
             case 'sqlite':
                 $connection->statement('PRAGMA foreign_keys = OFF;');
+
                 break;
             case 'pgsql':
                 $connection->statement('SET session_replication_role = replica;');
+
                 break;
             case 'sqlsrv':
                 $connection->statement('EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"');
+
                 break;
         }
     }
@@ -236,15 +241,19 @@ class DatabaseHandler
             case 'mysql':
             case 'mariadb':
                 $connection->statement('SET FOREIGN_KEY_CHECKS=1;');
+
                 break;
             case 'sqlite':
                 $connection->statement('PRAGMA foreign_keys = ON;');
+
                 break;
             case 'pgsql':
                 $connection->statement('SET session_replication_role = default;');
+
                 break;
             case 'sqlsrv':
                 $connection->statement('EXEC sp_msforeachtable "ALTER TABLE ? CHECK CONSTRAINT all"');
+
                 break;
         }
     }

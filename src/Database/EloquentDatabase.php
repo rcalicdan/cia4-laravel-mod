@@ -15,30 +15,72 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Facade;
 use PDO;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
-use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\SqliteHandler;
+use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
+ * Optimized for performance with caching and lazy loading.
  */
 class EloquentDatabase
 {
     protected Container $container;
     protected Capsule $capsule;
+
+    // Shared state flags
     protected static bool $observersRegistered = false;
     protected static bool $paginationConfigured = false;
+    protected static bool $globalBootstrapped = false;
+
+    // Performance optimization caches
+    private static ?array $configCache = [];
+    private static ?array $envCache = [];
+    private static ?array $databaseConfigCache = [];
+    private static ?array $eloquentModelsCache = null;
+    private static ?array $pdoOptionsCache = null;
+
+    // Shared instances for better performance
+    private static ?Container $sharedContainer = null;
+    private static ?Capsule $sharedCapsule = null;
+    private static ?self $instance = null;
+
+    // Lazy loading flags
+    private bool $servicesInitialized = false;
     protected ?SqliteHandler $sqliteHandler = null;
 
-    private static ?array $databaseConfig = null;
-    private static ?array $eloquentModels = null;
-    private static ?PaginationConfig $paginationConfig = null;
-    private static ?Eloquent $eloquentConfig = null;
+    // Observer management
+    private array $pendingObservers = [];
+    private array $processedModels = [];
 
     public function __construct()
     {
         $this->initializeDatabase();
         $this->initializeContainer();
         $this->initializeServices();
+    }
+
+    /**
+     * Get singleton instance for better performance
+     */
+    public static function getInstance(): self
+    {
+        return self::$instance ??= new self;
+    }
+
+    /**
+     * Get database connection (static helper for performance)
+     */
+    public static function getConnection(?string $name = null): \Illuminate\Database\Connection
+    {
+        return self::getInstance()->capsule->getConnection($name);
+    }
+
+    /**
+     * Get database manager (static helper for performance)
+     */
+    public static function getDatabaseManager(): \Illuminate\Database\DatabaseManager
+    {
+        return self::getInstance()->capsule->getDatabaseManager();
     }
 
     /**
@@ -50,24 +92,45 @@ class EloquentDatabase
     }
 
     /**
-     * Load configs with lazy loading and caching
+     * Cached environment variable access
+     */
+    protected function env(string $key, $default = null)
+    {
+        return self::$envCache[$key] ??= env($key, $default);
+    }
+
+    /**
+     * Load configs with aggressive caching
      */
     protected function getPaginationConfig(): PaginationConfig
     {
-        return self::$paginationConfig ??= config(PaginationConfig::class);
+        return self::$configCache['pagination'] ??= config(PaginationConfig::class);
     }
 
     protected function getEloquentConfig(): Eloquent
     {
-        return self::$eloquentConfig ??= config(Eloquent::class);
+        return self::$configCache['eloquent'] ??= config(Eloquent::class);
+    }
+
+    protected function getObserversConfig(): ?object
+    {
+        return self::$configCache['observers'] ??= config('Observers');
     }
 
     protected function initializeDatabase(): void
     {
+        if (self::$sharedCapsule !== null) {
+            $this->capsule = self::$sharedCapsule;
+
+            return;
+        }
+
         $config = $this->getDatabaseInformation();
         $this->initCapsule($config);
         $this->configureQueryLogging();
         $this->bootEloquent();
+
+        self::$sharedCapsule = $this->capsule;
     }
 
     protected function initCapsule(array $config): void
@@ -78,14 +141,18 @@ class EloquentDatabase
 
     protected function getPdoOptions(): array
     {
-        return [
+        if (self::$pdoOptionsCache !== null) {
+            return self::$pdoOptionsCache;
+        }
+
+        return self::$pdoOptionsCache = [
             PDO::ATTR_CASE => PDO::CASE_NATURAL,
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_ORACLE_NULLS => PDO::NULL_NATURAL,
             PDO::ATTR_STRINGIFY_FETCHES => false,
             PDO::ATTR_EMULATE_PREPARES => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', env('database.default.persistent', true)),
+            PDO::ATTR_PERSISTENT => $this->env('DB_PERSISTENT', $this->env('database.default.persistent', true)),
         ];
     }
 
@@ -98,14 +165,21 @@ class EloquentDatabase
 
     protected function bootEloquent(): void
     {
+        if (self::$globalBootstrapped) {
+            return;
+        }
+
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
+        self::$globalBootstrapped = true;
     }
 
     public function getDatabaseInformation(?string $connection = null): array
     {
-        if (self::$databaseConfig !== null && $connection === null) {
-            return self::$databaseConfig;
+        $cacheKey = $connection ?? 'default';
+
+        if (isset(self::$databaseConfigCache[$cacheKey])) {
+            return self::$databaseConfigCache[$cacheKey];
         }
 
         $cfg = $this->getEloquentConfig();
@@ -119,64 +193,64 @@ class EloquentDatabase
             $config = $this->getSqliteHandler()->prepareConfig($config);
         }
 
-        if ($connection === null) {
-            self::$databaseConfig = $config;
-        }
-
-        return $config;
+        return self::$databaseConfigCache[$cacheKey] = $config;
     }
 
     /**
-     * Get the default connection name
+     * Get the default connection name (cached)
      */
     protected function getDefaultConnection(): string
     {
-        return env('DB_CONNECTION', env('database.default.connection', $this->getEloquentConfig()->default));
+        if (! isset(self::$envCache['default_connection'])) {
+            self::$envCache['default_connection'] = $this->env(
+                'DB_CONNECTION',
+                $this->env('database.default.connection', $this->getEloquentConfig()->default)
+            );
+        }
+
+        return self::$envCache['default_connection'];
     }
 
     /**
-     * Apply environment variable overrides with CodeIgniter compatibility
+     * Apply environment variable overrides with CodeIgniter compatibility (optimized)
      */
     protected function applyEnvironmentOverrides(array $config, string $connectionName): array
     {
-        $cfg = $this->getEloquentConfig();
         $isDefaultConnection = $connectionName === $this->getDefaultConnection();
 
         if ($isDefaultConnection) {
-            $overriddenConfig = [
-                'driver' => env('DB_DRIVER', env('DB_DBDRIVER', env('database.default.DBDriver', $config['driver']))),
-                'host' => env('DB_HOST', env('database.default.hostname', $config['host'])),
-                'port' => env('DB_PORT', env('database.default.port', $config['port'])),
-                'database' => env('DB_DATABASE', env('database.default.database', $config['database'])),
-                'username' => env('DB_USERNAME', env('database.default.username', $config['username'])),
-                'password' => env('DB_PASSWORD', env('database.default.password', $config['password'])),
-                'charset' => env('DB_CHARSET', env('database.default.DBCharset', $config['charset'])),
-                'collation' => env('DB_COLLATION', env('database.default.DBCollat', $config['collation'])),
-                'prefix' => env('DB_PREFIX', env('database.default.DBPrefix', $config['prefix'])),
-                'unix_socket' => env('DB_SOCKET', env('database.default.socket', $config['unix_socket'] ?? '')),
-                'url' => env('DB_URL', $config['url'] ?? null),
-                'strict' => env('DB_STRICT', $config['strict'] ?? true),
-                'engine' => env('DB_ENGINE', $config['engine'] ?? null),
+            return [
+                'driver' => $this->env('DB_DRIVER', $this->env('DB_DBDRIVER', $this->env('database.default.DBDriver', $config['driver']))),
+                'host' => $this->env('DB_HOST', $this->env('database.default.hostname', $config['host'])),
+                'port' => $this->env('DB_PORT', $this->env('database.default.port', $config['port'])),
+                'database' => $this->env('DB_DATABASE', $this->env('database.default.database', $config['database'])),
+                'username' => $this->env('DB_USERNAME', $this->env('database.default.username', $config['username'])),
+                'password' => $this->env('DB_PASSWORD', $this->env('database.default.password', $config['password'])),
+                'charset' => $this->env('DB_CHARSET', $this->env('database.default.DBCharset', $config['charset'])),
+                'collation' => $this->env('DB_COLLATION', $this->env('database.default.DBCollat', $config['collation'])),
+                'prefix' => $this->env('DB_PREFIX', $this->env('database.default.DBPrefix', $config['prefix'])),
+                'unix_socket' => $this->env('DB_SOCKET', $this->env('database.default.socket', $config['unix_socket'] ?? '')),
+                'url' => $this->env('DB_URL', $config['url'] ?? null),
+                'strict' => $this->env('DB_STRICT', $config['strict'] ?? true),
+                'engine' => $this->env('DB_ENGINE', $config['engine'] ?? null),
                 'prefix_indexes' => $config['prefix_indexes'] ?? true,
                 'search_path' => $config['search_path'] ?? 'public',
                 'sslmode' => $config['sslmode'] ?? 'prefer',
-                'foreign_key_constraints' => env('DB_FOREIGN_KEYS', $config['foreign_key_constraints'] ?? true),
+                'foreign_key_constraints' => $this->env('DB_FOREIGN_KEYS', $config['foreign_key_constraints'] ?? true),
                 'busy_timeout' => $config['busy_timeout'] ?? null,
                 'journal_mode' => $config['journal_mode'] ?? null,
                 'synchronous' => $config['synchronous'] ?? null,
             ];
-
-            return $overriddenConfig;
         }
 
         $upperConnection = strtoupper($connectionName);
-        $config['host'] = env("DB_{$upperConnection}_HOST", env("database.{$connectionName}.hostname", $config['host']));
-        $config['port'] = env("DB_{$upperConnection}_PORT", env("database.{$connectionName}.port", $config['port']));
-        $config['database'] = env("DB_{$upperConnection}_DATABASE", env("database.{$connectionName}.database", $config['database']));
-        $config['username'] = env("DB_{$upperConnection}_USERNAME", env("database.{$connectionName}.username", $config['username']));
-        $config['password'] = env("DB_{$upperConnection}_PASSWORD", env("database.{$connectionName}.password", $config['password']));
-        $config['charset'] = env("DB_{$upperConnection}_CHARSET", env("database.{$connectionName}.DBCharset", $config['charset']));
-        $config['prefix'] = env("DB_{$upperConnection}_PREFIX", env("database.{$connectionName}.DBPrefix", $config['prefix']));
+        $config['host'] = $this->env("DB_{$upperConnection}_HOST", $this->env("database.{$connectionName}.hostname", $config['host']));
+        $config['port'] = $this->env("DB_{$upperConnection}_PORT", $this->env("database.{$connectionName}.port", $config['port']));
+        $config['database'] = $this->env("DB_{$upperConnection}_DATABASE", $this->env("database.{$connectionName}.database", $config['database']));
+        $config['username'] = $this->env("DB_{$upperConnection}_USERNAME", $this->env("database.{$connectionName}.username", $config['username']));
+        $config['password'] = $this->env("DB_{$upperConnection}_PASSWORD", $this->env("database.{$connectionName}.password", $config['password']));
+        $config['charset'] = $this->env("DB_{$upperConnection}_CHARSET", $this->env("database.{$connectionName}.DBCharset", $config['charset']));
+        $config['prefix'] = $this->env("DB_{$upperConnection}_PREFIX", $this->env("database.{$connectionName}.DBPrefix", $config['prefix']));
 
         return $config;
     }
@@ -203,8 +277,34 @@ class EloquentDatabase
 
     protected function initializeContainer(): void
     {
+        if (self::$sharedContainer !== null) {
+            $this->container = self::$sharedContainer;
+
+            return;
+        }
+
         $this->container = new Container;
         Facade::setFacadeApplication($this->container);
+        self::$sharedContainer = $this->container;
+    }
+
+    /**
+     * Ensure services are initialized (lazy loading)
+     */
+    protected function ensureServicesInitialized(): void
+    {
+        if (! $this->servicesInitialized) {
+            $this->initializeServices();
+            $this->servicesInitialized = true;
+        }
+    }
+
+    /**
+     * Public method to boot services when needed
+     */
+    public function bootServices(): void
+    {
+        $this->ensureServicesInitialized();
     }
 
     protected function initializeServices(): void
@@ -213,24 +313,40 @@ class EloquentDatabase
         $this->registerDatabaseService();
         $this->registerEventDispatcher();
         $this->registerHashService();
-        $this->registerObservers();
+        $this->prepareObservers(); // Changed to prepare instead of register
         $this->registerPaginationRenderer();
         $this->configurePagination();
     }
 
-    protected function registerObservers(): void
+    /**
+     * Prepare observers for lazy registration (performance optimization)
+     */
+    protected function prepareObservers(): void
     {
         if (self::$observersRegistered) {
             return;
         }
 
-        $observersConfig = config('Observers');
+        $observersConfig = $this->getObserversConfig();
         if ($observersConfig) {
+            $this->pendingObservers = (array) $observersConfig;
             $this->registerManualObservers($observersConfig);
-            $this->registerAttributeObservers($observersConfig);
         }
 
         self::$observersRegistered = true;
+    }
+
+    /**
+     * Register observers for a specific model (lazy loading)
+     */
+    public function registerObserversForModel(string $modelClass): void
+    {
+        if (in_array($modelClass, $this->processedModels) || empty($this->pendingObservers)) {
+            return;
+        }
+
+        $this->processModelAttributes($modelClass);
+        $this->processedModels[] = $modelClass;
     }
 
     protected function registerManualObservers(object $config): void
@@ -240,43 +356,74 @@ class EloquentDatabase
         }
     }
 
-    protected function registerAttributeObservers(object $config): void
+    /**
+     * Register attribute observers (called when needed, not upfront)
+     */
+    protected function registerAttributeObservers(): void
     {
-        if (! property_exists($config, 'useAttributes') || ! $config->useAttributes) {
+        $observersConfig = $this->getObserversConfig();
+        if (! $observersConfig || ! property_exists($observersConfig, 'useAttributes') || ! $observersConfig->useAttributes) {
             return;
         }
 
         foreach ($this->getEloquentModels() as $modelClass) {
-            $this->processModelAttributes($modelClass);
+            $this->registerObserversForModel($modelClass);
         }
     }
 
+    /**
+     * Optimized model discovery with APCu caching
+     */
     protected function getEloquentModels(): array
     {
-        if (self::$eloquentModels !== null) {
-            return self::$eloquentModels;
+        if (self::$eloquentModelsCache !== null) {
+            return self::$eloquentModelsCache;
         }
 
-        $modelPath = APPPATH . 'Models/';
-        if (! is_dir($modelPath)) {
-            return self::$eloquentModels = [];
-        }
-
-        $iterator = new \DirectoryIterator($modelPath);
-        $models = [];
-
-        foreach ($iterator as $file) {
-            if (! $file->isFile() || $file->getExtension() !== 'php') {
-                continue;
+        // Try APCu cache first (production only)
+        $cacheKey = 'eloquent_models_'.md5(APPPATH.filemtime(APPPATH.'Models'));
+        if (function_exists('apcu_fetch') && ENVIRONMENT === 'production') {
+            $cached = apcu_fetch($cacheKey);
+            if ($cached !== false) {
+                return self::$eloquentModelsCache = $cached;
             }
+        }
 
-            $modelClass = $this->getModelClassFromFile($file->getPathname());
+        $models = $this->discoverModels();
+
+        // Cache the results in APCu (production only)
+        if (function_exists('apcu_store') && ENVIRONMENT === 'production') {
+            apcu_store($cacheKey, $models, 3600);
+        }
+
+        return self::$eloquentModelsCache = $models;
+    }
+
+    /**
+     * Optimized model discovery using glob
+     */
+    private function discoverModels(): array
+    {
+        $modelPath = APPPATH.'Models/';
+        if (! is_dir($modelPath)) {
+            return [];
+        }
+
+        // Use glob for better performance than DirectoryIterator
+        $files = glob($modelPath.'*.php');
+        if ($files === false) {
+            return [];
+        }
+
+        $models = [];
+        foreach ($files as $file) {
+            $modelClass = $this->getModelClassFromFile($file);
             if ($this->isValidEloquentModel($modelClass)) {
                 $models[] = $modelClass;
             }
         }
 
-        return self::$eloquentModels = $models;
+        return $models;
     }
 
     protected function getModelClassFromFile(string $file): string
@@ -288,20 +435,21 @@ class EloquentDatabase
 
     protected function isValidEloquentModel(string $class): bool
     {
-        return class_exists($class, false) &&
-            is_subclass_of($class, Model::class, false);
+        return class_exists($class, false) && is_subclass_of($class, Model::class, false);
     }
 
     protected function processModelAttributes(string $modelClass): void
     {
+        if (! class_exists($modelClass)) {
+            return;
+        }
+
         $reflection = new \ReflectionClass($modelClass);
         $attributes = $reflection->getAttributes(\Rcalicdan\Ci4Larabridge\Attributes\ObservedBy::class);
 
         foreach ($attributes as $attribute) {
             $this->registerObserversFromAttribute($modelClass, $attribute);
         }
-
-        unset($reflection);
     }
 
     protected function registerObserversFromAttribute(string $modelClass, \ReflectionAttribute $attribute): void
@@ -339,19 +487,19 @@ class EloquentDatabase
 
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
     }
 
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn($app) => new HashManager($app));
+        $this->container->singleton('hash', fn ($app) => new HashManager($app));
     }
 
     protected function registerPaginationRenderer(): void
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn() => new PaginationRenderer
+            fn () => new PaginationRenderer
         );
         $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
@@ -370,28 +518,78 @@ class EloquentDatabase
         Paginator::$defaultView = $paginationConfig->defaultView;
         Paginator::$defaultSimpleView = $paginationConfig->defaultSimpleView;
 
+        $container = $this->container;
         Paginator::viewFactoryResolver(
-            fn() => $this->container->get('paginator.renderer')
+            fn () => $container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
-            fn($pageName = 'page') => ($page = $request->getVar($pageName))
-                && filter_var($page, FILTER_VALIDATE_INT)
-                && (int) $page >= 1
-                ? (int) $page
-                : 1
+            function ($pageName = 'page') use ($request) {
+                $page = $request->getVar($pageName);
+
+                return $page
+                    && filter_var($page, FILTER_VALIDATE_INT) !== false
+                    && (int) $page >= 1
+                    ? (int) $page
+                    : 1;
+            }
         );
 
-        Paginator::currentPathResolver(fn() => current_url());
-        Paginator::queryStringResolver(fn() => $uri->getQuery());
+        Paginator::currentPathResolver(fn () => current_url());
+        Paginator::queryStringResolver(fn () => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
-            fn($cursorName = 'cursor') => Cursor::fromEncoded($request->getVar($cursorName))
+            function ($cursorName = 'cursor') use ($request) {
+                $cursor = $request->getVar($cursorName);
+
+                return $cursor ? Cursor::fromEncoded($cursor) : null;
+            }
         );
+    }
+
+    /**
+     * Force registration of all observers (for backward compatibility)
+     */
+    public function forceRegisterAllObservers(): void
+    {
+        $this->ensureServicesInitialized();
+        $this->registerAttributeObservers();
+    }
+
+    /**
+     * Clear all caches (useful for development)
+     */
+    public static function clearCaches(): void
+    {
+        self::$configCache = [];
+        self::$envCache = [];
+        self::$databaseConfigCache = [];
+        self::$eloquentModelsCache = null;
+        self::$pdoOptionsCache = null;
+
+        if (function_exists('apcu_clear_cache')) {
+            apcu_clear_cache();
+        }
+    }
+
+    /**
+     * Get current cache status (for debugging)
+     */
+    public static function getCacheStatus(): array
+    {
+        return [
+            'config_cache_count' => count(self::$configCache),
+            'env_cache_count' => count(self::$envCache),
+            'database_config_cache_count' => count(self::$databaseConfigCache),
+            'models_cached' => self::$eloquentModelsCache !== null,
+            'pdo_options_cached' => self::$pdoOptionsCache !== null,
+            'shared_container' => self::$sharedContainer !== null,
+            'shared_capsule' => self::$sharedCapsule !== null,
+        ];
     }
 
     public function __destruct()
     {
-        unset($this->container, $this->capsule);
+        unset($this->sqliteHandler);
     }
 }
