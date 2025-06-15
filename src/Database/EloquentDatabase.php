@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Facade;
 use PDO;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\SqliteHandler;
-use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
+use Config\Pagination as PaginationConfig;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.

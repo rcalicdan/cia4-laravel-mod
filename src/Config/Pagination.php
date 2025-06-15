@@ -1,6 +1,6 @@
 <?php
 
-namespace Rcalicdan\Ci4Larabridge\Config;
+namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
 
