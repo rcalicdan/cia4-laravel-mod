@@ -22,7 +22,7 @@ use Rcalicdan\Ci4Larabridge\Config\Pagination as PaginationConfig;
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
  * Optimized for performance with caching and lazy loading.
  */
-final class EloquentDatabase
+class EloquentDatabase
 {
     protected Container $container;
     protected Capsule $capsule;
@@ -462,7 +462,7 @@ final class EloquentDatabase
         }
 
         // Try APCu cache first (production only)
-        $cacheKey = 'eloquent_models_'.md5(APPPATH.filemtime(APPPATH.'Models'));
+        $cacheKey = 'eloquent_models_' . md5(APPPATH . filemtime(APPPATH . 'Models'));
         if (function_exists('apcu_fetch') && ENVIRONMENT === 'production') {
             $cached = apcu_fetch($cacheKey);
             if ($cached !== false) {
@@ -485,13 +485,13 @@ final class EloquentDatabase
      */
     private function discoverModels(): array
     {
-        $modelPath = APPPATH.'Models/';
+        $modelPath = APPPATH . 'Models/';
         if (! is_dir($modelPath)) {
             return [];
         }
 
         // Use glob for better performance than DirectoryIterator
-        $files = glob($modelPath.'*.php');
+        $files = glob($modelPath . '*.php');
         if ($files === false) {
             return [];
         }
@@ -568,19 +568,19 @@ final class EloquentDatabase
 
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
     }
 
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn ($app) => new HashManager($app));
+        $this->container->singleton('hash', fn($app) => new HashManager($app));
     }
 
     protected function registerPaginationRenderer(): void
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn () => new PaginationRenderer
+            fn() => new PaginationRenderer
         );
         $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
@@ -601,7 +601,7 @@ final class EloquentDatabase
 
         $container = $this->container;
         Paginator::viewFactoryResolver(
-            fn () => $container->get('paginator.renderer')
+            fn() => $container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
@@ -616,8 +616,8 @@ final class EloquentDatabase
             }
         );
 
-        Paginator::currentPathResolver(fn () => current_url());
-        Paginator::queryStringResolver(fn () => $uri->getQuery());
+        Paginator::currentPathResolver(fn() => current_url());
+        Paginator::queryStringResolver(fn() => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
             function ($cursorName = 'cursor') use ($request) {
