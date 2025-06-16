@@ -217,7 +217,7 @@ class EloquentDatabase
             PDO::ATTR_STRINGIFY_FETCHES => false,
             PDO::ATTR_EMULATE_PREPARES => (ENVIRONMENT === 'development'),
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_PERSISTENT => $this->env('DB_PERSISTENT', $this->env('database.default.persistent', true)),
+            PDO::ATTR_PERSISTENT => $this->env('DB_PERSISTENT', $this->env('database.default.persistent', false)),
         ];
     }
 
