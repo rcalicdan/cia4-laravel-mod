@@ -32,6 +32,13 @@ class BladeViewRenderer
     protected $data = [];
 
     /**
+     * Fragment names to render
+     *
+     * @var array
+     */
+    protected $fragments = [];
+
+    /**
      * Class constructor
      *
      * Initializes the Blade service instance
@@ -68,6 +75,38 @@ class BladeViewRenderer
     }
 
     /**
+     * Set specific fragments to render
+     *
+     * @param  string|array  $fragments  Fragment name(s) to render
+     * @return self Returns instance for method chaining
+     */
+    public function fragment($fragments)
+    {
+        $this->fragments = is_array($fragments) ? $fragments : [$fragments];
+
+        return $this;
+    }
+
+    /**
+     * Set fragments to render based on a condition
+     *
+     * @param  bool  $condition  The condition to check
+     * @param  string|array  $fragments  Fragment name(s) to render if condition is true
+     * @param  string|array|null  $fallback  Fragment name(s) to render if condition is false
+     * @return self Returns instance for method chaining
+     */
+    public function fragmentIf(bool $condition, $fragments, $fallback = null)
+    {
+        if ($condition) {
+            $this->fragments = is_array($fragments) ? $fragments : [$fragments];
+        } elseif ($fallback !== null) {
+            $this->fragments = is_array($fallback) ? $fallback : [$fallback];
+        }
+
+        return $this;
+    }
+
+    /**
      * Render the Blade template
      *
      * @return string Rendered template output
@@ -80,10 +119,42 @@ class BladeViewRenderer
             throw new \InvalidArgumentException('No view has been specified');
         }
 
+        if (!empty($this->fragments)) {
+            $this->data['__fragments'] = $this->fragments;
+        }
+
         $output = $this->blade->render($this->view, $this->data);
+
+        if (!empty($this->fragments)) {
+            $output = $this->extractFragments($output, $this->fragments);
+        }
+
         $this->data = [];
+        $this->fragments = [];
 
         return $output;
+    }
+
+    /**
+     * Extract specific fragments from rendered output
+     *
+     * @param  string  $output  The full rendered output
+     * @param  array  $fragments  Array of fragment names to extract
+     * @return string The extracted fragments
+     */
+    protected function extractFragments(string $output, array $fragments): string
+    {
+        $extractedContent = '';
+
+        foreach ($fragments as $fragment) {
+            $pattern = '/<!--\s*fragment\s*:\s*' . preg_quote($fragment, '/') . '\s*-->(.*?)<!--\s*endfragment\s*:\s*' . preg_quote($fragment, '/') . '\s*-->/s';
+
+            if (preg_match($pattern, $output, $matches)) {
+                $extractedContent .= trim($matches[1]);
+            }
+        }
+
+        return $extractedContent ?: $output;
     }
 
     /**
