@@ -80,19 +80,4 @@ trait HasPasswordReset
 
         return $updated;
     }
-
-    /**
-     * Check if user can request password reset (throttling)
-     */
-    public function canRequestPasswordReset(): bool
-    {
-        if (! $this->password_reset_created_at) {
-            return true;
-        }
-
-        $config = config('Ci4Larabridge');
-        $throttleTime = $config->passwordReset['throttle'] ?? 60;
-
-        return Carbon::now()->diffInSeconds($this->password_reset_created_at) >= $throttleTime;
-    }
 }
