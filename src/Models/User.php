@@ -2,15 +2,17 @@
 
 namespace Rcalicdan\Ci4Larabridge\Models;
 
+use Rcalicdan\Ci4Larabridge\Traits\Authentication\Authenticable;
 use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasEmailVerification;
 use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasPasswordReset;
 use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasRememberToken;
 
 class User extends Model
 {
-    use HasEmailVerification;
-    use HasPasswordReset;
-    use HasRememberToken;
+    use HasEmailVerification,
+        HasPasswordReset,
+        HasRememberToken,
+        Authenticable;
 
     protected $table = 'users';
 
