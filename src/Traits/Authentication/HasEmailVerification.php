@@ -14,7 +14,7 @@ trait HasEmailVerification
      */
     public function hasVerifiedEmail(): bool
     {
-        return ! is_null($this->email_verified_at);
+        return $this->email_verified_at !== null;
     }
 
     /**
