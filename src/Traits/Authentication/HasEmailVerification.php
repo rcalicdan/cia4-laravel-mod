@@ -73,10 +73,7 @@ trait HasEmailVerification
     public function resendEmailVerification(): string
     {
         if ($this->hasVerifiedEmail()) {
-            // Depending on desired behavior, could return false, throw exception, or be silent.
-            // For now, let's prevent generating a new token if already verified.
-            // Consider if a specific response or exception is better here.
-            return ''; // Or throw new \Exception('Email is already verified');
+            return ''; // prevent generating a new token if already verified.;
         }
 
         return $this->generateEmailVerificationToken();
