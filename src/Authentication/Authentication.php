@@ -4,6 +4,7 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use Config\Services;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Rcalicdan\Ci4Larabridge\Exceptions\UnverifiedEmailException;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 
@@ -125,10 +126,9 @@ class Authentication
         $user = $this->findUserByEmail($email);
 
         if (! $user) {
-            return true; // Don't reveal if email exists
+            return true;
         }
 
-        // The generatePasswordResetToken method in HasPasswordReset trait now handles token creation in the new table
         $token = $user->generatePasswordResetToken();
 
         return $this->emailHandler->sendPasswordResetEmail($user, $token);
@@ -145,8 +145,8 @@ class Authentication
             return false;
         }
 
-        $user->update(['password' => $password]); // Assumes User model has HashedPasswordTrait or similar for password hashing
-        $user->clearPasswordResetToken(); // This now clears from password_reset_tokens table via HasPasswordReset trait
+        $user->update(['password' => $password]);
+        $user->clearPasswordResetToken();
 
         return true;
     }
@@ -160,8 +160,6 @@ class Authentication
             return true;
         }
 
-        // The generateEmailVerificationToken method in HasEmailVerification trait
-        // now handles token creation in the new email_verification_tokens table.
         $token = $user->generateEmailVerificationToken();
 
         return $this->emailHandler->sendVerificationEmail($user, $token);
@@ -197,8 +195,6 @@ class Authentication
         return $this->rememberTokenHandler;
     }
 
-    // Protected helper methods
-
     protected function findUserByCredentials(array $credentials): ?object
     {
         $model = $this->userModel;
@@ -216,20 +212,18 @@ class Authentication
     protected function findUserByResetToken(string $token): ?object
     {
         $hashedToken = hash('sha256', $token);
-
-        // Use the getPasswordResetTokenData from the User model's trait (statically)
-        // assuming your User model uses the HasPasswordReset trait.
         $tokenData = $this->userModel::getPasswordResetTokenData($hashedToken);
 
         if (! $tokenData) {
             return null;
         }
 
-        // Check if the token has expired
         $expiresAt = Carbon::parse($tokenData->created_at)->addSeconds($this->config->passwordReset['tokenExpiry']);
         if (Carbon::now()->isAfter($expiresAt)) {
-            // Optionally, delete the expired token
-            // DB::table('password_reset_tokens')->where('token', $hashedToken)->delete();
+            DB::table('password_reset_tokens')
+                ->where('token', $hashedToken)
+                ->delete();
+
             return null;
         }
 
@@ -240,17 +234,17 @@ class Authentication
     {
         $hashedToken = hash('sha256', $token);
 
-        // Use the getEmailVerificationTokenData from the User model's trait
         $tokenData = $this->userModel::getEmailVerificationTokenData($hashedToken);
 
         if (! $tokenData) {
             return null;
         }
 
-        // Check if the token has expired
         if (Carbon::now()->isAfter(Carbon::parse($tokenData->expires_at))) {
-            // Optionally, delete the expired token from email_verification_tokens table
-            // DB::table('email_verification_tokens')->where('token', $hashedToken)->delete();
+            DB::table('email_verification_tokens')
+                ->where('token', $hashedToken)
+                ->delete();
+
             return null;
         }
 
