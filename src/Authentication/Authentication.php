@@ -26,7 +26,9 @@ class Authentication
         $this->rememberTokenHandler = new RememberTokenHandler($this->config, $this->userModel);
 
         // Check for remember me token on construction
-        $this->checkRememberToken();
+        if (!$this->session->get('auth_user_id')) {
+            $this->checkRememberToken();
+        }
     }
 
     /**
