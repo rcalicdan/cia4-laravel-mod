@@ -39,7 +39,7 @@ class EmailHandler
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Password reset email failed: '.$e->getMessage());
+            log_message('error', 'Password reset email failed: ' . $e->getMessage());
 
             return false;
         }
@@ -66,7 +66,7 @@ class EmailHandler
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Email verification failed: '.$e->getMessage());
+            log_message('error', 'Email verification failed: ' . $e->getMessage());
 
             return false;
         }
@@ -79,11 +79,12 @@ class EmailHandler
     {
         $this->email->clear();
         $this->email->setFrom(
-            $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
+            $this->config->email['fromEmail'] ?? 'noreply@' . $_SERVER['HTTP_HOST'],
             $this->config->email['fromName'] ?? 'Your Application'
         );
         $this->email->setTo($to);
         $this->email->setSubject($subject);
+        $this->email->setMailType('html');
 
         $emailBody = view($viewPath, $data);
         $this->email->setMessage($emailBody);
