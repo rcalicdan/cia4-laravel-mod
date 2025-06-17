@@ -19,19 +19,12 @@ return new class extends Migration
 
             // Email verification
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('email_verification_token')->nullable();
-            $table->timestamp('email_verification_expires_at')->nullable();
 
             // Password reset
-            $table->string('password_reset_token')->nullable();
-            $table->timestamp('password_reset_expires_at')->nullable();
-            $table->timestamp('password_reset_created_at')->nullable();
 
             // Remember me
             $table->string('remember_token')->nullable();
 
-            $table->index(['email_verification_token']);
-            $table->index(['password_reset_token']);
             $table->index(['remember_token']);
             $table->index(['email_verified_at']);
             $table->timestamps();

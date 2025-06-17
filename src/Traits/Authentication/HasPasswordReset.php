@@ -3,81 +3,50 @@
 namespace Rcalicdan\Ci4Larabridge\Traits\Authentication;
 
 use Carbon\Carbon;
-use Config\Services;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 trait HasPasswordReset
 {
     /**
-     * Generate password reset token
+     * Generate a password reset token and store it in the password_reset_tokens table.
+     *
+     * @return string The plain text token.
      */
     public function generatePasswordResetToken(): string
     {
         $token = Str::random(60);
-        $config = Services::config('LarabridgeAuthentication');
 
-        $this->update([
-            'password_reset_token' => hash('sha256', $token),
-            'password_reset_expires_at' => Carbon::now()->addSeconds($config->passwordReset['tokenExpiry']),
-            'password_reset_created_at' => Carbon::now(),
+        // Remove existing tokens for this email
+        $this->clearPasswordResetToken();
+
+        DB::table('password_reset_tokens')->insert([
+            'email' => $this->email,
+            'token' => hash('sha256', $token),
+            'created_at' => Carbon::now(),
         ]);
 
         return $token;
     }
 
     /**
-     * Clear password reset token
+     * Clear the password reset token from the password_reset_tokens table.
+     *
+     * @return bool True if the token was cleared or did not exist.
      */
     public function clearPasswordResetToken(): bool
     {
-        return $this->update([
-            'password_reset_token' => null,
-            'password_reset_expires_at' => null,
-            'password_reset_created_at' => null,
-        ]);
+        return DB::table('password_reset_tokens')->where('email', $this->email)->delete() > 0;
     }
 
     /**
-     * Check if password reset token is expired
+     * Get password reset token data from the password_reset_tokens table.
+     *
+     * @param string $token The plain text token to look up.
+     * @return object|null The token data (email, token, created_at) or null if not found.
      */
-    public function isPasswordResetTokenExpired(): bool
+    public static function getPasswordResetTokenData(string $hashedToken): ?object
     {
-        if (! $this->password_reset_expires_at) {
-            return true;
-        }
-
-        return Carbon::now()->isAfter($this->password_reset_expires_at);
-    }
-
-    /**
-     * Check if password reset token is valid
-     */
-    public function isValidPasswordResetToken(string $token): bool
-    {
-        if (! $this->password_reset_token || $this->isPasswordResetTokenExpired()) {
-            return false;
-        }
-
-        return hash_equals($this->password_reset_token, hash('sha256', $token));
-    }
-
-    /**
-     * Reset password with token validation
-     */
-    public function resetPasswordWithToken(string $token, string $newPassword): bool
-    {
-        if (! $this->isValidPasswordResetToken($token)) {
-            return false;
-        }
-
-        $updated = $this->update([
-            'password' => $newPassword,
-        ]);
-
-        if ($updated) {
-            $this->clearPasswordResetToken();
-        }
-
-        return $updated;
+        return DB::table('password_reset_tokens')->where('token', $hashedToken)->first();
     }
 }
