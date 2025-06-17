@@ -16,18 +16,27 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-
-            // Email verification
             $table->timestamp('email_verified_at')->nullable();
-
-            // Password reset
-
-            // Remember me
             $table->string('remember_token')->nullable();
+            $table->timestamps();
 
             $table->index(['remember_token']);
             $table->index(['email_verified_at']);
-            $table->timestamps();
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('email_verification_tokens', function (Blueprint $table) {
+            $table->string('email');
+            $table->string('token')->unique();
+            $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('expires_at');
+
+            $table->index('email');
         });
     }
 
@@ -37,5 +46,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('users');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('email_verification_tokens');
     }
 };
