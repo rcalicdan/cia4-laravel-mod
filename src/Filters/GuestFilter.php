@@ -11,8 +11,10 @@ class GuestFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
+        $authConfig = config('LarabridgeAuthentication');
+
         if (Auth::check()) {
-            return redirect()->to('/dashboard');
+            return redirect()->to($authConfig->filterLoginGuestRedirect ?? '/');
         }
     }
 

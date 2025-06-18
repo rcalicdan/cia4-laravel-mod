@@ -45,6 +45,9 @@ class Authentication
     /**
      * Get the currently authenticated user
      */
+    /**
+     * Get the currently authenticated user
+     */
     public function user(): ?\Illuminate\Database\Eloquent\Model
     {
         if ($this->user !== null) {
@@ -52,11 +55,21 @@ class Authentication
         }
 
         $userId = $this->session->get('auth_user_id');
-        if (! $userId) {
+        if (!$userId) {
             return null;
         }
 
+        $userData = $this->session->get('auth_user_data');
+        if ($userData && $userData['id'] == $userId) {
+            $this->user = $this->userModel::hydrate([$userData])->first();
+            return $this->user;
+        }
+
         $this->user = $this->userModel::find($userId);
+
+        if ($this->user) {
+            $this->session->set('auth_user_data', $this->user->toArray());
+        }
 
         return $this->user;
     }

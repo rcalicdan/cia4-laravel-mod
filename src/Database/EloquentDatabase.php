@@ -556,6 +556,8 @@ class EloquentDatabase
 
     protected function registerConfigService(): void
     {
+        $authConfig = config('LarabridgeAuthentication');
+        
         $this->container->singleton('config', function () {
             return new Repository([
                 'hashing' => [

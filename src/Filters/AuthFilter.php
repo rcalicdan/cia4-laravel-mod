@@ -11,8 +11,10 @@ class AuthFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
+        $authConfig = config('LarabridgeAuthentication');
+
         if (Auth::guest()) {
-            return redirect()->to('/login')->with('error', 'You must be logged in to access this page');
+            return redirect()->to($authConfig->filterLoginAuthRedirect ?? '/login')->with('error', 'You must be logged in to access this page');
         }
     }
 

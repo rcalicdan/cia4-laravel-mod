@@ -22,12 +22,12 @@ class EmailVerificationFilter implements FilterInterface
         }
 
         if (Auth::guest()) {
-            return redirect()->to($config->loginUrl);
+            return redirect()->to($config->filterLoginAuthRedirect ?? '/login');
         }
 
         $user = Auth::user();
         if (! $user->hasVerifiedEmail()) {
-            return redirect()->to($config->verificationUrl ?? self::EMAIL_VERIFICATION_URL)
+            return redirect()->to($config->emailVerificationRedirectUrl ?? self::EMAIL_VERIFICATION_URL)
                 ->with('error', 'Please verify your email address')
             ;
         }
