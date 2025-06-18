@@ -79,11 +79,23 @@ class LarabridgeAuthentication extends BaseConfig
     ];
 
     /**
-     * Security settings
+     * Password hashing settings
      */
     public array $passwordHash = [
         'driver' => 'bcrypt',
-        'round' => 10,
+        'bcrypt' => [
+            'rounds' => 12,
+        ],
+        'argon2i' => [
+            'memory' => 65536,
+            'time' => 4,
+            'threads' => 3,
+        ],
+        'argon2id' => [
+            'memory' => 65536,
+            'time' => 4,
+            'threads' => 3,
+        ],
     ];
 
     /**

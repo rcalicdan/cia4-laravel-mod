@@ -3,6 +3,7 @@
 namespace Rcalicdan\Ci4Larabridge\Database;
 
 use Config\Eloquent;
+use Config\LarabridgeAuthentication;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -556,14 +557,41 @@ class EloquentDatabase
 
     protected function registerConfigService(): void
     {
-        $authConfig = config('LarabridgeAuthentication');
-        
-        $this->container->singleton('config', function () {
-            return new Repository([
-                'hashing' => [
-                    'driver' => 'bcrypt',
-                    'bcrypt' => ['rounds' => 10],
+        $authConfig = config(LarabridgeAuthentication::class);
+
+        $this->container->singleton('config', function () use ($authConfig) {
+            $hashConfig = $authConfig->passwordHash;
+            $driver = $hashConfig['driver'] ?? 'bcrypt';
+
+            $driverConfig = match ($driver) {
+                'bcrypt' => [
+                    'bcrypt' => [
+                        'rounds' => $hashConfig['bcrypt']['rounds'] ?? 12,
+                    ],
                 ],
+                'argon2i' => [
+                    'argon2i' => [
+                        'memory' => $hashConfig['argon2i']['memory'] ?? 65536,
+                        'time' => $hashConfig['argon2i']['time'] ?? 4,
+                        'threads' => $hashConfig['argon2i']['threads'] ?? 3,
+                    ],
+                ],
+                'argon2id' => [
+                    'argon2id' => [
+                        'memory' => $hashConfig['argon2id']['memory'] ?? 65536,
+                        'time' => $hashConfig['argon2id']['time'] ?? 4,
+                        'threads' => $hashConfig['argon2id']['threads'] ?? 3,
+                    ],
+                ],
+                default => [
+                    'bcrypt' => [
+                        'rounds' => 12,
+                    ],
+                ],
+            };
+
+            return new Repository([
+                'hashing' => array_merge(['driver' => $driver], $driverConfig),
             ]);
         });
     }
