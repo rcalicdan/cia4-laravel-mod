@@ -492,7 +492,7 @@ class EloquentDatabase
         }
 
         // Use glob for better performance than DirectoryIterator
-        $files = glob($modelPath . '*.php');
+        $files = glob("$modelPath*.php");
         if ($files === false) {
             return [];
         }
