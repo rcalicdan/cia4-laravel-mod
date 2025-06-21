@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -149,19 +150,19 @@
             body {
                 padding: 10px;
             }
-            
+
             .email-header {
                 padding: 30px 20px;
             }
-            
+
             .email-header h1 {
                 font-size: 24px;
             }
-            
+
             .email-body {
                 padding: 30px 20px;
             }
-            
+
             .verify-button {
                 display: block;
                 width: 100%;
@@ -170,6 +171,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="email-container">
         <div class="email-header">
@@ -179,33 +181,34 @@
             <h1>Verify Your Email</h1>
             <p>Complete your account setup</p>
         </div>
-        
+
         <div class="email-body">
             <div class="greeting">
-                Hello {{ $user->name ?? 'there' }}!
+                Hello <?= esc($user->name ?? 'there') ?>!
             </div>
-            
+
             <div class="message">
                 Thank you for creating an account with us. To complete your registration and secure your account, please verify your email address by clicking the button below.
             </div>
-            
+
             <div class="button-container">
-                <a href="{{ $verificationUrl }}" class="verify-button">
+                <a href="<?= esc($verificationUrl) ?>" class="verify-button">
+
                     Verify Email Address
                 </a>
             </div>
-            
+
             <div class="expiry-notice">
-                <strong>⏰ This verification link will expire in {{ $expiry }} hours.</strong>
+                <strong>⏰ This verification link will expire in <?= $expiry ?> hours.</strong>
             </div>
-            
+
             <div class="alternative-text">
                 If the button above doesn't work, you can copy and paste the following link into your browser:
                 <br><br>
-                <a href="{{ $verificationUrl }}" class="alternative-link">{{ $verificationUrl }}</a>
+                <a href="<?= esc($verificationUrl) ?>" class="alternative-link"><?= esc($verificationUrl) ?></a>
             </div>
         </div>
-        
+
         <div class="email-footer">
             <div class="footer-text">
                 If you didn't create an account with us, you can safely ignore this email.
@@ -216,4 +219,5 @@
         </div>
     </div>
 </body>
+
 </html>

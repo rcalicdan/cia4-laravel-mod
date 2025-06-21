@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -159,19 +160,19 @@
             body {
                 padding: 10px;
             }
-            
+
             .email-header {
                 padding: 30px 20px;
             }
-            
+
             .email-header h1 {
                 font-size: 24px;
             }
-            
+
             .email-body {
                 padding: 30px 20px;
             }
-            
+
             .reset-button {
                 display: block;
                 width: 100%;
@@ -180,6 +181,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="email-container">
         <div class="email-header">
@@ -189,40 +191,41 @@
             <h1>Reset Password</h1>
             <p>Secure your account</p>
         </div>
-        
+
         <div class="email-body">
             <div class="greeting">
-                Hello {{ $user->name ?? 'there' }}!
+                Hello <?= esc($user->name ?? 'there') ?>!
             </div>
-            
+
             <div class="message">
                 We received a request to reset your password. Click the button below to create a new password for your account.
             </div>
-            
+
             <div class="button-container">
-                <a href="{{ $resetUrl }}" class="reset-button">
+                <a href="<?= $resetUrl ?>" class="reset-button">
                     Reset My Password
                 </a>
             </div>
-            
+
             <div class="expiry-notice">
-                <strong>⏰ This password reset link will expire in {{ $expiry }} hours.</strong>
+                <strong>⏰ This password reset link will expire in <?= $expiry ?> hours.</strong>
             </div>
-            
+
             <div class="security-notice">
                 <strong>🛡️ Security Notice:</strong> If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
             </div>
-            
+
             <div class="alternative-text">
                 If the button above doesn't work, you can copy and paste the following link into your browser:
                 <br><br>
-                <a href="{{ $resetUrl }}" class="alternative-link">{{ $resetUrl }}</a>
+                <a href="<?= esc($resetUrl) ?>" class="alternative-link"><?= esc($resetUrl) ?></a>
+
             </div>
         </div>
-        
+
         <div class="email-footer">
             <div class="footer-text">
-                This password reset was requested from IP address: {{ $_SERVER['REMOTE_ADDR'] ?? 'Unknown' }}
+                This password reset was requested from IP address: <?= esc($ipAddress ?? 'Unknown') ?>
             </div>
             <div class="footer-text">
                 This is an automated message, please do not reply to this email.
@@ -230,4 +233,5 @@
         </div>
     </div>
 </body>
+
 </html>
