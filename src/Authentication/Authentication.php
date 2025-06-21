@@ -269,11 +269,13 @@ class Authentication
         return password_verify($password, $hashedPassword);
     }
 
-    protected function validateEmailVerification($user): void
+    protected function validateEmailVerification($user): bool
     {
         if ($this->config->emailVerification['required'] && ! $user->hasVerifiedEmail()) {
-            throw new UnverifiedEmailException('Email verification required');
+            return false;
         }
+
+        return true;
     }
 
     protected function setUserSession($user): void

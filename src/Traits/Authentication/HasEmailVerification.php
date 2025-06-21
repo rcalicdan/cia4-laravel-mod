@@ -39,7 +39,7 @@ trait HasEmailVerification
     public function generateEmailVerificationToken(): string
     {
         $token = Str::random(60);
-        $config = Services::config('LarabridgeAuthentication');
+        $config = config('LarabridgeAuthentication');
         $expiresAt = Carbon::now()->addSeconds($config->emailVerification['tokenExpiry']);
 
         // Remove existing tokens for this email to ensure only one active token exists
@@ -73,7 +73,7 @@ trait HasEmailVerification
     public function resendEmailVerification(): string
     {
         if ($this->hasVerifiedEmail()) {
-            return ''; // prevent generating a new token if already verified.;
+            return '';
         }
 
         return $this->generateEmailVerificationToken();
