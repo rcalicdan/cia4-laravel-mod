@@ -4,10 +4,11 @@ namespace Rcalicdan\Ci4Larabridge\Queue;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Laravel\SerializableClosure\SerializableClosure;
+use Rcalicdan\Ci4Larabridge\Queue\PendingDispatch;
+use Rcalicdan\Ci4Larabridge\Traits\Queue\Dispatchable;
 
 abstract class Job implements ShouldQueue
 {
@@ -30,10 +31,10 @@ abstract class Job implements ShouldQueue
 
     /**
      * Handle a job failure.
+     * Log the failure
      */
     public function failed(\Throwable $exception): void
     {
-        // Log the failure
         log_message('error', "Job failed: " . get_class($this) . " - " . $exception->getMessage());
     }
 
@@ -48,7 +49,7 @@ abstract class Job implements ShouldQueue
     /**
      * Create a new job instance with closure support
      */
-    public static function dispatchClosure(\Closure $closure, ...$arguments): \Illuminate\Foundation\Bus\PendingDispatch
+    public static function dispatchClosure(\Closure $closure, ...$arguments): PendingDispatch
     {
         return static::dispatch(new SerializableClosure($closure), ...$arguments);
     }
