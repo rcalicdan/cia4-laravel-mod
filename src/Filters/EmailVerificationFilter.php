@@ -5,8 +5,6 @@ namespace Rcalicdan\Ci4Larabridge\Filters;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use Config\LarabridgeAuthentication;
-use Config\Services;
 use Rcalicdan\Ci4Larabridge\Facades\Auth;
 
 class EmailVerificationFilter implements FilterInterface
@@ -15,19 +13,19 @@ class EmailVerificationFilter implements FilterInterface
 
     public function before(RequestInterface $request, $arguments = null)
     {
-        $config = Services::config(LarabridgeAuthentication::class);
+        $config = config('LarabridgeAuthentication');
 
         if (! $config->emailVerification['required']) {
             return;
         }
 
         if (Auth::guest()) {
-            return redirect()->to($config->loginUrl);
+            return redirect()->to(site_url($config->filterLoginAuthUrl ?? '/login'));
         }
 
         $user = Auth::user();
         if (! $user->hasVerifiedEmail()) {
-            return redirect()->to($config->verificationUrl ?? self::EMAIL_VERIFICATION_URL)
+            return redirect()->to($config->emailVerificationUrl ?? self::EMAIL_VERIFICATION_URL)
                 ->with('error', 'Please verify your email address')
             ;
         }

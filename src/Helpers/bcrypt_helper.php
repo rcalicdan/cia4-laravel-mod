@@ -15,13 +15,10 @@ if (! function_exists('bcrypt')) {
      */
     function bcrypt(string $value, array $options = []): string
     {
-        // Set default cost if not specified
         $cost = $options['cost'] ?? 10;
 
-        // Ensure cost is within acceptable range (4-31)
         $cost = max(4, min(31, $cost));
 
-        // Create bcrypt hash with specified cost
         $hash = password_hash($value, PASSWORD_BCRYPT, [
             'cost' => $cost,
         ]);

@@ -17,17 +17,17 @@ class LarabridgeAuthentication extends BaseConfig
     /**
      * Email Verification View Path
      */
-    public string $emailVerificationViewPath = AUTH_EMAIL_PATH.'email-verification.php';
+    public string $emailVerificationViewPath = 'emails/email-verification';
 
     /**
      * Password Reset View Path
      */
-    public string $passwordResetViewPath = AUTH_EMAIL_PATH.'password-reset.php';
+    public string $passwordResetViewPath = 'emails/password-reset';
 
     /**
      * Default redirect after login
      */
-    public string $loginRedirect = '/dashboard';
+    public string $filterLoginAuthRedirect = '/dashboard';
 
     /**
      * Default redirect after logout
@@ -37,7 +37,7 @@ class LarabridgeAuthentication extends BaseConfig
     /**
      * Login page URL
      */
-    public string $loginUrl = '/login';
+    public string $filterLoginAuthUrl = '/login';
 
     /**
      * Email Verfification page URL
@@ -79,11 +79,23 @@ class LarabridgeAuthentication extends BaseConfig
     ];
 
     /**
-     * Security settings
+     * Password hashing settings
      */
-    public array $security = [
-        'hashAlgorithm' => PASSWORD_ARGON2ID,
-        'requireEmailVerification' => true,
+    public array $passwordHash = [
+        'driver' => 'bcrypt',
+        'bcrypt' => [
+            'rounds' => 12,
+        ],
+        'argon2i' => [
+            'memory' => 65536,
+            'time' => 4,
+            'threads' => 3,
+        ],
+        'argon2id' => [
+            'memory' => 65536,
+            'time' => 4,
+            'threads' => 3,
+        ],
     ];
 
     /**

@@ -4,6 +4,7 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 
 use Config\Services;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Rcalicdan\Ci4Larabridge\Exceptions\UnverifiedEmailException;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 
@@ -44,6 +45,9 @@ class Authentication
     /**
      * Get the currently authenticated user
      */
+    /**
+     * Get the currently authenticated user
+     */
     public function user(): ?\Illuminate\Database\Eloquent\Model
     {
         if ($this->user !== null) {
@@ -51,11 +55,21 @@ class Authentication
         }
 
         $userId = $this->session->get('auth_user_id');
-        if (! $userId) {
+        if (!$userId) {
             return null;
         }
 
+        $userData = $this->session->get('auth_user_data');
+        if ($userData && $userData['id'] == $userId) {
+            $this->user = $this->userModel::hydrate([$userData])->first();
+            return $this->user;
+        }
+
         $this->user = $this->userModel::find($userId);
+
+        if ($this->user) {
+            $this->session->set('auth_user_data', $this->user->toArray());
+        }
 
         return $this->user;
     }
@@ -125,11 +139,10 @@ class Authentication
         $user = $this->findUserByEmail($email);
 
         if (! $user) {
-            return true; // Don't reveal if email exists
+            return true;
         }
 
         $token = $user->generatePasswordResetToken();
-        $user->update(['password_reset_created_at' => Carbon::now()]);
 
         return $this->emailHandler->sendPasswordResetEmail($user, $token);
     }
@@ -176,7 +189,7 @@ class Authentication
             return false;
         }
 
-        return $user->markEmailAsVerified();
+        return $user->markEmailAsVerified(); // This now also clears the token from the new table via the trait
     }
 
     /**
@@ -195,8 +208,6 @@ class Authentication
         return $this->rememberTokenHandler;
     }
 
-    // Protected helper methods
-
     protected function findUserByCredentials(array $credentials): ?object
     {
         $model = $this->userModel;
@@ -214,23 +225,43 @@ class Authentication
     protected function findUserByResetToken(string $token): ?object
     {
         $hashedToken = hash('sha256', $token);
-        $model = $this->userModel;
+        $tokenData = $this->userModel::getPasswordResetTokenData($hashedToken);
 
-        return $model::where('password_reset_token', $hashedToken)
-            ->where('password_reset_expires_at', '>', Carbon::now())
-            ->first()
-        ;
+        if (! $tokenData) {
+            return null;
+        }
+
+        $expiresAt = Carbon::parse($tokenData->created_at)->addSeconds($this->config->passwordReset['tokenExpiry']);
+        if (Carbon::now()->isAfter($expiresAt)) {
+            DB::table('password_reset_tokens')
+                ->where('token', $hashedToken)
+                ->delete();
+
+            return null;
+        }
+
+        return $this->findUserByEmail($tokenData->email);
     }
 
     protected function findUserByVerificationToken(string $token): ?object
     {
         $hashedToken = hash('sha256', $token);
-        $model = $this->userModel;
 
-        return $model::where('email_verification_token', $hashedToken)
-            ->where('email_verification_expires_at', '>', Carbon::now())
-            ->first()
-        ;
+        $tokenData = $this->userModel::getEmailVerificationTokenData($hashedToken);
+
+        if (! $tokenData) {
+            return null;
+        }
+
+        if (Carbon::now()->isAfter(Carbon::parse($tokenData->expires_at))) {
+            DB::table('email_verification_tokens')
+                ->where('token', $hashedToken)
+                ->delete();
+
+            return null;
+        }
+
+        return $this->findUserByEmail($tokenData->email);
     }
 
     protected function validatePassword(string $password, string $hashedPassword): bool
@@ -238,11 +269,13 @@ class Authentication
         return password_verify($password, $hashedPassword);
     }
 
-    protected function validateEmailVerification($user): void
+    protected function validateEmailVerification($user): bool
     {
         if ($this->config->emailVerification['required'] && ! $user->hasVerifiedEmail()) {
-            throw new UnverifiedEmailException('Email verification required');
+            return false;
         }
+
+        return true;
     }
 
     protected function setUserSession($user): void

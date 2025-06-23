@@ -26,8 +26,6 @@ class User extends Model
     protected $hidden = [
         'password',
         'remember_token',
-        'email_verification_token',
-        'password_reset_token',
     ];
 
     /**
@@ -38,9 +36,6 @@ class User extends Model
         return [
             'password' => 'hashed',
             'email_verified_at' => 'datetime',
-            'password_reset_expires_at' => 'datetime',
-            'email_verification_expires_at' => 'datetime',
-            'password_reset_created_at' => 'datetime',
         ];
     }
 }
