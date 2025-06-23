@@ -51,6 +51,7 @@
         "illuminate/queue": "^11.0",
         "illuminate/bus": "^11.0",
         "illuminate/redis": "^11.0",
+        "illuminate/support": "^11.0",
         "rcalicdan/blade": "^1.0"
     },
     "require-dev": {
