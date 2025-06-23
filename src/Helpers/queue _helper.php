@@ -4,13 +4,17 @@ if (!function_exists('dispatch')) {
     /**
      * Dispatch a job to the queue.
      */
-    function dispatch($job): \Illuminate\Foundation\Bus\PendingDispatch
+    function dispatch($job): \Rcalicdan\Ci4Larabridge\Queue\PendingDispatch
     {
         if ($job instanceof \Closure) {
             $job = new \Rcalicdan\Ci4Larabridge\Queue\CallQueuedClosure($job);
         }
 
-        return service('bus')->dispatch($job);
+        if (method_exists($job, 'dispatch')) {
+            return $job::dispatch();
+        }
+
+        return new \Rcalicdan\Ci4Larabridge\Queue\PendingDispatch($job);
     }
 }
 

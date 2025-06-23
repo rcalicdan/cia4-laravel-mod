@@ -3,11 +3,15 @@
 namespace Rcalicdan\Ci4Larabridge\Config;
 
 use CodeIgniter\Config\BaseService;
+use Illuminate\Queue\QueueManager;
 use Rcalicdan\Ci4Larabridge\Authentication\Gate;
 use Rcalicdan\Ci4Larabridge\Blade\BladeService;
 use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 use Rcalicdan\Ci4Larabridge\Providers\AuthServiceProvider;
+use Rcalicdan\Ci4Larabridge\Queue\BusService;
+use Rcalicdan\Ci4Larabridge\Queue\QueueService;
 use Rcalicdan\Ci4Larabridge\Validation\LaravelValidator;
+use Illuminate\Bus\Dispatcher as BusDispatcher;
 
 /**
  * Services Configuration file.
