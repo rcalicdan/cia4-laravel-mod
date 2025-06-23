@@ -78,29 +78,39 @@ class QueueService
         $isDefaultConnection = $connectionName === $this->getDefaultConnection();
 
         if ($isDefaultConnection) {
-            return array_merge($config, [
+            $mergeConfig = [
                 'driver' => $this->env('QUEUE_CONNECTION', $config['driver']),
-                'host' => $this->env('QUEUE_HOST', $config['host'] ?? 'localhost'),
-                'port' => $this->env('QUEUE_PORT', $config['port'] ?? null),
                 'queue' => $this->env('QUEUE_NAME', $config['queue'] ?? 'default'),
                 'table' => $this->env('QUEUE_TABLE', $config['table'] ?? 'jobs'),
                 'retry_after' => (int) $this->env('QUEUE_RETRY_AFTER', $config['retry_after'] ?? 90),
                 'block_for' => $this->env('QUEUE_BLOCK_FOR', $config['block_for'] ?? null),
                 'after_commit' => filter_var($this->env('QUEUE_AFTER_COMMIT', $config['after_commit'] ?? false), FILTER_VALIDATE_BOOLEAN),
+            ];
 
-                // Redis specific
-                'connection' => $this->env('QUEUE_REDIS_CONNECTION', $config['connection'] ?? 'default'),
+            $driver = $this->env('QUEUE_CONNECTION', $config['driver']);
 
-                // SQS specific
-                'key' => $this->env('AWS_ACCESS_KEY_ID', $this->env('QUEUE_SQS_KEY', $config['key'] ?? '')),
-                'secret' => $this->env('AWS_SECRET_ACCESS_KEY', $this->env('QUEUE_SQS_SECRET', $config['secret'] ?? '')),
-                'region' => $this->env('AWS_DEFAULT_REGION', $this->env('QUEUE_SQS_REGION', $config['region'] ?? 'us-east-1')),
-                'prefix' => $this->env('QUEUE_SQS_PREFIX', $config['prefix'] ?? ''),
-                'suffix' => $this->env('QUEUE_SQS_SUFFIX', $config['suffix'] ?? ''),
+            if ($driver === 'redis') {
+                $mergeConfig['host'] = $this->env('QUEUE_REDIS_HOST', $this->env('QUEUE_HOST', $config['host'] ?? 'localhost'));
+                $mergeConfig['port'] = $this->env('QUEUE_REDIS_PORT', $this->env('QUEUE_PORT', $config['port'] ?? 6379));
+                $mergeConfig['connection'] = $this->env('QUEUE_REDIS_CONNECTION', $config['connection'] ?? 'default');
+            } elseif ($driver === 'beanstalkd') {
+                $mergeConfig['host'] = $this->env('QUEUE_BEANSTALKD_HOST', $this->env('QUEUE_HOST', $config['host'] ?? 'localhost'));
+                $mergeConfig['port'] = $this->env('QUEUE_BEANSTALKD_PORT', $this->env('QUEUE_PORT', $config['port'] ?? 11300));
+            } elseif ($driver === 'sqs') {
+                $mergeConfig['key'] = $this->env('AWS_ACCESS_KEY_ID', $this->env('QUEUE_SQS_KEY', $config['key'] ?? ''));
+                $mergeConfig['secret'] = $this->env('AWS_SECRET_ACCESS_KEY', $this->env('QUEUE_SQS_SECRET', $config['secret'] ?? ''));
+                $mergeConfig['region'] = $this->env('AWS_DEFAULT_REGION', $this->env('QUEUE_SQS_REGION', $config['region'] ?? 'us-east-1'));
+                $mergeConfig['prefix'] = $this->env('QUEUE_SQS_PREFIX', $config['prefix'] ?? '');
+                $mergeConfig['suffix'] = $this->env('QUEUE_SQS_SUFFIX', $config['suffix'] ?? '');
+            } else {
+                $mergeConfig['host'] = $this->env('QUEUE_HOST', $config['host'] ?? 'localhost');
+                $mergeConfig['port'] = $this->env('QUEUE_PORT', $config['port'] ?? null);
+                if ($mergeConfig['port']) {
+                    $mergeConfig['port'] = (int) $mergeConfig['port'];
+                }
+            }
 
-                // Beanstalkd specific
-                'host' => $this->env('QUEUE_BEANSTALKD_HOST', $this->env('QUEUE_HOST', $config['host'] ?? 'localhost')),
-            ]);
+            return array_merge($config, $mergeConfig);
         }
 
         $upperConnection = strtoupper($connectionName);
