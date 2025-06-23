@@ -87,4 +87,52 @@ class Services extends BaseService
 
         return new BladeService;
     }
+
+    /**
+     * Returns an instance of the Queue Manager
+     */
+    public static function queue($getShared = true): QueueManager
+    {
+        if ($getShared) {
+            return static::getSharedInstance('queue');
+        }
+
+        return static::queueService()->getQueueManager();
+    }
+
+    /**
+     * Returns the Queue Service instance
+     */
+    public static function queueService($getShared = true): QueueService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('queueService');
+        }
+
+        return new QueueService();
+    }
+
+    /**
+     * Returns an instance of the Bus Dispatcher
+     */
+    public static function bus($getShared = true): BusDispatcher
+    {
+        if ($getShared) {
+            return static::getSharedInstance('bus');
+        }
+
+        return static::busService()->getBusDispatcher();
+    }
+
+    /**
+     * Returns the Bus Service instance
+     */
+    public static function busService($getShared = true): BusService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('busService');
+        }
+
+        return new BusService();
+    }
 }

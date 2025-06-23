@@ -25,7 +25,7 @@ use Config\Pagination as PaginationConfig;
  */
 class EloquentDatabase
 {
-    protected Container $container;
+    public Container $container;
     protected Capsule $capsule;
 
     /**
