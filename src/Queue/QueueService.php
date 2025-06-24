@@ -15,6 +15,7 @@ use Illuminate\Queue\Connectors\SqsConnector;
 use Illuminate\Queue\Failed\DatabaseFailedJobProvider;
 use Illuminate\Redis\RedisManager;
 use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
+use Rcalicdan\Ci4Larabridge\Exceptions\QueueExceptionHandler;
 
 class QueueService
 {
@@ -246,12 +247,6 @@ class QueueService
         $this->queueManager->addConnector('sqs', function () {
             return new SqsConnector();
         });
-
-        // Register connections with environment overrides
-        foreach ($this->config->connections as $name => $connection) {
-            $configWithOverrides = $this->getConnectionConfig($name);
-            $this->queueManager->addConnection($configWithOverrides, $name);
-        }
     }
 
     protected function getRedisManager(): RedisManager
@@ -293,9 +288,9 @@ class QueueService
         return new Worker(
             $this->queueManager,
             $this->container['events'],
-            $this->container['app.exception.handler'] ?? null,
+            new QueueExceptionHandler(),
             function () {
-                return false; // isDownForMaintenance
+                return false;
             }
         );
     }
