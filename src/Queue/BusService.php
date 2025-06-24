@@ -41,7 +41,13 @@ class BusService
             return $this->queueService->getQueueManager()->connection($connection);
         });
 
+        // Bind the concrete class
         $this->container->singleton(BusDispatcher::class, function () {
+            return $this->busDispatcher;
+        });
+
+        // Bind the contract interface to the concrete implementation
+        $this->container->bind(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
             return $this->busDispatcher;
         });
 

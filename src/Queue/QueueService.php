@@ -231,6 +231,18 @@ class QueueService
             });
         }
 
+        // Add events dispatcher binding
+        if (! $this->container->bound('events')) {
+            $this->container->singleton('events', function () {
+                return new \Illuminate\Events\Dispatcher($this->container);
+            });
+
+            // Bind the contract interface
+            $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function () {
+                return $this->container['events'];
+            });
+        }
+
         $this->queueManager = new QueueManager($this->container);
 
         $this->container->singleton('queue', function () {
@@ -318,7 +330,7 @@ class QueueService
 
             if ($failedConfig['driver'] === 'database') {
                 $eloquent = EloquentDatabase::getInstance();
-                
+
                 return new DatabaseFailedJobProvider(
                     $eloquent->capsule->getDatabaseManager(),
                     $failedConfig['database'] ?? 'default',
