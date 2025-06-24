@@ -76,6 +76,7 @@ class QueueService
     /**
      * Setup container bindings - FIXED VERSION WITHOUT CIRCULAR REFERENCE
      */
+    // In QueueService.php, update the setupContainerBindings method:
     protected function setupContainerBindings(): void
     {
         // CRITICAL: Container must bind itself FIRST
@@ -109,44 +110,69 @@ class QueueService
             });
         }
 
-        // CRITICAL: Fix events dispatcher binding
+        // CRITICAL: Fix events dispatcher binding - UPDATED
         if (!$this->container->bound('events')) {
             $this->container->singleton('events', function ($container) {
                 return new \Illuminate\Events\Dispatcher($container);
             });
 
             // Bind ALL the event dispatcher interfaces
-            $this->container->singleton(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
+            $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
                 return $container['events'];
             });
 
-            $this->container->singleton(\Illuminate\Events\Dispatcher::class, function ($container) {
+            $this->container->bind(\Illuminate\Events\Dispatcher::class, function ($container) {
                 return $container['events'];
             });
         }
 
-        // // Bind encrypter (required by some queue operations)
-        // if (!$this->container->bound('encrypter')) {
-        //     $this->container->singleton('encrypter', function () {
-        //         return new class implements \Illuminate\Contracts\Encryption\Encrypter {
-        //             public function encrypt($payload, $serialize = true)
-        //             {
-        //                 return base64_encode($serialize ? serialize($payload) : $payload);
-        //             }
+        // Add encrypter binding (required for job serialization)
+        // Add encrypter binding (required for job serialization) - COMPLETE IMPLEMENTATION
+        if (!$this->container->bound('encrypter')) {
+            $this->container->singleton('encrypter', function () {
+                return new class implements \Illuminate\Contracts\Encryption\Encrypter {
+                    private string $key = 'dummy-key-for-ci4-larabridge';
+                    private array $previousKeys = [];
 
-        //             public function decrypt($payload, $unserialize = true)
-        //             {
-        //                 $decoded = base64_decode($payload);
-        //                 return $unserialize ? unserialize($decoded) : $decoded;
-        //             }
-        //         };
-        //     });
+                    public function encrypt($payload, $serialize = true)
+                    {
+                        $value = $serialize ? serialize($payload) : $payload;
+                        return base64_encode($value);
+                    }
 
-        //     // Bind the encrypter contract
-        //     $this->container->bind(\Illuminate\Contracts\Encryption\Encrypter::class, function ($container) {
-        //         return $container['encrypter'];
-        //     });
-        // }
+                    public function decrypt($payload, $unserialize = true)
+                    {
+                        $decoded = base64_decode($payload);
+                        return $unserialize ? unserialize($decoded) : $decoded;
+                    }
+
+                    public function getKey()
+                    {
+                        return $this->key;
+                    }
+
+                    public function getAllKeys(): array
+                    {
+                        return array_merge([$this->key], $this->previousKeys);
+                    }
+
+                    public function getPreviousKeys(): array
+                    {
+                        return $this->previousKeys;
+                    }
+
+                    public function previousKeys(array $keys): self
+                    {
+                        $this->previousKeys = $keys;
+                        return $this;
+                    }
+                };
+            });
+
+            $this->container->bind(\Illuminate\Contracts\Encryption\Encrypter::class, function ($container) {
+                return $container['encrypter'];
+            });
+        }
 
         // Bind log for error handling
         if (!$this->container->bound('log')) {
@@ -371,19 +397,23 @@ class QueueService
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
         $this->registerQueueConnections();
 
-        // IMPORTANT: Set up queue event handlers for failed jobs
+        // UPDATED: Set up queue event handlers for failed jobs
         $this->queueManager->failing(function ($connectionName, $job, $data) {
-            // Ensure failed jobs are logged properly
-            $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
-            if ($failer && method_exists($failer, 'log')) {
-                try {
-                    $failer->log($connectionName, $job->getQueue(), $job->getRawBody(), $data);
-                    log_message('debug', 'Failed job logged to database: ' . $job->getName());
-                } catch (\Exception $e) {
-                    log_message('error', 'Failed to log failed job: ' . $e->getMessage());
+            try {
+                $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
+                if ($failer && method_exists($failer, 'log')) {
+                    // Extract job details properly
+                    $jobName = method_exists($job, 'getName') ? $job->getName() : get_class($job);
+                    $queueName = method_exists($job, 'getQueue') ? $job->getQueue() : 'default';
+                    $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : json_encode(['job' => $jobName]);
+
+                    $failer->log($connectionName, $queueName, $jobPayload, $data);
+                    log_message('error', 'Failed job logged to database: ' . $jobName);
+                } else {
+                    log_message('error', 'No failed job provider available');
                 }
-            } else {
-                log_message('error', 'No failed job provider available');
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to log failed job: ' . $e->getMessage());
             }
         });
     }
