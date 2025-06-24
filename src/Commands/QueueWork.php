@@ -173,17 +173,17 @@ class QueueWork extends BaseCommand
         CLI::write("Final memory value: " . $finalMemory, 'cyan');
 
         $workerOptions = new WorkerOptions(
-            (int) (CLI::getOption('delay') ?? 0),                    // delay/backoff - position 0
-            $finalMemory,                                            // memory - position 1
-            (int) (CLI::getOption('timeout') ?? $baseOptions->timeout),  // timeout - position 2
-            (int) (CLI::getOption('sleep') ?? $baseOptions->sleep),      // sleep - position 3
-            (int) (CLI::getOption('tries') ?? $baseOptions->maxTries),   // maxTries - position 4
-            false,                                                   // force - position 5
-            (bool) (CLI::getOption('stop-when-empty') ?? $baseOptions->stopWhenEmpty), // stopWhenEmpty - position 6
-            (int) (CLI::getOption('max-jobs') ?? $baseOptions->maxJobs),  // maxJobs - position 7
-            (int) (CLI::getOption('max-time') ?? $baseOptions->maxTime),  // maxTime - position 8
-            [],                                                      // rest - position 9
-            0                                                        // additional backoff - position 10
+            'default',                                               // name - position 0
+            (int) (CLI::getOption('delay') ?? 0),                    // backoff - position 1
+            $finalMemory,                                            // memory - position 2
+            (int) (CLI::getOption('timeout') ?? $baseOptions->timeout),  // timeout - position 3
+            (int) (CLI::getOption('sleep') ?? $baseOptions->sleep),      // sleep - position 4
+            (int) (CLI::getOption('tries') ?? $baseOptions->maxTries),   // maxTries - position 5
+            false,                                                   // force - position 6
+            (bool) (CLI::getOption('stop-when-empty') ?? $baseOptions->stopWhenEmpty), // stopWhenEmpty - position 7
+            (int) (CLI::getOption('max-jobs') ?? $baseOptions->maxJobs),  // maxJobs - position 8
+            (int) (CLI::getOption('max-time') ?? $baseOptions->maxTime),  // maxTime - position 9
+            (int) (CLI::getOption('rest') ?? 0)                      // rest - position 10
         );
 
         CLI::write("WorkerOptions memory property after creation: " . $workerOptions->memory, 'cyan');
@@ -328,12 +328,23 @@ class QueueWork extends BaseCommand
 
         return $exceeded;
     }
-
     /**
-     * Check if worker should restart (simple file-based check)
+     * Check if worker should restart (simple cache-based check)
      */
     protected function shouldRestart(): bool
     {
-        return cache()->get('illuminate:queue:restart') !== null;
+        $cacheKey = 'illuminate_queue_restart';
+
+        try {
+            $restartSignal = cache()->get($cacheKey);
+
+            if ($restartSignal !== null) {
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }
