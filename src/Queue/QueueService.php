@@ -449,26 +449,29 @@ class QueueService
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
         $this->registerQueueConnections();
 
-        // CORRECTED: Set up queue event handlers for failed jobs
-        $this->queueManager->failing(function ($connectionName, $job, $data) {
+        // FIXED: Correct failing event handler signature
+        $this->queueManager->failing(function ($event) {
             try {
-                log_message('error', 'Queue failing event triggered for connection: ' . $connectionName);
+                log_message('error', 'Queue failing event triggered');
+
+                // Extract job information from the event
+                $connectionName = $event->connectionName ?? 'default';
+                $job = $event->job ?? null;
+                $exception = $event->exception ?? null;
+
+                if (!$job || !$exception) {
+                    log_message('error', 'Missing job or exception in failing event');
+                    return;
+                }
 
                 $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
                 if ($failer && method_exists($failer, 'log')) {
 
                     // Get job details safely
-                    $queueName = 'default';
-                    $jobClass = 'Unknown';
-                    $jobPayload = '';
+                    $queueName = method_exists($job, 'getQueue') ? ($job->getQueue() ?: 'default') : 'default';
+                    $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : '';
 
-                    if (method_exists($job, 'getQueue')) {
-                        $queueName = $job->getQueue() ?: 'default';
-                    }
-
-                    if (method_exists($job, 'getRawBody')) {
-                        $jobPayload = $job->getRawBody();
-                    } else {
+                    if (empty($jobPayload)) {
                         // Create a basic payload structure
                         $jobClass = is_object($job) ? get_class($job) : 'Unknown';
                         $jobPayload = json_encode([
@@ -486,22 +489,11 @@ class QueueService
                         ]);
                     }
 
-                    // Create exception message
-                    $exceptionMessage = $data instanceof \Throwable ? $data->getMessage() : (string) $data;
-                    $exceptionTrace = $data instanceof \Throwable ? $data->getTraceAsString() : '';
-
-                    $exception = new \Exception($exceptionMessage);
-                    if ($exceptionTrace) {
-                        // You might want to store the trace separately or include it in the message
-                        $fullException = $exceptionMessage . "\n\nTrace:\n" . $exceptionTrace;
-                        $exception = new \Exception($fullException);
-                    }
-
                     // Log the failed job
                     $failer->log($connectionName, $queueName, $jobPayload, $exception);
                     log_message('info', 'Failed job logged to database successfully');
                 } else {
-                    log_message('error', 'No failed job provider available or no log method available');
+                    log_message('error', 'No failed job provider available');
                 }
             } catch (\Exception $e) {
                 log_message('error', 'Failed to log failed job: ' . $e->getMessage());
