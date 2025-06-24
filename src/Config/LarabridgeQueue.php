@@ -25,6 +25,7 @@ class LarabridgeQueue extends BaseConfig
 
         'database' => [
             'driver' => 'database',
+            'connection' => null, // Add this - uses default DB connection
             'table' => 'jobs',
             'queue' => 'default',
             'retry_after' => 90,
@@ -66,7 +67,7 @@ class LarabridgeQueue extends BaseConfig
      */
     public array $failed = [
         'driver' => 'database',
-        'database' => 'mysql',
+        'database' => null, 
         'table' => 'failed_jobs',
     ];
 
@@ -74,7 +75,7 @@ class LarabridgeQueue extends BaseConfig
      * Job batching configuration
      */
     public array $batching = [
-        'database' => 'mysql',
+        'database' => null, 
         'table' => 'job_batches',
     ];
 
