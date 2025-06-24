@@ -51,8 +51,8 @@ class QueueService
     protected function setupBusBindings(): void
     {
         if (!$this->container->bound(\Illuminate\Contracts\Bus\Dispatcher::class)) {
-            $this->container->singleton(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
-                $busDispatcher = new \Illuminate\Bus\Dispatcher($this->container, function ($connection = null) {
+            $this->container->singleton(\Illuminate\Contracts\Bus\Dispatcher::class, function ($container) {
+                $busDispatcher = new \Illuminate\Bus\Dispatcher($container, function ($connection = null) {
                     return $this->queueManager->connection($connection);
                 });
 
@@ -61,12 +61,12 @@ class QueueService
             });
 
             // Also bind other Bus interfaces
-            $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
-                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+            $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function ($container) {
+                return $container[\Illuminate\Contracts\Bus\Dispatcher::class];
             });
 
-            $this->container->bind(\Illuminate\Bus\Dispatcher::class, function () {
-                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+            $this->container->bind(\Illuminate\Bus\Dispatcher::class, function ($container) {
+                return $container[\Illuminate\Contracts\Bus\Dispatcher::class];
             });
 
             $this->container->alias(\Illuminate\Contracts\Bus\Dispatcher::class, 'bus');
@@ -81,8 +81,6 @@ class QueueService
         // CRITICAL: Container must bind itself FIRST
         $this->container->instance(\Illuminate\Container\Container::class, $this->container);
         $this->container->instance(\Illuminate\Contracts\Container\Container::class, $this->container);
-
-        // Bind the container as 'app' as well (Laravel convention)
         $this->container->instance('app', $this->container);
 
         // Bind database manager
@@ -96,48 +94,59 @@ class QueueService
         // Ensure config is properly bound
         if (!$this->container->bound('config')) {
             $this->container->singleton('config', function () {
-                return new \Illuminate\Config\Repository;
+                $config = new \Illuminate\Config\Repository;
+
+                // Add queue configuration
+                $queueConfig = config('LarabridgeQueue');
+                $config->set('queue', [
+                    'default' => $queueConfig->default,
+                    'connections' => $queueConfig->connections,
+                    'failed' => $queueConfig->failed,
+                    'batching' => $queueConfig->batching,
+                ]);
+
+                return $config;
             });
         }
 
-        // CRITICAL: Bind events dispatcher properly with all interfaces
+        // CRITICAL: Fix events dispatcher binding
         if (!$this->container->bound('events')) {
-            $this->container->singleton('events', function () {
-                return new \Illuminate\Events\Dispatcher($this->container);
+            $this->container->singleton('events', function ($container) {
+                return new \Illuminate\Events\Dispatcher($container);
             });
 
             // Bind ALL the event dispatcher interfaces
-            $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function () {
-                return $this->container['events'];
+            $this->container->singleton(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
+                return $container['events'];
             });
 
-            $this->container->bind(\Illuminate\Events\Dispatcher::class, function () {
-                return $this->container['events'];
-            });
-        }
-
-        // Bind encrypter (required by some queue operations)
-        if (!$this->container->bound('encrypter')) {
-            $this->container->singleton('encrypter', function () {
-                return new class {
-                    public function encrypt($payload, $serialize = true)
-                    {
-                        return base64_encode($serialize ? serialize($payload) : $payload);
-                    }
-
-                    public function decrypt($payload, $unserialize = true)
-                    {
-                        $decoded = base64_decode($payload);
-                        return $unserialize ? unserialize($decoded) : $decoded;
-                    }
-                };
-            });
-
-            // Bind the encrypter contract
-            $this->container->bind(\Illuminate\Contracts\Encryption\Encrypter::class, function () {
-                return $this->container['encrypter'];
+            $this->container->singleton(\Illuminate\Events\Dispatcher::class, function ($container) {
+                return $container['events'];
             });
         }
+
+        // // Bind encrypter (required by some queue operations)
+        // if (!$this->container->bound('encrypter')) {
+        //     $this->container->singleton('encrypter', function () {
+        //         return new class implements \Illuminate\Contracts\Encryption\Encrypter {
+        //             public function encrypt($payload, $serialize = true)
+        //             {
+        //                 return base64_encode($serialize ? serialize($payload) : $payload);
+        //             }
+
+        //             public function decrypt($payload, $unserialize = true)
+        //             {
+        //                 $decoded = base64_decode($payload);
+        //                 return $unserialize ? unserialize($decoded) : $decoded;
+        //             }
+        //         };
+        //     });
+
+        //     // Bind the encrypter contract
+        //     $this->container->bind(\Illuminate\Contracts\Encryption\Encrypter::class, function ($container) {
+        //         return $container['encrypter'];
+        //     });
+        // }
 
         // Bind log for error handling
         if (!$this->container->bound('log')) {
@@ -361,6 +370,22 @@ class QueueService
 
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
         $this->registerQueueConnections();
+
+        // IMPORTANT: Set up queue event handlers for failed jobs
+        $this->queueManager->failing(function ($connectionName, $job, $data) {
+            // Ensure failed jobs are logged properly
+            $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
+            if ($failer && method_exists($failer, 'log')) {
+                try {
+                    $failer->log($connectionName, $job->getQueue(), $job->getRawBody(), $data);
+                    log_message('debug', 'Failed job logged to database: ' . $job->getName());
+                } catch (\Exception $e) {
+                    log_message('error', 'Failed to log failed job: ' . $e->getMessage());
+                }
+            } else {
+                log_message('error', 'No failed job provider available');
+            }
+        });
     }
 
     /**
@@ -434,7 +459,7 @@ class QueueService
      */
     protected function setupFailedJobProvider(): void
     {
-        $this->container->singleton('queue.failer', function () {
+        $this->container->singleton('queue.failer', function ($container) {
             $failedConfig = $this->getFailedConfig();
 
             if ($failedConfig['driver'] === 'database') {
@@ -447,7 +472,7 @@ class QueueService
                 );
             }
 
-            return null;
+            return new \Illuminate\Queue\Failed\NullFailedJobProvider();
         });
     }
 
@@ -485,6 +510,14 @@ class QueueService
             $workerConfig['max_time'],
             0
         );
+    }
+
+    /**
+     * Get failed job provider
+     */
+    public function getFailedJobProvider()
+    {
+        return $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
     }
 
     /**
