@@ -90,7 +90,10 @@ class QueueService
 
             $driver = $this->env('QUEUE_CONNECTION', $config['driver']);
 
-            if ($driver === 'redis') {
+            if ($driver === 'database') {
+                // For database connections, ensure connection is a string or null
+                $mergeConfig['connection'] = $this->env('QUEUE_DB_CONNECTION', $config['connection'] ?? null);
+            } elseif ($driver === 'redis') {
                 $mergeConfig['host'] = $this->env('QUEUE_REDIS_HOST', $this->env('QUEUE_HOST', $config['host'] ?? 'localhost'));
                 $mergeConfig['port'] = $this->env('QUEUE_REDIS_PORT', $this->env('QUEUE_PORT', $config['port'] ?? 6379));
                 $mergeConfig['connection'] = $this->env('QUEUE_REDIS_CONNECTION', $config['connection'] ?? 'default');
@@ -116,14 +119,22 @@ class QueueService
 
         $upperConnection = strtoupper($connectionName);
 
-        return array_merge($config, [
+        $baseOverrides = [
             'host' => $this->env("QUEUE_{$upperConnection}_HOST", $config['host'] ?? 'localhost'),
             'port' => $this->env("QUEUE_{$upperConnection}_PORT", $config['port'] ?? null),
             'queue' => $this->env("QUEUE_{$upperConnection}_NAME", $config['queue'] ?? 'default'),
             'table' => $this->env("QUEUE_{$upperConnection}_TABLE", $config['table'] ?? 'jobs'),
             'retry_after' => (int) $this->env("QUEUE_{$upperConnection}_RETRY_AFTER", $config['retry_after'] ?? 90),
-            'connection' => $this->env("QUEUE_{$upperConnection}_REDIS_CONNECTION", $config['connection'] ?? 'default'),
-        ]);
+        ];
+
+        // Add driver-specific overrides
+        if ($config['driver'] === 'database') {
+            $baseOverrides['connection'] = $this->env("QUEUE_{$upperConnection}_DB_CONNECTION", $config['connection'] ?? null);
+        } elseif ($config['driver'] === 'redis') {
+            $baseOverrides['connection'] = $this->env("QUEUE_{$upperConnection}_REDIS_CONNECTION", $config['connection'] ?? 'default');
+        }
+
+        return array_merge($config, $baseOverrides);
     }
 
     /**
@@ -232,16 +243,19 @@ class QueueService
     }
 
     /**
-     * Register all queue connections with the manager
+     * Register all queue connections with the manager - UPDATED
      */
     protected function registerQueueConnections(): void
     {
         foreach ($this->config->connections as $name => $config) {
             $connectionConfig = $this->getConnectionConfig($name);
 
-            // For database connections, ensure we have the database connection
+            // Ensure database connections have proper string connection names
             if ($connectionConfig['driver'] === 'database') {
-                $connectionConfig['connection'] = $this->getDatabaseConnection($connectionConfig);
+                // Make sure connection is a string or null, not an object
+                if (isset($connectionConfig['connection']) && !is_string($connectionConfig['connection']) && $connectionConfig['connection'] !== null) {
+                    $connectionConfig['connection'] = null; // Reset to default
+                }
             }
 
             // Set the connection configuration in the container
@@ -250,23 +264,14 @@ class QueueService
     }
 
     /**
-     * Get the database connection for queue
+     * Register queue connectors - UPDATED
      */
-    protected function getDatabaseConnection(array $config): \Illuminate\Database\Connection
-    {
-        $eloquent = EloquentDatabase::getInstance();
-
-        // Use the connection specified in config, or default to null (which uses default connection)
-        $connectionName = $config['connection'] ?? null;
-
-        return $eloquent->capsule->getConnection($connectionName);
-    }
-
     protected function registerConnectors(): void
     {
-        // Database connector
+        // Database connector - pass the database manager from Eloquent
         $this->queueManager->addConnector('database', function () {
-            return new DatabaseConnector($this->container['db']);
+            $eloquent = EloquentDatabase::getInstance();
+            return new DatabaseConnector($eloquent->capsule->getDatabaseManager());
         });
 
         // Sync connector
@@ -303,15 +308,20 @@ class QueueService
         return $this->container['redis'];
     }
 
+    /**
+     * Setup failed job provider - UPDATED
+     */
     protected function setupFailedJobProvider(): void
     {
         $this->container->singleton('queue.failer', function () {
             $failedConfig = $this->getFailedConfig();
 
             if ($failedConfig['driver'] === 'database') {
+                $eloquent = EloquentDatabase::getInstance();
+                
                 return new DatabaseFailedJobProvider(
-                    $this->container['db'],
-                    $failedConfig['database'],
+                    $eloquent->capsule->getDatabaseManager(),
+                    $failedConfig['database'] ?? 'default',
                     $failedConfig['table']
                 );
             }
