@@ -39,10 +39,34 @@ class QueueService
         $this->config = config('LarabridgeQueue');
         $this->container = $this->getContainer();
         $this->setupContainerBindings();
+        $this->setupJobSerializationBindings();
         $this->setupQueueManager();
         $this->registerConnectors();
         $this->setupFailedJobProvider();
         $this->setupBusBindings();
+    }
+
+    /**
+     * Setup additional container bindings needed for job serialization
+     */
+    protected function setupJobSerializationBindings(): void
+    {
+        // Bind app instance (critical for job serialization)
+        $this->container->instance('app', $this->container);
+
+        // Ensure events dispatcher is properly bound for job serialization
+        if (!$this->container->bound(\Illuminate\Contracts\Events\Dispatcher::class)) {
+            $this->container->singleton(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
+                return new \Illuminate\Events\Dispatcher($container);
+            });
+        }
+
+        // Bind the dispatcher with the 'events' alias as well
+        $this->container->alias(\Illuminate\Contracts\Events\Dispatcher::class, 'events');
+
+        // Make sure the container can resolve itself
+        $this->container->instance(\Illuminate\Container\Container::class, $this->container);
+        $this->container->instance(\Illuminate\Contracts\Container\Container::class, $this->container);
     }
 
     /**
@@ -433,28 +457,51 @@ class QueueService
                 $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
                 if ($failer && method_exists($failer, 'log')) {
 
-                    // Get the queue name from the job
-                    $queueName = method_exists($job, 'getQueue') ? $job->getQueue() : 'default';
+                    // Get job details safely
+                    $queueName = 'default';
+                    $jobClass = 'Unknown';
+                    $jobPayload = '';
 
-                    // Get the raw job payload
-                    $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : json_encode([
-                        'displayName' => get_class($job),
-                        'job' => 'Illuminate\\Queue\\CallQueuedHandler@call',
-                        'maxTries' => null,
-                        'delay' => null,
-                        'timeout' => null,
-                        'data' => [
-                            'commandName' => get_class($job),
-                            'command' => serialize($job)
-                        ]
-                    ]);
+                    if (method_exists($job, 'getQueue')) {
+                        $queueName = $job->getQueue() ?: 'default';
+                    }
+
+                    if (method_exists($job, 'getRawBody')) {
+                        $jobPayload = $job->getRawBody();
+                    } else {
+                        // Create a basic payload structure
+                        $jobClass = is_object($job) ? get_class($job) : 'Unknown';
+                        $jobPayload = json_encode([
+                            'uuid' => uniqid(),
+                            'displayName' => $jobClass,
+                            'job' => 'Illuminate\\Queue\\CallQueuedHandler@call',
+                            'maxTries' => null,
+                            'delay' => null,
+                            'timeout' => null,
+                            'timeoutAt' => null,
+                            'data' => [
+                                'commandName' => $jobClass,
+                                'command' => base64_encode(serialize($job))
+                            ]
+                        ]);
+                    }
+
+                    // Create exception message
+                    $exceptionMessage = $data instanceof \Throwable ? $data->getMessage() : (string) $data;
+                    $exceptionTrace = $data instanceof \Throwable ? $data->getTraceAsString() : '';
+
+                    $exception = new \Exception($exceptionMessage);
+                    if ($exceptionTrace) {
+                        // You might want to store the trace separately or include it in the message
+                        $fullException = $exceptionMessage . "\n\nTrace:\n" . $exceptionTrace;
+                        $exception = new \Exception($fullException);
+                    }
 
                     // Log the failed job
-                    $failer->log($connectionName, $queueName, $jobPayload, $data);
-                    log_message('error', 'Failed job logged to database successfully');
+                    $failer->log($connectionName, $queueName, $jobPayload, $exception);
+                    log_message('info', 'Failed job logged to database successfully');
                 } else {
-                    $failedProvider = $failer ? get_class($failer) : 'null';
-                    log_message('error', 'No failed job provider available or no log method. Provider: ' . $failedProvider);
+                    log_message('error', 'No failed job provider available or no log method available');
                 }
             } catch (\Exception $e) {
                 log_message('error', 'Failed to log failed job: ' . $e->getMessage());
