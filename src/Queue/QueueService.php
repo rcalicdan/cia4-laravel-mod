@@ -38,9 +38,74 @@ class QueueService
     {
         $this->config = config('LarabridgeQueue');
         $this->container = $this->getContainer();
+        $this->setupContainerBindings();
         $this->setupQueueManager();
         $this->registerConnectors();
         $this->setupFailedJobProvider();
+    }
+
+    /**
+     * Setup container bindings - ADD THIS METHOD
+     */
+    protected function setupContainerBindings(): void
+    {
+        // Bind database manager
+        if (!$this->container->bound('db')) {
+            $this->container->singleton('db', function () {
+                $eloquent = EloquentDatabase::getInstance();
+                return $eloquent->capsule->getDatabaseManager();
+            });
+        }
+
+        // Ensure config is properly bound
+        if (!$this->container->bound('config')) {
+            $this->container->singleton('config', function () {
+                return new \Illuminate\Config\Repository;
+            });
+        }
+
+        // CRITICAL: Bind events dispatcher properly
+        if (!$this->container->bound('events')) {
+            $this->container->singleton('events', function () {
+                return new \Illuminate\Events\Dispatcher($this->container);
+            });
+
+            // Bind the contract interface - THIS IS CRUCIAL
+            $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function () {
+                return $this->container['events'];
+            });
+        }
+
+        // Bind encrypter (required by some queue operations)
+        if (!$this->container->bound('encrypter')) {
+            $this->container->singleton('encrypter', function () {
+                // Simple encrypter implementation - you might want to use a proper one
+                return new class {
+                    public function encrypt($payload, $serialize = true)
+                    {
+                        return base64_encode($serialize ? serialize($payload) : $payload);
+                    }
+
+                    public function decrypt($payload, $unserialize = true)
+                    {
+                        $decoded = base64_decode($payload);
+                        return $unserialize ? unserialize($decoded) : $decoded;
+                    }
+                };
+            });
+        }
+
+        // Bind log for error handling
+        if (!$this->container->bound('log')) {
+            $this->container->singleton('log', function () {
+                return new class {
+                    public function error($message, array $context = [])
+                    {
+                        log_message('error', $message);
+                    }
+                };
+            });
+        }
     }
 
     public static function getInstance(): self

@@ -101,6 +101,9 @@ class Services extends BaseService
             return static::getSharedInstance('queue');
         }
 
+        // Ensure BusService is initialized first
+        static::busService($getShared);
+
         return static::queueService()->getQueueManager();
     }
 

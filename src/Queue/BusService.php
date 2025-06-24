@@ -6,6 +6,7 @@ use Illuminate\Bus\BatchRepository;
 use Illuminate\Bus\DatabaseBatchRepository;
 use Illuminate\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Bus\QueueingDispatcher;
 use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 
 class BusService
@@ -31,7 +32,6 @@ class BusService
     protected function getContainer(): Container
     {
         $eloquent = EloquentDatabase::getInstance();
-
         return $eloquent->container ?? new Container;
     }
 
@@ -46,11 +46,17 @@ class BusService
             return $this->busDispatcher;
         });
 
-        // Bind the contract interface to the concrete implementation
+        // CRITICAL: Bind ALL the interfaces that Laravel expects
         $this->container->bind(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
             return $this->busDispatcher;
         });
 
+        // Also bind the QueueingDispatcher interface
+        $this->container->bind(QueueingDispatcher::class, function () {
+            return $this->busDispatcher;
+        });
+
+        // Alias for easier access
         $this->container->alias(BusDispatcher::class, 'bus');
 
         $this->busDispatcher->pipeThrough([]);
