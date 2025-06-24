@@ -219,7 +219,39 @@ class QueueService
         });
 
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
+
+        // Add this: Register all queue connections
+        $this->registerQueueConnections();
     }
+
+    /**
+     * Register all queue connections with the manager
+     */
+    protected function registerQueueConnections(): void
+    {
+        foreach ($this->config->connections as $name => $config) {
+            $connectionConfig = $this->getConnectionConfig($name);
+
+            // For database connections, ensure we have the database connection
+            if ($connectionConfig['driver'] === 'database') {
+                $connectionConfig['connection'] = $this->getDatabaseConnection($connectionConfig);
+            }
+
+            $this->queueManager->extend($name, function () use ($connectionConfig) {
+                return $this->queueManager->resolve($connectionConfig['driver'], $connectionConfig);
+            });
+        }
+    }
+
+    /**
+     * Get the database connection for queue
+     */
+    protected function getDatabaseConnection(array $config): \Illuminate\Database\Connection
+    {
+        $eloquent = EloquentDatabase::getInstance();
+        return $eloquent->capsule->getConnection($config['database'] ?? null);
+    }
+
 
     protected function registerConnectors(): void
     {

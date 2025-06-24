@@ -26,7 +26,7 @@ use Config\Pagination as PaginationConfig;
 class EloquentDatabase
 {
     public Container $container;
-    protected Capsule $capsule;
+    public Capsule $capsule;
 
     /**
      * @var bool Flag indicating if observers are registered
