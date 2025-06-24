@@ -300,16 +300,17 @@ class QueueService
         $workerConfig = $this->getWorkerConfig();
 
         return new WorkerOptions(
-            $workerConfig['memory'],
-            $workerConfig['timeout'],
-            $workerConfig['sleep'],
-            $workerConfig['max_tries'],
-            true, // force
-            $workerConfig['stop_when_empty'],
-            $workerConfig['max_jobs'],
-            $workerConfig['max_time'],
-            [],
-            $workerConfig['backoff']
+            $workerConfig['backoff'],           // delay/backoff - position 0
+            $workerConfig['memory'],            // memory - position 1  
+            $workerConfig['timeout'],           // timeout - position 2
+            $workerConfig['sleep'],             // sleep - position 3
+            $workerConfig['max_tries'],         // maxTries - position 4
+            true,                               // force - position 5
+            $workerConfig['stop_when_empty'],   // stopWhenEmpty - position 6
+            $workerConfig['max_jobs'],          // maxJobs - position 7
+            $workerConfig['max_time'],          // maxTime - position 8
+            [],                                 // rest - position 9
+            0                                   // backoff (duplicate, some versions have this) - position 10
         );
     }
 

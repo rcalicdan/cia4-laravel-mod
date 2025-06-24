@@ -173,16 +173,17 @@ class QueueWork extends BaseCommand
         CLI::write("Final memory value: " . $finalMemory, 'cyan');
 
         $workerOptions = new WorkerOptions(
-            $finalMemory,  // memory
-            (int) (CLI::getOption('timeout') ?? $baseOptions->timeout),  // timeout
-            (int) (CLI::getOption('sleep') ?? $baseOptions->sleep),  // sleep
-            (int) (CLI::getOption('tries') ?? $baseOptions->maxTries),  // maxTries
-            false, // force
-            (bool) (CLI::getOption('stop-when-empty') ?? $baseOptions->stopWhenEmpty),  // stopWhenEmpty
-            (int) (CLI::getOption('max-jobs') ?? $baseOptions->maxJobs),  // maxJobs
-            (int) (CLI::getOption('max-time') ?? $baseOptions->maxTime),  // maxTime
-            [], // rest
-            (int) (CLI::getOption('delay') ?? 0) // backoff/delay
+            (int) (CLI::getOption('delay') ?? 0),                    // delay/backoff - position 0
+            $finalMemory,                                            // memory - position 1
+            (int) (CLI::getOption('timeout') ?? $baseOptions->timeout),  // timeout - position 2
+            (int) (CLI::getOption('sleep') ?? $baseOptions->sleep),      // sleep - position 3
+            (int) (CLI::getOption('tries') ?? $baseOptions->maxTries),   // maxTries - position 4
+            false,                                                   // force - position 5
+            (bool) (CLI::getOption('stop-when-empty') ?? $baseOptions->stopWhenEmpty), // stopWhenEmpty - position 6
+            (int) (CLI::getOption('max-jobs') ?? $baseOptions->maxJobs),  // maxJobs - position 7
+            (int) (CLI::getOption('max-time') ?? $baseOptions->maxTime),  // maxTime - position 8
+            [],                                                      // rest - position 9
+            0                                                        // additional backoff - position 10
         );
 
         CLI::write("WorkerOptions memory property after creation: " . $workerOptions->memory, 'cyan');
