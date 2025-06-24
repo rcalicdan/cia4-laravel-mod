@@ -56,6 +56,11 @@ class BusService
             return $this->busDispatcher;
         });
 
+        // NEW: Bind the Bus contract
+        $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
+            return $this->busDispatcher;
+        });
+
         // Alias for easier access
         $this->container->alias(BusDispatcher::class, 'bus');
 

@@ -45,10 +45,14 @@ class QueueService
     }
 
     /**
-     * Setup container bindings - ADD THIS METHOD
+     * Setup container bindings - UPDATED TO FIX CONTAINER ISSUES
      */
     protected function setupContainerBindings(): void
     {
+        // CRITICAL: Container must bind itself
+        $this->container->instance(Container::class, $this->container);
+        $this->container->instance(\Illuminate\Contracts\Container\Container::class, $this->container);
+
         // Bind database manager
         if (!$this->container->bound('db')) {
             $this->container->singleton('db', function () {
@@ -64,14 +68,18 @@ class QueueService
             });
         }
 
-        // CRITICAL: Bind events dispatcher properly
+        // CRITICAL: Bind events dispatcher properly with all interfaces
         if (!$this->container->bound('events')) {
             $this->container->singleton('events', function () {
                 return new \Illuminate\Events\Dispatcher($this->container);
             });
 
-            // Bind the contract interface - THIS IS CRUCIAL
+            // Bind ALL the event dispatcher interfaces
             $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function () {
+                return $this->container['events'];
+            });
+
+            $this->container->bind(\Illuminate\Events\Dispatcher::class, function () {
                 return $this->container['events'];
             });
         }
@@ -79,7 +87,6 @@ class QueueService
         // Bind encrypter (required by some queue operations)
         if (!$this->container->bound('encrypter')) {
             $this->container->singleton('encrypter', function () {
-                // Simple encrypter implementation - you might want to use a proper one
                 return new class {
                     public function encrypt($payload, $serialize = true)
                     {
@@ -93,6 +100,11 @@ class QueueService
                     }
                 };
             });
+
+            // Bind the encrypter contract
+            $this->container->bind(\Illuminate\Contracts\Encryption\Encrypter::class, function () {
+                return $this->container['encrypter'];
+            });
         }
 
         // Bind log for error handling
@@ -103,9 +115,28 @@ class QueueService
                     {
                         log_message('error', $message);
                     }
+
+                    public function info($message, array $context = [])
+                    {
+                        log_message('info', $message);
+                    }
+
+                    public function debug($message, array $context = [])
+                    {
+                        log_message('debug', $message);
+                    }
                 };
             });
         }
+
+        // IMPORTANT: Bind the queue manager itself to the container
+        $this->container->singleton(QueueManager::class, function () {
+            return $this->queueManager;
+        });
+
+        $this->container->bind(\Illuminate\Contracts\Queue\Factory::class, function () {
+            return $this->queueManager;
+        });
     }
 
     public static function getInstance(): self
@@ -290,19 +321,21 @@ class QueueService
 
     protected function setupQueueManager(): void
     {
+        // Call setupContainerBindings FIRST
+        $this->setupContainerBindings();
+
         if (! $this->container->bound('config')) {
             $this->container->singleton('config', function () {
                 return new \Illuminate\Config\Repository;
             });
         }
 
-        // Add events dispatcher binding
+        // Events dispatcher should already be bound by setupContainerBindings
         if (! $this->container->bound('events')) {
             $this->container->singleton('events', function () {
                 return new \Illuminate\Events\Dispatcher($this->container);
             });
 
-            // Bind the contract interface
             $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function () {
                 return $this->container['events'];
             });
