@@ -17,7 +17,7 @@ class EloquentCacheModels extends BaseCommand
 
         $cacheFile = $this->prepareCachePath();
         if ($cacheFile === null) {
-            return 1; 
+            return 1;
         }
 
         $modelsArray = $this->findEloquentModels();
@@ -28,29 +28,34 @@ class EloquentCacheModels extends BaseCommand
 
         if ($this->writeModelsToCache($cacheFile, $phpContent)) {
             CLI::write("Eloquent model list cached successfully to: {$cacheFile}", 'green');
-            return 0; 
+
+            return 0;
         } else {
             CLI::error("Failed to write cache file: {$cacheFile}");
-            return 1; 
+
+            return 1;
         }
     }
 
     private function prepareCachePath(): ?string
     {
-        $cacheFile = WRITEPATH . 'cache/eloquent_models.php';
+        $cacheFile = WRITEPATH.'cache/eloquent_models.php';
         $cacheDir = dirname($cacheFile);
 
-        if (!is_dir($cacheDir)) {
+        if (! is_dir($cacheDir)) {
             CLI::write("Cache directory not found. Attempting to create: {$cacheDir}", 'cyan');
-            if (!mkdir($cacheDir, 0755, true)) {
-                CLI::error('Failed to create cache directory: ' . $cacheDir);
+            if (! mkdir($cacheDir, 0755, true)) {
+                CLI::error('Failed to create cache directory: '.$cacheDir);
+
                 return null;
             }
             CLI::write("Cache directory created: {$cacheDir}", 'green');
-        } elseif (!is_writable($cacheDir)) {
+        } elseif (! is_writable($cacheDir)) {
             CLI::error("Cache directory is not writable: {$cacheDir}");
+
             return null;
         }
+
         return $cacheFile;
     }
 
@@ -58,22 +63,24 @@ class EloquentCacheModels extends BaseCommand
     {
         CLI::write('Discovering Eloquent models...', 'yellow');
         $models = [];
-        $modelPath = APPPATH . 'Models/'; 
+        $modelPath = APPPATH.'Models/';
 
-        if (!is_dir($modelPath)) {
+        if (! is_dir($modelPath)) {
             CLI::write("Models directory not found: {$modelPath}", 'light_red');
-            return []; 
+
+            return [];
         }
 
         $files = glob("{$modelPath}*.php");
         if ($files === false || empty($files)) {
             CLI::write("No PHP files found in {$modelPath}", 'yellow');
-            return []; 
+
+            return [];
         }
 
         foreach ($files as $file) {
-            $className = 'App\\Models\\' . basename($file, '.php');
-            
+            $className = 'App\\Models\\'.basename($file, '.php');
+
             if (class_exists($className) && is_subclass_of($className, \Illuminate\Database\Eloquent\Model::class)) {
                 $models[] = $className;
                 CLI::write("Found: {$className}", 'green');
@@ -81,6 +88,7 @@ class EloquentCacheModels extends BaseCommand
                 CLI::write("Skipped: {$className} (not a valid Eloquent model)", 'cyan');
             }
         }
+
         return $models;
     }
 
@@ -106,6 +114,7 @@ PHP;
         if (file_put_contents($filePath, $phpContent) !== false) {
             return true;
         }
+
         return false;
     }
 }

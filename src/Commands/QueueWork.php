@@ -34,24 +34,24 @@ class QueueWork extends BaseCommand
      * The Command's Arguments
      */
     protected $arguments = [
-        'connection' => 'The name of the queue connection to work'
+        'connection' => 'The name of the queue connection to work',
     ];
 
     /**
      * The Command's Options
      */
     protected $options = [
-        '--queue'         => 'The names of the queues to work (comma-separated)',
-        '--once'          => 'Only process the next job on the queue',
+        '--queue' => 'The names of the queues to work (comma-separated)',
+        '--once' => 'Only process the next job on the queue',
         '--stop-when-empty' => 'Stop when the queue is empty',
-        '--delay'         => 'The number of seconds to delay failed jobs (default: 0)',
-        '--max-jobs'      => 'The number of jobs to process before stopping (default: 0 = unlimited)',
-        '--max-time'      => 'The maximum number of seconds the worker should run (default: 3600)',
-        '--memory'        => 'The memory limit in megabytes (default: 128)',
-        '--sleep'         => 'Number of seconds to sleep when no job is available (default: 3)',
-        '--timeout'       => 'The number of seconds a job can run before timing out (default: 60)',
-        '--tries'         => 'Number of times to attempt a job before logging it failed (default: 3)',
-        '--rest'          => 'Number of seconds to rest between jobs (default: 0)',
+        '--delay' => 'The number of seconds to delay failed jobs (default: 0)',
+        '--max-jobs' => 'The number of jobs to process before stopping (default: 0 = unlimited)',
+        '--max-time' => 'The maximum number of seconds the worker should run (default: 3600)',
+        '--memory' => 'The memory limit in megabytes (default: 128)',
+        '--sleep' => 'Number of seconds to sleep when no job is available (default: 3)',
+        '--timeout' => 'The number of seconds a job can run before timing out (default: 60)',
+        '--tries' => 'Number of times to attempt a job before logging it failed (default: 3)',
+        '--rest' => 'Number of seconds to rest between jobs (default: 0)',
     ];
 
     /**
@@ -81,10 +81,11 @@ class QueueWork extends BaseCommand
             }
 
             CLI::write('Queue worker finished.', 'green');
+
             return EXIT_SUCCESS;
         } catch (Throwable $e) {
-            CLI::error('Queue worker error: ' . $e->getMessage());
-            CLI::error('File: ' . $e->getFile() . ':' . $e->getLine());
+            CLI::error('Queue worker error: '.$e->getMessage());
+            CLI::error('File: '.$e->getFile().':'.$e->getLine());
 
             if (ENVIRONMENT === 'development') {
                 CLI::error('Stack trace:');
@@ -104,14 +105,14 @@ class QueueWork extends BaseCommand
 
         // Check memory before creating worker
         $beforeMemory = memory_get_usage(true) / 1024 / 1024;
-        CLI::write("Memory before worker creation: " . round($beforeMemory, 2) . "MB", 'light_gray');
+        CLI::write('Memory before worker creation: '.round($beforeMemory, 2).'MB', 'light_gray');
 
         $this->worker = $this->queueService->createWorker();
 
         // Check memory after creating worker
         $afterMemory = memory_get_usage(true) / 1024 / 1024;
-        CLI::write("Memory after worker creation: " . round($afterMemory, 2) . "MB", 'light_gray');
-        CLI::write("Worker creation memory usage: " . round($afterMemory - $beforeMemory, 2) . "MB", 'light_gray');
+        CLI::write('Memory after worker creation: '.round($afterMemory, 2).'MB', 'light_gray');
+        CLI::write('Worker creation memory usage: '.round($afterMemory - $beforeMemory, 2).'MB', 'light_gray');
     }
 
     /**
@@ -124,12 +125,12 @@ class QueueWork extends BaseCommand
 
         CLI::write('Queue Worker Started', 'green');
         CLI::write('==================', 'green');
-        CLI::write('Connection: ' . $connection, 'yellow');
-        CLI::write('Queue(s): ' . implode(', ', $queues), 'yellow');
-        CLI::write('Memory Limit: ' . (CLI::getOption('memory') ?? 128) . 'MB', 'yellow');
-        CLI::write('Timeout: ' . (CLI::getOption('timeout') ?? 60) . 's', 'yellow');
-        CLI::write('Max Tries: ' . (CLI::getOption('tries') ?? 3), 'yellow');
-        CLI::write('Process ID: ' . getmypid(), 'yellow');
+        CLI::write('Connection: '.$connection, 'yellow');
+        CLI::write('Queue(s): '.implode(', ', $queues), 'yellow');
+        CLI::write('Memory Limit: '.(CLI::getOption('memory') ?? 128).'MB', 'yellow');
+        CLI::write('Timeout: '.(CLI::getOption('timeout') ?? 60).'s', 'yellow');
+        CLI::write('Max Tries: '.(CLI::getOption('tries') ?? 3), 'yellow');
+        CLI::write('Process ID: '.getmypid(), 'yellow');
 
         if (CLI::getOption('once')) {
             CLI::write('Mode: Single job', 'cyan');
@@ -168,9 +169,9 @@ class QueueWork extends BaseCommand
         $memoryOption = CLI::getOption('memory');
         $finalMemory = (int) ($memoryOption ?? $baseOptions->memory);
 
-        CLI::write("CLI memory option: " . ($memoryOption ?? 'null'), 'cyan');
-        CLI::write("Base options memory: " . $baseOptions->memory, 'cyan');
-        CLI::write("Final memory value: " . $finalMemory, 'cyan');
+        CLI::write('CLI memory option: '.($memoryOption ?? 'null'), 'cyan');
+        CLI::write('Base options memory: '.$baseOptions->memory, 'cyan');
+        CLI::write('Final memory value: '.$finalMemory, 'cyan');
 
         $workerOptions = new WorkerOptions(
             'default',                                               // name - position 0
@@ -186,7 +187,7 @@ class QueueWork extends BaseCommand
             (int) (CLI::getOption('rest') ?? 0)                      // rest - position 10
         );
 
-        CLI::write("WorkerOptions memory property after creation: " . $workerOptions->memory, 'cyan');
+        CLI::write('WorkerOptions memory property after creation: '.$workerOptions->memory, 'cyan');
 
         return $workerOptions;
     }
@@ -206,7 +207,7 @@ class QueueWork extends BaseCommand
 
         $this->handleJobResponse($response);
 
-        if (!$response) {
+        if (! $response) {
             CLI::write('No jobs available.', 'yellow');
         }
     }
@@ -230,24 +231,28 @@ class QueueWork extends BaseCommand
             // Check time limit
             if ($maxTime > 0 && (time() - $startTime) >= $maxTime) {
                 CLI::write('Maximum time reached. Stopping...', 'yellow');
+
                 break;
             }
 
             // Check job limit
             if ($maxJobs > 0 && $jobsProcessed >= $maxJobs) {
                 CLI::write('Maximum jobs processed. Stopping...', 'yellow');
+
                 break;
             }
 
             // Check memory limit
             if ($this->memoryExceeded($options->memory)) {
                 CLI::write('Memory limit exceeded. Stopping...', 'red');
+
                 break;
             }
 
             // Check for restart signal
             if ($this->shouldRestart()) {
                 CLI::write('Restart signal received. Stopping...', 'yellow');
+
                 break;
             }
 
@@ -270,6 +275,7 @@ class QueueWork extends BaseCommand
                     // No job available
                     if ($stopWhenEmpty) {
                         CLI::write('Queue is empty. Stopping...', 'green');
+
                         break;
                     }
 
@@ -277,13 +283,13 @@ class QueueWork extends BaseCommand
                     sleep($options->sleep);
                 }
             } catch (Throwable $e) {
-                CLI::error('Error processing job: ' . $e->getMessage());
+                CLI::error('Error processing job: '.$e->getMessage());
                 sleep($options->sleep);
             }
         }
 
-        CLI::write("Worker stopped. Processed {$jobsProcessed} jobs in " .
-            (time() - $startTime) . " seconds.", 'green');
+        CLI::write("Worker stopped. Processed {$jobsProcessed} jobs in ".
+            (time() - $startTime).' seconds.', 'green');
     }
 
     /**
@@ -291,7 +297,7 @@ class QueueWork extends BaseCommand
      */
     protected function handleJobResponse($response): void
     {
-        if (!$response) {
+        if (! $response) {
             return;
         }
 
@@ -300,12 +306,15 @@ class QueueWork extends BaseCommand
         switch ($response) {
             case 0: // Success
                 CLI::write("[{$timestamp}] Job processed successfully", 'green');
+
                 break;
             case 1: // Failed
                 CLI::write("[{$timestamp}] Job failed", 'red');
+
                 break;
             case 2: // Released back to queue
                 CLI::write("[{$timestamp}] Job released back to queue", 'yellow');
+
                 break;
             default:
                 CLI::write("[{$timestamp}] Job response: {$response}", 'light_gray');
@@ -328,6 +337,7 @@ class QueueWork extends BaseCommand
 
         return $exceeded;
     }
+
     /**
      * Check if worker should restart (simple cache-based check)
      */

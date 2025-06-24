@@ -119,13 +119,13 @@ class BladeViewRenderer
             throw new \InvalidArgumentException('No view has been specified');
         }
 
-        if (!empty($this->fragments)) {
+        if (! empty($this->fragments)) {
             $this->data['__fragments'] = $this->fragments;
         }
 
         $output = $this->blade->render($this->view, $this->data);
 
-        if (!empty($this->fragments)) {
+        if (! empty($this->fragments)) {
             $output = $this->extractFragments($output, $this->fragments);
         }
 
@@ -147,7 +147,7 @@ class BladeViewRenderer
         $extractedContent = '';
 
         foreach ($fragments as $fragment) {
-            $pattern = '/<!--\s*fragment\s*:\s*' . preg_quote($fragment, '/') . '\s*-->(.*?)<!--\s*endfragment\s*:\s*' . preg_quote($fragment, '/') . '\s*-->/s';
+            $pattern = '/<!--\s*fragment\s*:\s*'.preg_quote($fragment, '/').'\s*-->(.*?)<!--\s*endfragment\s*:\s*'.preg_quote($fragment, '/').'\s*-->/s';
 
             if (preg_match($pattern, $output, $matches)) {
                 $extractedContent .= trim($matches[1]);

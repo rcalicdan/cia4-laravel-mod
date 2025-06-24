@@ -38,7 +38,8 @@ class QueueRestart extends BaseCommand
 
             return EXIT_SUCCESS;
         } catch (\Exception $e) {
-            CLI::error('Failed to set restart signal: ' . $e->getMessage());
+            CLI::error('Failed to set restart signal: '.$e->getMessage());
+
             return EXIT_ERROR;
         }
     }
@@ -48,9 +49,11 @@ class QueueRestart extends BaseCommand
         try {
             cache()->delete($cacheKey);
             CLI::write('Queue restart signal cleared.', 'green');
+
             return EXIT_SUCCESS;
         } catch (\Exception $e) {
-            CLI::error('Failed to clear restart signal: ' . $e->getMessage());
+            CLI::error('Failed to clear restart signal: '.$e->getMessage());
+
             return EXIT_ERROR;
         }
     }

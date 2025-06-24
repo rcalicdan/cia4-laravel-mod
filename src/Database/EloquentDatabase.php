@@ -4,6 +4,7 @@ namespace Rcalicdan\Ci4Larabridge\Database;
 
 use Config\Eloquent;
 use Config\LarabridgeAuthentication;
+use Config\Pagination as PaginationConfig;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -17,7 +18,6 @@ use Illuminate\Support\Facades\Facade;
 use PDO;
 use Rcalicdan\Ci4Larabridge\Blade\PaginationRenderer;
 use Rcalicdan\Ci4Larabridge\Commands\Handlers\LaravelMigrate\SqliteHandler;
-use Config\Pagination as PaginationConfig;
 
 /**
  * Manages the setup and configuration of Laravel's Eloquent ORM in a CodeIgniter 4 app.
@@ -112,7 +112,7 @@ class EloquentDatabase
 
     /**
      * Get the singleton instance of EloquentDatabase
-     * 
+     *
      * @return self The singleton instance
      */
     public static function getInstance(): self
@@ -122,8 +122,8 @@ class EloquentDatabase
 
     /**
      * Get a database connection instance
-     * 
-     * @param string|null $name Connection name
+     *
+     * @param  string|null  $name  Connection name
      * @return \Illuminate\Database\Connection The database connection
      */
     public static function getConnection(?string $name = null): \Illuminate\Database\Connection
@@ -133,7 +133,7 @@ class EloquentDatabase
 
     /**
      * Get the database manager instance
-     * 
+     *
      * @return \Illuminate\Database\DatabaseManager The database manager
      */
     public static function getDatabaseManager(): \Illuminate\Database\DatabaseManager
@@ -143,7 +143,7 @@ class EloquentDatabase
 
     /**
      * Get the SQLite handler instance (lazy loaded)
-     * 
+     *
      * @return SqliteHandler The SQLite handler
      */
     protected function getSqliteHandler(): SqliteHandler
@@ -153,9 +153,9 @@ class EloquentDatabase
 
     /**
      * Get an environment variable with caching
-     * 
-     * @param string $key Environment variable name
-     * @param mixed $default Default value if not set
+     *
+     * @param  string  $key  Environment variable name
+     * @param  mixed  $default  Default value if not set
      * @return mixed The environment variable value
      */
     protected function env(string $key, $default = null)
@@ -165,7 +165,7 @@ class EloquentDatabase
 
     /**
      * Get pagination configuration with caching
-     * 
+     *
      * @return PaginationConfig The pagination configuration
      */
     protected function getPaginationConfig(): PaginationConfig
@@ -323,10 +323,9 @@ class EloquentDatabase
 
     /**
      * Add a new database connection
-     * 
-     * @param string $name Connection name
-     * @param array|null $config Connection configuration
-     * @return void
+     *
+     * @param  string  $name  Connection name
+     * @param  array|null  $config  Connection configuration
      */
     public function addConnection(string $name, ?array $config = null): void
     {
@@ -339,8 +338,8 @@ class EloquentDatabase
 
     /**
      * Get configuration for a specific database connection
-     * 
-     * @param string $connection Connection name
+     *
+     * @param  string  $connection  Connection name
      * @return array The connection configuration
      */
     public function getConnectionConfig(string $connection): array
@@ -363,8 +362,6 @@ class EloquentDatabase
 
     /**
      * Ensure all services are initialized (lazy loading)
-     * 
-     * @return void
      */
     protected function ensureServicesInitialized(): void
     {
@@ -376,8 +373,6 @@ class EloquentDatabase
 
     /**
      * Boot all services when needed
-     * 
-     * @return void
      */
     public function bootServices(): void
     {
@@ -397,8 +392,6 @@ class EloquentDatabase
 
     /**
      * Prepare observers for lazy registration
-     * 
-     * @return void
      */
     protected function prepareObservers(): void
     {
@@ -417,9 +410,8 @@ class EloquentDatabase
 
     /**
      * Register observers for a specific model
-     * 
-     * @param string $modelClass The model class name
-     * @return void
+     *
+     * @param  string  $modelClass  The model class name
      */
     public function registerObserversForModel(string $modelClass): void
     {
@@ -463,7 +455,7 @@ class EloquentDatabase
         }
 
         // Try APCu cache first (production only)
-        $cacheKey = 'eloquent_models_' . md5(APPPATH . filemtime(APPPATH . 'Models'));
+        $cacheKey = 'eloquent_models_'.md5(APPPATH.filemtime(APPPATH.'Models'));
         if (function_exists('apcu_fetch') && ENVIRONMENT === 'production') {
             $cached = apcu_fetch($cacheKey);
             if ($cached !== false) {
@@ -486,7 +478,7 @@ class EloquentDatabase
      */
     private function discoverModels(): array
     {
-        $modelPath = APPPATH . 'Models/';
+        $modelPath = APPPATH.'Models/';
         if (! is_dir($modelPath)) {
             return [];
         }
@@ -598,19 +590,19 @@ class EloquentDatabase
 
     protected function registerDatabaseService(): void
     {
-        $this->container->singleton('db', fn() => $this->capsule->getDatabaseManager());
+        $this->container->singleton('db', fn () => $this->capsule->getDatabaseManager());
     }
 
     protected function registerHashService(): void
     {
-        $this->container->singleton('hash', fn($app) => new HashManager($app));
+        $this->container->singleton('hash', fn ($app) => new HashManager($app));
     }
 
     protected function registerPaginationRenderer(): void
     {
         $this->container->singleton(
             PaginationRenderer::class,
-            fn() => new PaginationRenderer
+            fn () => new PaginationRenderer
         );
         $this->container->alias(PaginationRenderer::class, 'paginator.renderer');
     }
@@ -631,7 +623,7 @@ class EloquentDatabase
 
         $container = $this->container;
         Paginator::viewFactoryResolver(
-            fn() => $container->get('paginator.renderer')
+            fn () => $container->get('paginator.renderer')
         );
 
         Paginator::currentPageResolver(
@@ -646,8 +638,8 @@ class EloquentDatabase
             }
         );
 
-        Paginator::currentPathResolver(fn() => current_url());
-        Paginator::queryStringResolver(fn() => $uri->getQuery());
+        Paginator::currentPathResolver(fn () => current_url());
+        Paginator::queryStringResolver(fn () => $uri->getQuery());
 
         CursorPaginator::currentCursorResolver(
             function ($cursorName = 'cursor') use ($request) {
@@ -660,8 +652,6 @@ class EloquentDatabase
 
     /**
      * Force registration of all observers
-     * 
-     * @return void
      */
     public function forceRegisterAllObservers(): void
     {
@@ -671,8 +661,6 @@ class EloquentDatabase
 
     /**
      * Clear all cached data
-     * 
-     * @return void
      */
     public static function clearCaches(): void
     {
@@ -689,7 +677,7 @@ class EloquentDatabase
 
     /**
      * Get current cache status information
-     * 
+     *
      * @return array Cache status information
      */
     public static function getCacheStatus(): array

@@ -15,7 +15,7 @@ class QueueInfo extends BaseCommand
     public function run(array $params)
     {
         $queueService = QueueService::getInstance();
-        
+
         CLI::write('Queue Configuration Information', 'yellow');
         CLI::write('================================', 'yellow');
         CLI::write('');
@@ -30,7 +30,7 @@ class QueueInfo extends BaseCommand
         CLI::write('Connection Details:', 'cyan');
         foreach ($config as $key => $value) {
             if (is_scalar($value)) {
-                CLI::write("  {$key}: " . ($value ?: 'N/A'), 'white');
+                CLI::write("  {$key}: ".($value ?: 'N/A'), 'white');
             }
         }
         CLI::write('');

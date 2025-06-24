@@ -14,7 +14,7 @@ class QueueExceptionHandler implements ExceptionHandler
 
     public function report(Throwable $e): void
     {
-        log_message('error', 'Queue job exception: ' . $e->getMessage(), [
+        log_message('error', 'Queue job exception: '.$e->getMessage(), [
             'exception' => $e,
             'file' => $e->getFile(),
             'line' => $e->getLine(),
@@ -30,8 +30,8 @@ class QueueExceptionHandler implements ExceptionHandler
     public function renderForConsole($output, Throwable $e): void
     {
         if ($output && method_exists($output, 'writeln')) {
-            $output->writeln('<error>Queue Exception: ' . $e->getMessage() . '</error>');
-            $output->writeln('<comment>File: ' . $e->getFile() . ':' . $e->getLine() . '</comment>');
+            $output->writeln('<error>Queue Exception: '.$e->getMessage().'</error>');
+            $output->writeln('<comment>File: '.$e->getFile().':'.$e->getLine().'</comment>');
         }
     }
 }

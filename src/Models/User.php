@@ -9,10 +9,10 @@ use Rcalicdan\Ci4Larabridge\Traits\Authentication\HasRememberToken;
 
 class User extends Model
 {
-    use HasEmailVerification,
-        HasPasswordReset,
-        HasRememberToken,
-        Authenticable;
+    use Authenticable;
+    use HasEmailVerification;
+    use HasPasswordReset;
+    use HasRememberToken;
 
     protected $table = 'users';
 

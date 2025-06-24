@@ -3,9 +3,9 @@
 namespace Rcalicdan\Ci4Larabridge\Database;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Pagination\CursorPaginator;
 
 class CustomBuilder extends Builder
 {
@@ -64,12 +64,12 @@ class CustomBuilder extends Builder
     {
         $request = \Config\Services::request();
         $paginator->setPath(base_url($request->getPath()));
-        
+
         $queryParams = $request->getGet();
-    
+
         unset($queryParams['page']);
         unset($queryParams['cursor']);
-        
+
         $paginator->appends($queryParams);
     }
 }

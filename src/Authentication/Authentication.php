@@ -5,7 +5,6 @@ namespace Rcalicdan\Ci4Larabridge\Authentication;
 use Config\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Rcalicdan\Ci4Larabridge\Exceptions\UnverifiedEmailException;
 use Rcalicdan\Ci4Larabridge\Models\User as BridgeUser;
 
 class Authentication
@@ -27,7 +26,7 @@ class Authentication
         $this->rememberTokenHandler = new RememberTokenHandler($this->config, $this->userModel);
 
         // Check for remember me token on construction
-        if (!$this->session->get('auth_user_id')) {
+        if (! $this->session->get('auth_user_id')) {
             $this->checkRememberToken();
         }
     }
@@ -55,13 +54,14 @@ class Authentication
         }
 
         $userId = $this->session->get('auth_user_id');
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
         $userData = $this->session->get('auth_user_data');
         if ($userData && $userData['id'] == $userId) {
             $this->user = $this->userModel::hydrate([$userData])->first();
+
             return $this->user;
         }
 
@@ -235,7 +235,8 @@ class Authentication
         if (Carbon::now()->isAfter($expiresAt)) {
             DB::table('password_reset_tokens')
                 ->where('token', $hashedToken)
-                ->delete();
+                ->delete()
+            ;
 
             return null;
         }
@@ -256,7 +257,8 @@ class Authentication
         if (Carbon::now()->isAfter(Carbon::parse($tokenData->expires_at))) {
             DB::table('email_verification_tokens')
                 ->where('token', $hashedToken)
-                ->delete();
+                ->delete()
+            ;
 
             return null;
         }

@@ -6,7 +6,7 @@ use Rcalicdan\Ci4Larabridge\Authentication\Gate as AuthenticationGate;
 
 /**
  * Facade for authorization gate functionality
- * 
+ *
  * Provides static access to authorization capabilities including defining abilities,
  * associating policies, and checking permissions.
  */
@@ -14,9 +14,9 @@ class Gate
 {
     /**
      * Define a new ability
-     * 
-     * @param string $ability The ability identifier
-     * @param callable $callback Authorization callback that returns boolean
+     *
+     * @param  string  $ability  The ability identifier
+     * @param  callable  $callback  Authorization callback that returns boolean
      * @return void
      */
     public static function define($ability, $callback): AuthenticationGate
@@ -26,9 +26,9 @@ class Gate
 
     /**
      * Associate a policy with a model class
-     * 
-     * @param string $model Model class name
-     * @param string $policy Policy class name
+     *
+     * @param  string  $model  Model class name
+     * @param  string  $policy  Policy class name
      * @return void
      */
     public static function policy($model, $policy): AuthenticationGate
@@ -38,10 +38,9 @@ class Gate
 
     /**
      * Determine if ability is allowed for current user
-     * 
-     * @param string $ability Ability identifier
-     * @param array $arguments Additional parameters
-     * @return bool
+     *
+     * @param  string  $ability  Ability identifier
+     * @param  array  $arguments  Additional parameters
      */
     public static function allows($ability, $arguments = []): bool
     {
@@ -50,10 +49,9 @@ class Gate
 
     /**
      * Determine if ability is denied for current user
-     * 
-     * @param string $ability Ability identifier
-     * @param array $arguments Additional parameters
-     * @return bool
+     *
+     * @param  string  $ability  Ability identifier
+     * @param  array  $arguments  Additional parameters
      */
     public static function denies($ability, $arguments = []): bool
     {
@@ -62,10 +60,9 @@ class Gate
 
     /**
      * Check if ability is granted
-     * 
-     * @param string $ability Ability identifier
-     * @param array $arguments Additional parameters
-     * @return bool
+     *
+     * @param  string  $ability  Ability identifier
+     * @param  array  $arguments  Additional parameters
      */
     public static function check($ability, $arguments = []): bool
     {
@@ -74,8 +71,8 @@ class Gate
 
     /**
      * Get registered policy for a class
-     * 
-     * @param object|string $class Class instance or name
+     *
+     * @param  object|string  $class  Class instance or name
      * @return mixed Associated policy instance or null
      */
     public static function getPolicyFor($class)

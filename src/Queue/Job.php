@@ -7,12 +7,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Laravel\SerializableClosure\SerializableClosure;
-use Rcalicdan\Ci4Larabridge\Queue\PendingDispatch;
 use Rcalicdan\Ci4Larabridge\Traits\Queue\Dispatchable;
 
 abstract class Job implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     /**
      * The number of times the job may be attempted.
@@ -35,7 +37,7 @@ abstract class Job implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        log_message('error', "Job failed: " . get_class($this) . " - " . $exception->getMessage());
+        log_message('error', 'Job failed: '.get_class($this).' - '.$exception->getMessage());
     }
 
     /**

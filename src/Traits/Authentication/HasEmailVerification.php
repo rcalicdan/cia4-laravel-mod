@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Traits\Authentication;
 
 use Carbon\Carbon;
-use Config\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -26,8 +25,10 @@ trait HasEmailVerification
     {
         if ($this->update(['email_verified_at' => Carbon::now()])) {
             DB::table('email_verification_tokens')->where('email', $this->email)->delete();
+
             return true;
         }
+
         return false;
     }
 
@@ -58,7 +59,7 @@ trait HasEmailVerification
     /**
      * Get email verification token data from the email_verification_tokens table.
      *
-     * @param string $hashedToken The hashed token to look up.
+     * @param  string  $hashedToken  The hashed token to look up.
      * @return object|null The token data (email, token, created_at, expires_at) or null if not found.
      */
     public static function getEmailVerificationTokenData(string $hashedToken): ?object

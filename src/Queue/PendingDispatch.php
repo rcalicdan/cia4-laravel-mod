@@ -3,7 +3,6 @@
 namespace Rcalicdan\Ci4Larabridge\Queue;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Fluent;
 
 class PendingDispatch
 {
@@ -61,6 +60,7 @@ class PendingDispatch
     public function onConnection($connection): self
     {
         $this->connection = $connection;
+
         return $this;
     }
 
@@ -70,6 +70,7 @@ class PendingDispatch
     public function onQueue($queue): self
     {
         $this->queue = $queue;
+
         return $this;
     }
 
@@ -79,6 +80,7 @@ class PendingDispatch
     public function delay($delay): self
     {
         $this->delay = $delay;
+
         return $this;
     }
 
@@ -88,6 +90,7 @@ class PendingDispatch
     public function chain(array $chain): self
     {
         $this->chained = $chain;
+
         return $this;
     }
 
@@ -97,6 +100,7 @@ class PendingDispatch
     public function afterCommit(): self
     {
         $this->afterCommit = true;
+
         return $this;
     }
 
@@ -106,6 +110,7 @@ class PendingDispatch
     public function afterResponse(): self
     {
         $this->afterResponse = true;
+
         return $this;
     }
 
@@ -115,6 +120,7 @@ class PendingDispatch
     public function through(array $middleware): self
     {
         $this->middleware = $middleware;
+
         return $this;
     }
 
@@ -126,6 +132,7 @@ class PendingDispatch
         if ($this->afterResponse) {
             // Store for later dispatch after response
             $this->storeForAfterResponse();
+
             return;
         }
 
@@ -150,8 +157,8 @@ class PendingDispatch
     protected function dispatchToQueue(): void
     {
         $queueManager = service('queue');
-        
-        $queue = $this->connection 
+
+        $queue = $this->connection
             ? $queueManager->connection($this->connection)
             : $queueManager;
 

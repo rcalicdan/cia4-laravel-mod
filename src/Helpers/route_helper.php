@@ -1,6 +1,6 @@
 <?php
 
-if (!function_exists('route')) {
+if (! function_exists('route')) {
     function route(string $route, ...$params): string
     {
         return route_to($route, $params);
@@ -16,7 +16,7 @@ if (! function_exists('get')) {
     }
 }
 
-if (!function_exists('post')) {
+if (! function_exists('post')) {
     function post($key)
     {
         $request = service('request');

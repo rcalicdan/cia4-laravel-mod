@@ -42,7 +42,7 @@ trait HasPasswordReset
     /**
      * Get password reset token data from the password_reset_tokens table.
      *
-     * @param string $token The plain text token to look up.
+     * @param  string  $token  The plain text token to look up.
      * @return object|null The token data (email, token, created_at) or null if not found.
      */
     public static function getPasswordResetTokenData(string $hashedToken): ?object

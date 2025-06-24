@@ -111,7 +111,7 @@ class BladeExtension
         });
 
         foreach ($this->methodMap as $directive => $method) {
-            $blade->directive($directive, fn() => "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">");
+            $blade->directive($directive, fn () => "<input type=\"hidden\" name=\"_method\" value=\"{$method}\">");
         }
     }
 
@@ -123,10 +123,10 @@ class BladeExtension
      */
     private function _registerPermissionDirectives(Blade $blade): void
     {
-        $blade->directive('can', fn($expression) => "<?php if(can($expression)): ?>");
-        $blade->directive('endcan', fn() => '<?php endif; ?>');
-        $blade->directive('cannot', fn($expression) => "<?php if(cannot($expression)): ?>");
-        $blade->directive('endcannot', fn() => '<?php endif; ?>');
+        $blade->directive('can', fn ($expression) => "<?php if(can($expression)): ?>");
+        $blade->directive('endcan', fn () => '<?php endif; ?>');
+        $blade->directive('cannot', fn ($expression) => "<?php if(cannot($expression)): ?>");
+        $blade->directive('endcannot', fn () => '<?php endif; ?>');
     }
 
     /**
@@ -136,10 +136,10 @@ class BladeExtension
      */
     private function _registerAuthDirectives(Blade $blade): void
     {
-        $blade->directive('auth', fn() => '<?php if(auth()->check()):?>');
-        $blade->directive('endauth', fn() => '<?php endif;?>');
-        $blade->directive('guest', fn() => '<?php if(auth()->guest()):?>');
-        $blade->directive('endguest', fn() => '<?php endif;?>');
+        $blade->directive('auth', fn () => '<?php if(auth()->check()):?>');
+        $blade->directive('endauth', fn () => '<?php endif;?>');
+        $blade->directive('guest', fn () => '<?php if(auth()->guest()):?>');
+        $blade->directive('endguest', fn () => '<?php endif;?>');
     }
 
     /**
@@ -158,7 +158,7 @@ class BladeExtension
                 \$message = \$__bladeErrors->first(\$__fieldName);
             ?>";
         });
-        $blade->directive('enderror', fn() => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
+        $blade->directive('enderror', fn () => '<?php unset($message, $__fieldName, $__bladeErrors); endif; ?>');
     }
 
     /**
@@ -211,11 +211,13 @@ class BladeExtension
     {
         $blade->directive('fragment', function ($expression) {
             $fragment = trim($expression, "()\"'");
+
             return "<!-- fragment: {$fragment} -->";
         });
 
         $blade->directive('endfragment', function ($expression) {
             $fragment = trim($expression, "()\"'");
+
             return "<!-- endfragment: {$fragment} -->";
         });
     }

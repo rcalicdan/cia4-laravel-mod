@@ -4,15 +4,15 @@ namespace Rcalicdan\Ci4Larabridge\Queue;
 
 use Config\LarabridgeQueue;
 use Illuminate\Container\Container;
+use Illuminate\Queue\Connectors\BeanstalkdConnector;
+use Illuminate\Queue\Connectors\DatabaseConnector;
+use Illuminate\Queue\Connectors\RedisConnector;
+use Illuminate\Queue\Connectors\SqsConnector;
+use Illuminate\Queue\Connectors\SyncConnector;
+use Illuminate\Queue\Failed\DatabaseFailedJobProvider;
 use Illuminate\Queue\QueueManager;
 use Illuminate\Queue\Worker;
 use Illuminate\Queue\WorkerOptions;
-use Illuminate\Queue\Connectors\DatabaseConnector;
-use Illuminate\Queue\Connectors\RedisConnector;
-use Illuminate\Queue\Connectors\SyncConnector;
-use Illuminate\Queue\Connectors\BeanstalkdConnector;
-use Illuminate\Queue\Connectors\SqsConnector;
-use Illuminate\Queue\Failed\DatabaseFailedJobProvider;
 use Illuminate\Redis\RedisManager;
 use Rcalicdan\Ci4Larabridge\Database\EloquentDatabase;
 use Rcalicdan\Ci4Larabridge\Exceptions\QueueExceptionHandler;
@@ -45,7 +45,7 @@ class QueueService
 
     public static function getInstance(): self
     {
-        return self::$instance ??= new self();
+        return self::$instance ??= new self;
     }
 
     /**
@@ -61,7 +61,7 @@ class QueueService
      */
     protected function getDefaultConnection(): string
     {
-        if (!isset(self::$envCache['default_connection'])) {
+        if (! isset(self::$envCache['default_connection'])) {
             self::$envCache['default_connection'] = $this->env(
                 'QUEUE_CONNECTION',
                 $this->config->default
@@ -115,6 +115,7 @@ class QueueService
         }
 
         $upperConnection = strtoupper($connectionName);
+
         return array_merge($config, [
             'host' => $this->env("QUEUE_{$upperConnection}_HOST", $config['host'] ?? 'localhost'),
             'port' => $this->env("QUEUE_{$upperConnection}_PORT", $config['port'] ?? null),
@@ -207,14 +208,15 @@ class QueueService
     protected function getContainer(): Container
     {
         $eloquent = EloquentDatabase::getInstance();
-        return $eloquent->container ?? new Container();
+
+        return $eloquent->container ?? new Container;
     }
 
     protected function setupQueueManager(): void
     {
-        if (!$this->container->bound('config')) {
+        if (! $this->container->bound('config')) {
             $this->container->singleton('config', function () {
-                return new \Illuminate\Config\Repository();
+                return new \Illuminate\Config\Repository;
             });
         }
 
@@ -260,7 +262,6 @@ class QueueService
         return $eloquent->capsule->getConnection($connectionName);
     }
 
-
     protected function registerConnectors(): void
     {
         // Database connector
@@ -270,7 +271,7 @@ class QueueService
 
         // Sync connector
         $this->queueManager->addConnector('sync', function () {
-            return new SyncConnector();
+            return new SyncConnector;
         });
 
         // Redis connector
@@ -280,20 +281,21 @@ class QueueService
 
         // Beanstalkd connector
         $this->queueManager->addConnector('beanstalkd', function () {
-            return new BeanstalkdConnector();
+            return new BeanstalkdConnector;
         });
 
         // SQS connector
         $this->queueManager->addConnector('sqs', function () {
-            return new SqsConnector();
+            return new SqsConnector;
         });
     }
 
     protected function getRedisManager(): RedisManager
     {
-        if (!$this->container->bound('redis')) {
+        if (! $this->container->bound('redis')) {
             $this->container->singleton('redis', function () {
                 $eloquentConfig = config(\Config\Eloquent::class);
+
                 return new RedisManager($this->container, 'phpredis', $eloquentConfig->redis);
             });
         }
@@ -328,7 +330,7 @@ class QueueService
         return new Worker(
             $this->queueManager,
             $this->container['events'],
-            new QueueExceptionHandler(),
+            new QueueExceptionHandler,
             function () {
                 return false;
             }

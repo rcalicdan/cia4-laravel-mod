@@ -1,24 +1,24 @@
 <?php
 
-if (!function_exists('dispatch')) {
+if (! function_exists('dispatch')) {
     /**
      * Dispatch a job to the queue.
      */
-    function dispatch($job): \Rcalicdan\Ci4Larabridge\Queue\PendingDispatch
+    function dispatch($job): Rcalicdan\Ci4Larabridge\Queue\PendingDispatch
     {
-        if ($job instanceof \Closure) {
-            $job = new \Rcalicdan\Ci4Larabridge\Queue\CallQueuedClosure($job);
+        if ($job instanceof Closure) {
+            $job = new Rcalicdan\Ci4Larabridge\Queue\CallQueuedClosure($job);
         }
 
         if (method_exists($job, 'dispatch')) {
             return $job::dispatch();
         }
 
-        return new \Rcalicdan\Ci4Larabridge\Queue\PendingDispatch($job);
+        return new Rcalicdan\Ci4Larabridge\Queue\PendingDispatch($job);
     }
 }
 
-if (!function_exists('dispatch_sync')) {
+if (! function_exists('dispatch_sync')) {
     /**
      * Dispatch a job synchronously.
      */
@@ -28,7 +28,7 @@ if (!function_exists('dispatch_sync')) {
     }
 }
 
-if (!function_exists('dispatch_now')) {
+if (! function_exists('dispatch_now')) {
     /**
      * Dispatch a job immediately.
      */
@@ -38,7 +38,7 @@ if (!function_exists('dispatch_now')) {
     }
 }
 
-if (!function_exists('queue_push')) {
+if (! function_exists('queue_push')) {
     /**
      * Push a job onto the queue.
      */
@@ -48,7 +48,7 @@ if (!function_exists('queue_push')) {
     }
 }
 
-if (!function_exists('queue_later')) {
+if (! function_exists('queue_later')) {
     /**
      * Push a job onto the queue after a delay.
      */
