@@ -116,17 +116,16 @@ class QueueService
             });
 
             // Bind ALL the event dispatcher interfaces - THIS IS CRITICAL
-            $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
+            $this->container->singleton(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
                 return $container['events'];
             });
 
-            $this->container->bind(\Illuminate\Events\Dispatcher::class, function ($container) {
+            $this->container->singleton(\Illuminate\Events\Dispatcher::class, function ($container) {
                 return $container['events'];
             });
-            
+
             // Add this missing alias - CRITICAL FOR SERIALIZATION
             $this->container->alias('events', \Illuminate\Contracts\Events\Dispatcher::class);
-            $this->container->alias(\Illuminate\Contracts\Events\Dispatcher::class, 'events');
         }
 
         // Add encrypter binding (required for job serialization) - COMPLETE IMPLEMENTATION
@@ -180,13 +179,18 @@ class QueueService
         if (!$this->container->bound('uuid')) {
             $this->container->singleton('uuid', function () {
                 return new class {
-                    public function uuid4(): string {
-                        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    public function uuid4(): string
+                    {
+                        return sprintf(
+                            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                            mt_rand(0, 0xffff),
+                            mt_rand(0, 0xffff),
                             mt_rand(0, 0xffff),
                             mt_rand(0, 0x0fff) | 0x4000,
                             mt_rand(0, 0x3fff) | 0x8000,
-                            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                            mt_rand(0, 0xffff),
+                            mt_rand(0, 0xffff),
+                            mt_rand(0, 0xffff)
                         );
                     }
                 };
@@ -425,13 +429,13 @@ class QueueService
         $this->queueManager->failing(function ($connectionName, $job, $data) {
             try {
                 log_message('error', 'Queue failing event triggered for connection: ' . $connectionName);
-                
+
                 $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
                 if ($failer && method_exists($failer, 'log')) {
-                    
+
                     // Get the queue name from the job
                     $queueName = method_exists($job, 'getQueue') ? $job->getQueue() : 'default';
-                    
+
                     // Get the raw job payload
                     $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : json_encode([
                         'displayName' => get_class($job),
@@ -444,7 +448,7 @@ class QueueService
                             'command' => serialize($job)
                         ]
                     ]);
-                    
+
                     // Log the failed job
                     $failer->log($connectionName, $queueName, $jobPayload, $data);
                     log_message('error', 'Failed job logged to database successfully');
