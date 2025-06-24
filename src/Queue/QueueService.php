@@ -76,7 +76,6 @@ class QueueService
     /**
      * Setup container bindings - FIXED VERSION WITHOUT CIRCULAR REFERENCE
      */
-    // In QueueService.php, update the setupContainerBindings method:
     protected function setupContainerBindings(): void
     {
         // CRITICAL: Container must bind itself FIRST
@@ -110,13 +109,13 @@ class QueueService
             });
         }
 
-        // CRITICAL: Fix events dispatcher binding - UPDATED
+        // CRITICAL: Fix events dispatcher binding - COMPLETELY UPDATED
         if (!$this->container->bound('events')) {
             $this->container->singleton('events', function ($container) {
                 return new \Illuminate\Events\Dispatcher($container);
             });
 
-            // Bind ALL the event dispatcher interfaces
+            // Bind ALL the event dispatcher interfaces - THIS IS CRITICAL
             $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function ($container) {
                 return $container['events'];
             });
@@ -124,9 +123,12 @@ class QueueService
             $this->container->bind(\Illuminate\Events\Dispatcher::class, function ($container) {
                 return $container['events'];
             });
+            
+            // Add this missing alias - CRITICAL FOR SERIALIZATION
+            $this->container->alias('events', \Illuminate\Contracts\Events\Dispatcher::class);
+            $this->container->alias(\Illuminate\Contracts\Events\Dispatcher::class, 'events');
         }
 
-        // Add encrypter binding (required for job serialization)
         // Add encrypter binding (required for job serialization) - COMPLETE IMPLEMENTATION
         if (!$this->container->bound('encrypter')) {
             $this->container->singleton('encrypter', function () {
@@ -174,6 +176,23 @@ class QueueService
             });
         }
 
+        // Add UUID generator binding - NEW
+        if (!$this->container->bound('uuid')) {
+            $this->container->singleton('uuid', function () {
+                return new class {
+                    public function uuid4(): string {
+                        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                            mt_rand(0, 0xffff),
+                            mt_rand(0, 0x0fff) | 0x4000,
+                            mt_rand(0, 0x3fff) | 0x8000,
+                            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                        );
+                    }
+                };
+            });
+        }
+
         // Bind log for error handling
         if (!$this->container->bound('log')) {
             $this->container->singleton('log', function () {
@@ -191,6 +210,11 @@ class QueueService
                     public function debug($message, array $context = [])
                     {
                         log_message('debug', $message);
+                    }
+
+                    public function warning($message, array $context = [])
+                    {
+                        log_message('warning', $message);
                     }
                 };
             });
@@ -397,23 +421,40 @@ class QueueService
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
         $this->registerQueueConnections();
 
-        // UPDATED: Set up queue event handlers for failed jobs
+        // CORRECTED: Set up queue event handlers for failed jobs
         $this->queueManager->failing(function ($connectionName, $job, $data) {
             try {
+                log_message('error', 'Queue failing event triggered for connection: ' . $connectionName);
+                
                 $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
                 if ($failer && method_exists($failer, 'log')) {
-                    // Extract job details properly
-                    $jobName = method_exists($job, 'getName') ? $job->getName() : get_class($job);
+                    
+                    // Get the queue name from the job
                     $queueName = method_exists($job, 'getQueue') ? $job->getQueue() : 'default';
-                    $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : json_encode(['job' => $jobName]);
-
+                    
+                    // Get the raw job payload
+                    $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : json_encode([
+                        'displayName' => get_class($job),
+                        'job' => 'Illuminate\\Queue\\CallQueuedHandler@call',
+                        'maxTries' => null,
+                        'delay' => null,
+                        'timeout' => null,
+                        'data' => [
+                            'commandName' => get_class($job),
+                            'command' => serialize($job)
+                        ]
+                    ]);
+                    
+                    // Log the failed job
                     $failer->log($connectionName, $queueName, $jobPayload, $data);
-                    log_message('error', 'Failed job logged to database: ' . $jobName);
+                    log_message('error', 'Failed job logged to database successfully');
                 } else {
-                    log_message('error', 'No failed job provider available');
+                    $failedProvider = $failer ? get_class($failer) : 'null';
+                    log_message('error', 'No failed job provider available or no log method. Provider: ' . $failedProvider);
                 }
             } catch (\Exception $e) {
                 log_message('error', 'Failed to log failed job: ' . $e->getMessage());
+                log_message('error', 'Exception trace: ' . $e->getTraceAsString());
             }
         });
     }
