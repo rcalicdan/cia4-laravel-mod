@@ -36,7 +36,7 @@ class QueueService
 
     public function __construct()
     {
-        $this->config = config(LarabridgeQueue::class);
+        $this->config = config('LarabridgeQueue');
         $this->container = $this->getContainer();
         $this->setupQueueManager();
         $this->registerConnectors();
@@ -212,6 +212,12 @@ class QueueService
 
     protected function setupQueueManager(): void
     {
+        if (!$this->container->bound('config')) {
+            $this->container->singleton('config', function () {
+                return new \Illuminate\Config\Repository();
+            });
+        }
+
         $this->queueManager = new QueueManager($this->container);
 
         $this->container->singleton('queue', function () {
@@ -220,7 +226,6 @@ class QueueService
 
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
 
-        // Add this: Register all queue connections
         $this->registerQueueConnections();
     }
 
@@ -237,9 +242,8 @@ class QueueService
                 $connectionConfig['connection'] = $this->getDatabaseConnection($connectionConfig);
             }
 
-            $this->queueManager->extend($name, function () use ($connectionConfig) {
-                return $this->queueManager->resolve($connectionConfig['driver'], $connectionConfig);
-            });
+            // Set the connection configuration in the container
+            $this->container['config']->set("queue.connections.{$name}", $connectionConfig);
         }
     }
 
@@ -249,7 +253,11 @@ class QueueService
     protected function getDatabaseConnection(array $config): \Illuminate\Database\Connection
     {
         $eloquent = EloquentDatabase::getInstance();
-        return $eloquent->capsule->getConnection($config['database'] ?? null);
+
+        // Use the connection specified in config, or default to null (which uses default connection)
+        $connectionName = $config['connection'] ?? null;
+
+        return $eloquent->capsule->getConnection($connectionName);
     }
 
 
@@ -332,17 +340,17 @@ class QueueService
         $workerConfig = $this->getWorkerConfig();
 
         return new WorkerOptions(
-            'default',                          // name - position 0
-            $workerConfig['backoff'],           // backoff - position 1
-            $workerConfig['memory'],            // memory - position 2  
-            $workerConfig['timeout'],           // timeout - position 3
-            $workerConfig['sleep'],             // sleep - position 4
-            $workerConfig['max_tries'],         // maxTries - position 5
-            true,                               // force - position 6
-            $workerConfig['stop_when_empty'],   // stopWhenEmpty - position 7
-            $workerConfig['max_jobs'],          // maxJobs - position 8
-            $workerConfig['max_time'],          // maxTime - position 9
-            0                                   // rest - position 10
+            'default',
+            $workerConfig['backoff'],
+            $workerConfig['memory'],
+            $workerConfig['timeout'],
+            $workerConfig['sleep'],
+            $workerConfig['max_tries'],
+            true,
+            $workerConfig['stop_when_empty'],
+            $workerConfig['max_jobs'],
+            $workerConfig['max_time'],
+            0
         );
     }
 
