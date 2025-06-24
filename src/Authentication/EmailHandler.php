@@ -39,7 +39,7 @@ class EmailHandler
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Password reset email failed: '.$e->getMessage());
+            log_message('error', 'Password reset email failed: ' . $e->getMessage());
 
             return false;
         }
@@ -66,22 +66,23 @@ class EmailHandler
 
             return $this->email->send();
         } catch (\Exception $e) {
-            log_message('error', 'Email verification failed: '.$e->getMessage());
+            log_message('error', 'Email verification failed: ' . $e->getMessage());
 
             return false;
         }
     }
 
-    /**
-     * Prepare email with common settings
-     */
     protected function prepareEmail(string $to, string $subject, string $viewPath, array $data): void
     {
         $this->email->clear();
+
+        $defaultHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
         $this->email->setFrom(
-            $this->config->email['fromEmail'] ?? 'noreply@'.$_SERVER['HTTP_HOST'],
+            $this->config->email['fromEmail'] ?? 'noreply@' . $defaultHost,
             $this->config->email['fromName'] ?? 'Your Application'
         );
+
         $this->email->setTo($to);
         $this->email->setSubject($subject);
         $this->email->setMailType('html');
