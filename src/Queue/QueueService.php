@@ -42,16 +42,34 @@ class QueueService
         $this->setupQueueManager();
         $this->registerConnectors();
         $this->setupFailedJobProvider();
+
+        // CRITICAL: Initialize Bus service AFTER queue setup
+        $this->initializeBusService();
+    }
+
+    /**
+     * Initialize the Bus service to ensure proper container bindings
+     */
+    protected function initializeBusService(): void
+    {
+        // This ensures BusService binds the dispatcher before queue workers need it
+        BusService::getInstance();
     }
 
     /**
      * Setup container bindings - UPDATED TO FIX CONTAINER ISSUES
      */
+    /**
+     * Setup container bindings - COMPLETE VERSION
+     */
     protected function setupContainerBindings(): void
     {
-        // CRITICAL: Container must bind itself
-        $this->container->instance(Container::class, $this->container);
+        // CRITICAL: Container must bind itself FIRST
+        $this->container->instance(\Illuminate\Container\Container::class, $this->container);
         $this->container->instance(\Illuminate\Contracts\Container\Container::class, $this->container);
+
+        // Bind the container as 'app' as well (Laravel convention)
+        $this->container->instance('app', $this->container);
 
         // Bind database manager
         if (!$this->container->bound('db')) {
@@ -82,6 +100,30 @@ class QueueService
             $this->container->bind(\Illuminate\Events\Dispatcher::class, function () {
                 return $this->container['events'];
             });
+        }
+
+        // CRITICAL: Pre-bind Bus Dispatcher (this is what was missing!)
+        if (!$this->container->bound(\Illuminate\Contracts\Bus\Dispatcher::class)) {
+            $this->container->singleton(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
+                // This creates a Bus dispatcher early
+                $busDispatcher = new \Illuminate\Bus\Dispatcher($this->container, function ($connection = null) {
+                    return $this->container['queue']->connection($connection);
+                });
+
+                $busDispatcher->pipeThrough([]);
+                return $busDispatcher;
+            });
+
+            // Also bind other Bus interfaces
+            $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
+                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+            });
+
+            $this->container->bind(\Illuminate\Bus\Dispatcher::class, function () {
+                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+            });
+
+            $this->container->alias(\Illuminate\Contracts\Bus\Dispatcher::class, 'bus');
         }
 
         // Bind encrypter (required by some queue operations)
@@ -128,15 +170,6 @@ class QueueService
                 };
             });
         }
-
-        // IMPORTANT: Bind the queue manager itself to the container
-        $this->container->singleton(QueueManager::class, function () {
-            return $this->queueManager;
-        });
-
-        $this->container->bind(\Illuminate\Contracts\Queue\Factory::class, function () {
-            return $this->queueManager;
-        });
     }
 
     public static function getInstance(): self
@@ -321,34 +354,22 @@ class QueueService
 
     protected function setupQueueManager(): void
     {
-        // Call setupContainerBindings FIRST
-        $this->setupContainerBindings();
-
-        if (! $this->container->bound('config')) {
-            $this->container->singleton('config', function () {
-                return new \Illuminate\Config\Repository;
-            });
-        }
-
-        // Events dispatcher should already be bound by setupContainerBindings
-        if (! $this->container->bound('events')) {
-            $this->container->singleton('events', function () {
-                return new \Illuminate\Events\Dispatcher($this->container);
-            });
-
-            $this->container->bind(\Illuminate\Contracts\Events\Dispatcher::class, function () {
-                return $this->container['events'];
-            });
-        }
-
         $this->queueManager = new QueueManager($this->container);
 
         $this->container->singleton('queue', function () {
             return $this->queueManager;
         });
 
-        $this->queueManager->setDefaultDriver($this->getDefaultConnection());
+        // IMPORTANT: Bind queue contracts
+        $this->container->bind(\Illuminate\Contracts\Queue\Factory::class, function () {
+            return $this->queueManager;
+        });
 
+        $this->container->bind(\Illuminate\Queue\QueueManager::class, function () {
+            return $this->queueManager;
+        });
+
+        $this->queueManager->setDefaultDriver($this->getDefaultConnection());
         $this->registerQueueConnections();
     }
 

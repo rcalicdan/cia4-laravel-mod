@@ -37,32 +37,30 @@ class BusService
 
     protected function setupBusDispatcher(): void
     {
-        $this->busDispatcher = new BusDispatcher($this->container, function ($connection = null) {
-            return $this->queueService->getQueueManager()->connection($connection);
-        });
+        // Check if bus dispatcher already exists in container from QueueService
+        if ($this->container->bound(\Illuminate\Contracts\Bus\Dispatcher::class)) {
+            $this->busDispatcher = $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+        } else {
+            // Create new dispatcher if not exists
+            $this->busDispatcher = new BusDispatcher($this->container, function ($connection = null) {
+                return $this->queueService->getQueueManager()->connection($connection);
+            });
 
-        // Bind the concrete class
-        $this->container->singleton(BusDispatcher::class, function () {
-            return $this->busDispatcher;
-        });
+            // Bind it to container
+            $this->container->singleton(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
+                return $this->busDispatcher;
+            });
 
-        // CRITICAL: Bind ALL the interfaces that Laravel expects
-        $this->container->bind(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
-            return $this->busDispatcher;
-        });
+            $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
+                return $this->busDispatcher;
+            });
 
-        // Also bind the QueueingDispatcher interface
-        $this->container->bind(QueueingDispatcher::class, function () {
-            return $this->busDispatcher;
-        });
+            $this->container->bind(BusDispatcher::class, function () {
+                return $this->busDispatcher;
+            });
 
-        // NEW: Bind the Bus contract
-        $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
-            return $this->busDispatcher;
-        });
-
-        // Alias for easier access
-        $this->container->alias(BusDispatcher::class, 'bus');
+            $this->container->alias(\Illuminate\Contracts\Bus\Dispatcher::class, 'bus');
+        }
 
         $this->busDispatcher->pipeThrough([]);
     }
