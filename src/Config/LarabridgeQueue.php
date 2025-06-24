@@ -67,7 +67,7 @@ class LarabridgeQueue extends BaseConfig
      */
     public array $failed = [
         'driver' => 'database',
-        'database' => null, 
+        'database' => null,
         'table' => 'failed_jobs',
     ];
 
@@ -75,7 +75,7 @@ class LarabridgeQueue extends BaseConfig
      * Job batching configuration
      */
     public array $batching = [
-        'database' => null, 
+        'database' => null,
         'table' => 'job_batches',
     ];
 
