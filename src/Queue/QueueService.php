@@ -449,12 +449,10 @@ class QueueService
         $this->queueManager->setDefaultDriver($this->getDefaultConnection());
         $this->registerQueueConnections();
 
-        // FIXED: Correct failing event handler signature
         $this->queueManager->failing(function ($event) {
             try {
                 log_message('error', 'Queue failing event triggered');
 
-                // Extract job information from the event
                 $connectionName = $event->connectionName ?? 'default';
                 $job = $event->job ?? null;
                 $exception = $event->exception ?? null;
@@ -466,16 +464,16 @@ class QueueService
 
                 $failer = $this->container->bound('queue.failer') ? $this->container['queue.failer'] : null;
                 if ($failer && method_exists($failer, 'log')) {
-
-                    // Get job details safely
                     $queueName = method_exists($job, 'getQueue') ? ($job->getQueue() ?: 'default') : 'default';
                     $jobPayload = method_exists($job, 'getRawBody') ? $job->getRawBody() : '';
 
+                    // Generate a proper UUID for the failed job record
+                    $uuid = $this->container['uuid']->uuid4();
+
                     if (empty($jobPayload)) {
-                        // Create a basic payload structure
                         $jobClass = is_object($job) ? get_class($job) : 'Unknown';
                         $jobPayload = json_encode([
-                            'uuid' => uniqid(),
+                            'uuid' => $uuid, // This will be in the payload
                             'displayName' => $jobClass,
                             'job' => 'Illuminate\\Queue\\CallQueuedHandler@call',
                             'maxTries' => null,
@@ -489,17 +487,36 @@ class QueueService
                         ]);
                     }
 
-                    // Log the failed job
-                    $failer->log($connectionName, $queueName, $jobPayload, $exception);
-                    log_message('info', 'Failed job logged to database successfully');
-                } else {
-                    log_message('error', 'No failed job provider available');
+                    // Create a custom failed job entry with UUID
+                    $this->logFailedJobWithUuid($failer, $connectionName, $queueName, $jobPayload, $exception, $uuid);
+                    log_message('info', 'Failed job logged with UUID: ' . $uuid);
                 }
             } catch (\Exception $e) {
                 log_message('error', 'Failed to log failed job: ' . $e->getMessage());
-                log_message('error', 'Exception trace: ' . $e->getTraceAsString());
             }
         });
+    }
+
+    /**
+     * Log failed job with proper UUID
+     */
+    protected function logFailedJobWithUuid($failer, string $connection, string $queue, string $payload, \Throwable $exception, string $uuid): void
+    {
+        // Get the database connection
+        $eloquent = EloquentDatabase::getInstance();
+        $db = $eloquent->capsule->getDatabaseManager();
+
+        $failedConfig = $this->getFailedConfig();
+
+        // Insert directly with UUID
+        $db->table($failedConfig['table'])->insert([
+            'uuid' => $uuid,
+            'connection' => $connection,
+            'queue' => $queue,
+            'payload' => $payload,
+            'exception' => (string) $exception,
+            'failed_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     /**
