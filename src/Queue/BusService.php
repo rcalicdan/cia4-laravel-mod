@@ -37,11 +37,11 @@ class BusService
 
     protected function setupBusDispatcher(): void
     {
-        // Check if bus dispatcher already exists in container from QueueService
+        // Use the dispatcher that was already bound by QueueService
         if ($this->container->bound(\Illuminate\Contracts\Bus\Dispatcher::class)) {
             $this->busDispatcher = $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
         } else {
-            // Create new dispatcher if not exists
+            // Fallback: create new dispatcher (shouldn't happen with updated QueueService)
             $this->busDispatcher = new BusDispatcher($this->container, function ($connection = null) {
                 return $this->queueService->getQueueManager()->connection($connection);
             });
@@ -60,9 +60,9 @@ class BusService
             });
 
             $this->container->alias(\Illuminate\Contracts\Bus\Dispatcher::class, 'bus');
-        }
 
-        $this->busDispatcher->pipeThrough([]);
+            $this->busDispatcher->pipeThrough([]);
+        }
     }
 
     protected function setupBatchRepository(): void

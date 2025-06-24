@@ -42,25 +42,39 @@ class QueueService
         $this->setupQueueManager();
         $this->registerConnectors();
         $this->setupFailedJobProvider();
-
-        // CRITICAL: Initialize Bus service AFTER queue setup
-        $this->initializeBusService();
+        $this->setupBusBindings();
     }
 
     /**
-     * Initialize the Bus service to ensure proper container bindings
+     * Setup Bus bindings after queue manager is ready
      */
-    protected function initializeBusService(): void
+    protected function setupBusBindings(): void
     {
-        // This ensures BusService binds the dispatcher before queue workers need it
-        BusService::getInstance();
+        if (!$this->container->bound(\Illuminate\Contracts\Bus\Dispatcher::class)) {
+            $this->container->singleton(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
+                $busDispatcher = new \Illuminate\Bus\Dispatcher($this->container, function ($connection = null) {
+                    return $this->queueManager->connection($connection);
+                });
+
+                $busDispatcher->pipeThrough([]);
+                return $busDispatcher;
+            });
+
+            // Also bind other Bus interfaces
+            $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
+                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+            });
+
+            $this->container->bind(\Illuminate\Bus\Dispatcher::class, function () {
+                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
+            });
+
+            $this->container->alias(\Illuminate\Contracts\Bus\Dispatcher::class, 'bus');
+        }
     }
 
     /**
-     * Setup container bindings - UPDATED TO FIX CONTAINER ISSUES
-     */
-    /**
-     * Setup container bindings - COMPLETE VERSION
+     * Setup container bindings - FIXED VERSION WITHOUT CIRCULAR REFERENCE
      */
     protected function setupContainerBindings(): void
     {
@@ -100,30 +114,6 @@ class QueueService
             $this->container->bind(\Illuminate\Events\Dispatcher::class, function () {
                 return $this->container['events'];
             });
-        }
-
-        // CRITICAL: Pre-bind Bus Dispatcher (this is what was missing!)
-        if (!$this->container->bound(\Illuminate\Contracts\Bus\Dispatcher::class)) {
-            $this->container->singleton(\Illuminate\Contracts\Bus\Dispatcher::class, function () {
-                // This creates a Bus dispatcher early
-                $busDispatcher = new \Illuminate\Bus\Dispatcher($this->container, function ($connection = null) {
-                    return $this->container['queue']->connection($connection);
-                });
-
-                $busDispatcher->pipeThrough([]);
-                return $busDispatcher;
-            });
-
-            // Also bind other Bus interfaces
-            $this->container->bind(\Illuminate\Contracts\Bus\QueueingDispatcher::class, function () {
-                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
-            });
-
-            $this->container->bind(\Illuminate\Bus\Dispatcher::class, function () {
-                return $this->container[\Illuminate\Contracts\Bus\Dispatcher::class];
-            });
-
-            $this->container->alias(\Illuminate\Contracts\Bus\Dispatcher::class, 'bus');
         }
 
         // Bind encrypter (required by some queue operations)
